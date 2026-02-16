@@ -4,6 +4,7 @@ import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
+import { formatAED } from "@/lib/utils";
 
 export default function BuyerCartPage() {
   const queryClient = useQueryClient();
@@ -175,7 +176,7 @@ export default function BuyerCartPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1 text-right">
                   <div className="text-sm font-semibold text-emerald-700">
-                    ${item.total_price}
+                    {formatAED(item.total_price)}
                   </div>
                   <button
                     type="button"
@@ -203,7 +204,7 @@ export default function BuyerCartPage() {
                   Total
                 </div>
                 <div className="text-lg font-semibold text-slate-900">
-                  ${cart.totalPrice || 0}
+                  {formatAED(cart.totalPrice || 0)}
                 </div>
               </div>
               <button

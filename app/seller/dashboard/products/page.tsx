@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { formatAED } from "@/lib/utils";
 
 export default function SellerProductsPage() {
   const queryClient = useQueryClient();
@@ -285,7 +286,7 @@ export default function SellerProductsPage() {
                     <div className="flex items-baseline gap-1">
                       <span className="text-[11px] text-slate-500">Price</span>
                       <span className="text-green-700 font-semibold text-sm">
-                        ${product.price}
+                        {formatAED(product.price)}
                       </span>
                     </div>
                     <div className="flex items-baseline gap-1 text-slate-500">

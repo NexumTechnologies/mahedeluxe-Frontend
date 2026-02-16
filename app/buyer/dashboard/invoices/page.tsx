@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { formatAED } from "@/lib/utils";
 
 export default function BuyerInvoicesPage() {
   return (
@@ -27,7 +28,7 @@ export default function BuyerInvoicesPage() {
               <td className="py-2">INV-2026-101</td>
               <td className="py-2">#2001</td>
               <td className="py-2">2026-01-22</td>
-              <td className="py-2">$50</td>
+              <td className="py-2">{formatAED(50)}</td>
               <td className="py-2"><span className="text-green-600">Paid</span></td>
             </tr>
           </tbody>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { formatAED } from "@/lib/utils";
 
 export default function ProductDetail({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -18,7 +19,7 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
             <div className="h-48 bg-gray-100 rounded flex items-center justify-center">Image</div>
           </div>
           <div>
-            <p className="text-lg font-semibold">Price: $10</p>
+            <p className="text-lg font-semibold">Price: {formatAED(10)}</p>
             <p className="text-sm text-slate-500 mt-2">MOQ: 10</p>
             <p className="text-sm text-slate-500 mt-2">Lead time: 7 days</p>
 

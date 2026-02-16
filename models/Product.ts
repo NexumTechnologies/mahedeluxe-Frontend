@@ -18,7 +18,7 @@ const ProductSchema = new Schema<IProduct>(
     name: { type: String, required: true },
     description: { type: String },
     price: { type: Number, required: true },
-    currency: { type: String, default: "USD" },
+    currency: { type: String, default: "AED" },
     minOrderQty: { type: Number, default: 1 },
     category: { type: String },
     images: {

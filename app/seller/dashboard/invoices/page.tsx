@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { formatAED } from "@/lib/utils";
 
 export default function InvoicesPage() {
   return (
@@ -34,7 +35,7 @@ export default function InvoicesPage() {
               <td className="py-2">INV-2026-001</td>
               <td className="py-2">#1007</td>
               <td className="py-2">2026-01-20</td>
-              <td className="py-2">$320</td>
+              <td className="py-2">{formatAED(320)}</td>
               <td className="py-2"><span className="text-green-600">Paid</span></td>
               <td className="py-2"><Link href="#" className="text-blue-600 underline">Download</Link></td>
             </tr>
@@ -42,7 +43,7 @@ export default function InvoicesPage() {
               <td className="py-2">INV-2026-002</td>
               <td className="py-2">#1006</td>
               <td className="py-2">2026-01-18</td>
-              <td className="py-2">$75</td>
+              <td className="py-2">{formatAED(75)}</td>
               <td className="py-2"><span className="text-yellow-600">Pending</span></td>
               <td className="py-2"><Link href="#" className="text-blue-600 underline">Download</Link></td>
             </tr>
@@ -50,7 +51,7 @@ export default function InvoicesPage() {
               <td className="py-2">INV-2025-099</td>
               <td className="py-2">#1005</td>
               <td className="py-2">2025-12-30</td>
-              <td className="py-2">$1,120</td>
+              <td className="py-2">{formatAED(1120)}</td>
               <td className="py-2"><span className="text-red-600">Overdue</span></td>
               <td className="py-2"><Link href="#" className="text-blue-600 underline">Download</Link></td>
             </tr>

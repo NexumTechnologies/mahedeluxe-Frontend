@@ -115,7 +115,7 @@ export default function AllTransactionsTab() {
             className="appearance-none pl-4 pr-10 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:border-transparent text-sm w-32 bg-white transition-all"
           >
             <option>All</option>
-            <option>USD</option>
+            <option>AED</option>
             <option>EGP</option>
             <option>EUR</option>
           </select>

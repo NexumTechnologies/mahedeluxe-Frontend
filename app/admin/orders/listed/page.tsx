@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import type { AdminOrder } from "../types";
+import { formatAED } from "@/lib/utils";
 
 type AdminOrderStatus = "pending" | "delivered" | "cancelled" | "all";
 
@@ -15,13 +16,6 @@ const STATUS_BADGE: Record<Exclude<AdminOrderStatus, "all">, string> = {
 
 function formatDate(date: string) {
   return new Date(date).toLocaleString();
-}
-
-function formatAmount(amount: number) {
-  return amount?.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 function getImageSrc(url: unknown) {
@@ -108,13 +102,13 @@ export default function AdminListedOrdersPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="text-xs text-gray-500">Total Revenue</div>
           <div className="mt-1 text-2xl font-semibold text-gray-900">
-            ${formatAmount(totals?.totalRevenue ?? 0)}
+            {formatAED(totals?.totalRevenue ?? 0)}
           </div>
         </div>
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="text-xs text-gray-500">Admin Earnings</div>
           <div className="mt-1 text-2xl font-semibold text-gray-900">
-            ${formatAmount(totals?.adminEarnings ?? 0)}
+            {formatAED(totals?.adminEarnings ?? 0)}
           </div>
         </div>
       </div>
@@ -225,7 +219,7 @@ export default function AdminListedOrdersPage() {
                               <span>
                                 Amount:{" "}
                                 <span className="font-semibold text-gray-900">
-                                  ${formatAmount(order.total_amount)}
+                                  {formatAED(order.total_amount)}
                                 </span>
                               </span>
                               {typeof (order as any).admin_earning ===
@@ -235,10 +229,7 @@ export default function AdminListedOrdersPage() {
                                   <span>
                                     Admin earning:{" "}
                                     <span className="font-semibold text-gray-900">
-                                      $
-                                      {formatAmount(
-                                        (order as any).admin_earning,
-                                      )}
+                                      {formatAED((order as any).admin_earning)}
                                     </span>
                                   </span>
                                 </>

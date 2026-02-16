@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { formatAED } from "@/lib/utils";
 
 export default function BuyerBrowseProducts() {
   const router = useRouter();
@@ -138,7 +139,7 @@ export default function BuyerBrowseProducts() {
                           Price
                         </span>
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                          <span>${listingPrice}</span>
+                          <span>{formatAED(listingPrice)}</span>
                         </span>
                       </div>
                       <div className="flex flex-col items-end text-slate-500">

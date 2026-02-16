@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       name,
       description,
       price,
-      currency: currency || "USD",
+      currency: currency || "AED",
       minOrderQty: minOrderQty || 1,
       category,
       images: images || [],
