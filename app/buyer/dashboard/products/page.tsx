@@ -24,6 +24,8 @@ type Product = {
   image_url?: string | string[] | null;
   Category?: ProductCategory;
   min_order_quantity?: number | string;
+  sizes?: string[] | string | null;
+  colors?: string[] | string | null;
 };
 
 type ProductsResponse =
@@ -65,6 +67,8 @@ export default function BuyerProductsPage() {
     price: "",
     quantity: "",
     min_order_quantity: "1",
+    sizes: "",
+    colors: "",
     category_id: "",
     image_urls: "",
   });
@@ -134,6 +138,14 @@ export default function BuyerProductsPage() {
         price: Number(form.price),
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
         category_id: Number(form.category_id),
         image_url:
           uploadedUrls.length > 0
@@ -157,6 +169,8 @@ export default function BuyerProductsPage() {
         price: "",
         quantity: "",
         min_order_quantity: "1",
+        sizes: "",
+        colors: "",
         category_id: "",
         image_urls: "",
       });
@@ -174,6 +188,14 @@ export default function BuyerProductsPage() {
         price: Number(form.price),
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
         category_id: Number(form.category_id),
       };
 
@@ -202,6 +224,8 @@ export default function BuyerProductsPage() {
         price: "",
         quantity: "",
         min_order_quantity: "1",
+        sizes: "",
+        colors: "",
         category_id: "",
         image_urls: "",
       });
@@ -219,6 +243,8 @@ export default function BuyerProductsPage() {
       price: "",
       quantity: "",
       min_order_quantity: "1",
+      sizes: "",
+      colors: "",
       category_id: "",
       image_urls: "",
     });
@@ -240,6 +266,12 @@ export default function BuyerProductsPage() {
       price: String(product.price ?? ""),
       quantity: String(product.quantity ?? ""),
       min_order_quantity: String(product.min_order_quantity ?? 1),
+      sizes: Array.isArray(product.sizes)
+        ? product.sizes.join(", ")
+        : String(product.sizes ?? ""),
+      colors: Array.isArray(product.colors)
+        ? product.colors.join(", ")
+        : String(product.colors ?? ""),
       category_id: String(product.category_id ?? ""),
       image_urls: existingImages.join(", "),
     });
@@ -589,6 +621,38 @@ export default function BuyerProductsPage() {
                 />
                 <p className="mt-1 text-[11px] text-slate-500">
                   Buyers can’t purchase below this quantity.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600">
+                  Sizes
+                </label>
+                <input
+                  type="text"
+                  value={form.sizes}
+                  onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))}
+                  className="mt-1 w-full border rounded px-3 py-2"
+                  placeholder="S, M, L, XL"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Optional. Comma separated.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600">
+                  Colors
+                </label>
+                <input
+                  type="text"
+                  value={form.colors}
+                  onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))}
+                  className="mt-1 w-full border rounded px-3 py-2"
+                  placeholder="Red, Blue, Black"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Optional. Comma separated.
                 </p>
               </div>
               <div className="md:col-span-2">

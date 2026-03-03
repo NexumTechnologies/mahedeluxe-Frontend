@@ -19,6 +19,8 @@ export default function SellerProductsPage() {
     price: "",
     quantity: "",
     min_order_quantity: "1",
+    sizes: "",
+    colors: "",
     category_id: "",
     image_urls: "",
   });
@@ -97,6 +99,14 @@ export default function SellerProductsPage() {
         price: Number(form.price),
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
         category_id: Number(form.category_id),
         // Prefer uploaded URLs; fall back to manual comma-separated input
         image_url:
@@ -121,6 +131,8 @@ export default function SellerProductsPage() {
         price: "",
         quantity: "",
         min_order_quantity: "1",
+        sizes: "",
+        colors: "",
         category_id: "",
         image_urls: "",
       });
@@ -139,6 +151,14 @@ export default function SellerProductsPage() {
         price: Number(form.price),
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
         category_id: Number(form.category_id),
         image_url:
           uploadedUrls.length > 0
@@ -164,6 +184,8 @@ export default function SellerProductsPage() {
         price: "",
         quantity: "",
         min_order_quantity: "1",
+        sizes: "",
+        colors: "",
         category_id: "",
         image_urls: "",
       });
@@ -194,6 +216,8 @@ export default function SellerProductsPage() {
               price: "",
               quantity: "",
               min_order_quantity: "1",
+              sizes: "",
+              colors: "",
               category_id: "",
               image_urls: "",
             });
@@ -377,6 +401,39 @@ export default function SellerProductsPage() {
                     }
                     required
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Sizes
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    placeholder="S, M, L, XL"
+                    value={form.sizes}
+                    onChange={(e) => setForm({ ...form, sizes: e.target.value })}
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Optional. Comma separated.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Colors
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    placeholder="Red, Blue, Black"
+                    value={form.colors}
+                    onChange={(e) => setForm({ ...form, colors: e.target.value })}
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Optional. Comma separated.
+                  </p>
                 </div>
               </div>
 
@@ -716,6 +773,12 @@ export default function SellerProductsPage() {
                       price: String(selectedProduct.price ?? ""),
                       quantity: String(selectedProduct.quantity ?? ""),
                       min_order_quantity: String(selectedProduct.min_order_quantity ?? 1),
+                      sizes: Array.isArray(selectedProduct.sizes)
+                        ? selectedProduct.sizes.join(", ")
+                        : String(selectedProduct.sizes ?? ""),
+                      colors: Array.isArray(selectedProduct.colors)
+                        ? selectedProduct.colors.join(", ")
+                        : String(selectedProduct.colors ?? ""),
                       category_id: String(
                         selectedProduct.category_id || selectedProduct.Category?.id || "",
                       ),

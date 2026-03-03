@@ -27,6 +27,8 @@ type AdminProduct = {
   quantity?: number | string;
   is_active?: boolean;
   image_url?: string | string[] | null;
+  sizes?: string[] | string | null;
+  colors?: string[] | string | null;
   User?: AdminProductUser;
   Category?: AdminProductCategory;
 };
@@ -85,6 +87,8 @@ export default function AdminProductsPage() {
     price: "",
     quantity: "",
     min_order_quantity: "1",
+    sizes: "",
+    colors: "",
     category_id: "",
   });
   const [uploading, setUploading] = useState(false);
@@ -200,6 +204,14 @@ export default function AdminProductsPage() {
         price: Number(form.price),
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
         category_id: Number(form.category_id),
         image_url: uploadedUrls,
       };
@@ -218,6 +230,8 @@ export default function AdminProductsPage() {
         price: "",
         quantity: "",
         min_order_quantity: "1",
+        sizes: "",
+        colors: "",
         category_id: "",
       });
       setUploadedUrls([]);
@@ -270,6 +284,8 @@ export default function AdminProductsPage() {
               price: "",
               quantity: "",
               min_order_quantity: "1",
+              sizes: "",
+              colors: "",
               category_id: "",
             });
             setUploadedUrls([]);
@@ -720,6 +736,38 @@ export default function AdminProductsPage() {
                     placeholder="1"
                     min={1}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Sizes
+                  </label>
+                  <input
+                    type="text"
+                    value={form.sizes}
+                    onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    placeholder="S, M, L, XL"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Optional. Comma separated.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Colors
+                  </label>
+                  <input
+                    type="text"
+                    value={form.colors}
+                    onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    placeholder="Red, Blue, Black"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Optional. Comma separated.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
