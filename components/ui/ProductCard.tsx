@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star, ShoppingCart, Heart } from "lucide-react";
 import { useState } from "react";
+import { getSafeImageSrc } from "@/lib/utils";
 
 interface ProductCardProps {
   id: string;
@@ -35,6 +36,7 @@ export default function ProductCard({
   className = "",
 }: ProductCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
+  const safeImage = getSafeImageSrc(image);
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -78,7 +80,7 @@ export default function ProductCard({
         <div className="relative w-full h-[180px] sm:h-[200px] lg:h-[240px] bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-hidden">
           <div className="absolute inset-0   transition-colors duration-300 z-10" />
           <Image
-            src={image}
+            src={safeImage}
             alt={name}
             fill
             className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"

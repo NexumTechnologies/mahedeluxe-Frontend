@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { getSafeImageFromValue } from "@/lib/utils";
 import { ChevronRight, ChevronLeft, Star, Award, ArrowRight, TrendingUp } from "lucide-react";
 
 interface Product {
@@ -23,13 +24,7 @@ async function fetchTopRanking(): Promise<Product[]> {
     data?.data?.items || data?.data || data?.products || data?.items || data || [];
 
   return items.map((product: any) => {
-    const images: string[] = Array.isArray(product.image_url)
-      ? product.image_url
-      : product.image_url
-        ? [product.image_url]
-        : [];
-
-    const image = images[0] || "/top-ranking-1.png";
+    const image = getSafeImageFromValue(product.image_url, "/top-ranking-1.png");
     const name = product.name || "Product";
     const categoryName = product.Category?.name || "Listed product";
 

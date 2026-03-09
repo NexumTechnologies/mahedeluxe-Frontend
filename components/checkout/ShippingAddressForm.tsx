@@ -5,12 +5,25 @@ import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+export interface ShippingAddressData {
+  country: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  apartment: string;
+  state: string;
+  city: string;
+  postalCode: string;
+  setAsDefault: boolean;
+  summary: string;
+}
+
 interface ShippingAddressFormProps {
   isComplete: boolean;
   onComplete: (complete: boolean) => void;
   isActive: boolean;
   onActivate: () => void;
-  onAddressChange?: (address: string) => void;
+  onAddressChange?: (address: ShippingAddressData) => void;
 }
 
 export default function ShippingAddressForm({
@@ -49,10 +62,15 @@ export default function ShippingAddressForm({
     return parts.filter(Boolean).join(" | ");
   };
 
+  const buildAddressData = (data: typeof formData): ShippingAddressData => ({
+    ...data,
+    summary: buildAddressSummary(data),
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onAddressChange) {
-      onAddressChange(buildAddressSummary(formData));
+      onAddressChange(buildAddressData(formData));
     }
     onComplete(true);
   };
@@ -68,7 +86,7 @@ export default function ShippingAddressForm({
           type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
       };
       if (onAddressChange) {
-        onAddressChange(buildAddressSummary(next));
+        onAddressChange(buildAddressData(next));
       }
       return next;
     });
@@ -228,7 +246,7 @@ export default function ShippingAddressForm({
               id="setAsDefault"
               checked={formData.setAsDefault}
               onChange={handleChange}
-              className="w-4 h-4 text-[#7c3aed] border-gray-300 rounded focus:ring-[#7c3aed]"
+              className="w-4 h-4 text-blue border-gray-300 rounded focus:ring-blue"
             />
             <label
               htmlFor="setAsDefault"
@@ -241,7 +259,7 @@ export default function ShippingAddressForm({
           {/* Continue to payment button */}
           <button
             type="submit"
-            className="w-full h-12 text-base font-medium bg-gradient-to-r from-orange to-orange-300 rounded-lg text-white"
+            className="w-full h-12 text-base font-medium bg-linear-to-r from-orange to-orange-300 rounded-lg text-white"
           >
             Continue to payment
           </button>

@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { getSafeImageFromValue } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,13 +51,7 @@ async function fetchBrowseProducts(
 
   // Normalize into shape expected by ProductCard
   const normalized = items.map((product: any) => {
-    const images: string[] = Array.isArray(product.image_url)
-      ? product.image_url
-      : product.image_url
-        ? [product.image_url]
-        : [];
-
-    const image = images[0] || "/dummy-product.png";
+    const image = getSafeImageFromValue(product.image_url, "/dummy-product.png");
 
     const basePrice = Number(product.price) || 0;
     const customerPriceRaw =

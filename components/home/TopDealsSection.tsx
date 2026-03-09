@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { getSafeImageFromValue } from "@/lib/utils";
 import {
   ChevronRight,
   ChevronLeft,
@@ -28,13 +29,7 @@ async function fetchTopDeals(): Promise<Product[]> {
     data?.data?.items || data?.data || data?.products || data?.items || data || [];
 
   return items.map((product: any) => {
-    const images: string[] = Array.isArray(product.image_url)
-      ? product.image_url
-      : product.image_url
-        ? [product.image_url]
-        : [];
-
-    const image = images[0] || "/top-deals-1.png";
+    const image = getSafeImageFromValue(product.image_url, "/top-deals-1.png");
 
     const basePrice = Number(product.price) || 0;
     const customerPriceRaw =
