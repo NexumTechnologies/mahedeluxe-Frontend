@@ -8,8 +8,9 @@ export default function ConditionalHeader() {
   const isAuthPage = pathname?.startsWith("/auth");
   const isSellerArea = pathname?.startsWith("/seller");
   const isAdminArea = pathname?.startsWith("/admin");
+  const isMaintenance = pathname?.startsWith("/maintenance");
 
-  if (isAuthPage || isSellerArea || isAdminArea) {
+  if (isAuthPage || isSellerArea || isAdminArea || isMaintenance) {
     return null;
   }
 

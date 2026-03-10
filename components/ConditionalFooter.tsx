@@ -8,7 +8,8 @@ export default function ConditionalFooter() {
   const hideFooter =
     pathname?.startsWith("/seller") ||
     pathname?.startsWith("/buyer") ||
-    pathname?.startsWith("/admin");
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/maintenance");
 
   if (hideFooter) {
     return null;
