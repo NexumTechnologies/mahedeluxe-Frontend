@@ -15,10 +15,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const url = request.nextUrl.clone();
-  url.pathname = "/maintenance";
-  url.search = "";
-  return NextResponse.redirect(url);
+  // const url = request.nextUrl.clone();
+  // url.pathname = "/maintenance";
+  // url.search = "";
+  // return NextResponse.redirect(url);
+
+  return NextResponse.next();
 }
 
 export const config = {
