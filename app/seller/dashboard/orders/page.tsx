@@ -8,7 +8,7 @@ export default function SellerOrdersPage() {
   const queryClient = useQueryClient();
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "completed">(
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "processing" | "completed">(
     "all",
   );
 
@@ -53,6 +53,7 @@ export default function SellerOrdersPage() {
   const displayOrders = sortedOrders.filter((order: any) => {
     const status = String(order?.status || "").toLowerCase();
     if (activeTab === "pending") return status === "pending";
+    if (activeTab === "processing") return status === "processing";
     if (activeTab === "completed") return status === "delivered";
     return true;
   });
@@ -99,6 +100,17 @@ export default function SellerOrdersPage() {
             }`}
           >
             Pending
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("processing")}
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+              activeTab === "processing"
+                ? "bg-slate-900 text-white border-slate-900"
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            Processing
           </button>
           <button
             type="button"
@@ -211,22 +223,36 @@ export default function SellerOrdersPage() {
                       >
                         View
                       </button>
-                      <button
-                        type="button"
-                        disabled={
-                          updateStatusMutation.isPending ||
-                          order.status === "delivered"
-                        }
-                        onClick={() =>
-                          updateStatusMutation.mutate({
-                            id: order.id,
-                            status: "delivered",
-                          })
-                        }
-                        className="px-3 py-1 rounded-full border border-emerald-500 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Mark delivered
-                      </button>
+                      {order.status === "pending" && (
+                        <button
+                          type="button"
+                          disabled={updateStatusMutation.isPending}
+                          onClick={() =>
+                            updateStatusMutation.mutate({
+                              id: order.id,
+                              status: "processing",
+                            })
+                          }
+                          className="px-3 py-1 rounded-full border border-blue-500 text-[11px] font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Mark processing
+                        </button>
+                      )}
+                      {order.status === "processing" && (
+                        <button
+                          type="button"
+                          disabled={updateStatusMutation.isPending}
+                          onClick={() =>
+                            updateStatusMutation.mutate({
+                              id: order.id,
+                              status: "delivered",
+                            })
+                          }
+                          className="px-3 py-1 rounded-full border border-emerald-500 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Mark delivered
+                        </button>
+                      )}
                       <button
                         type="button"
                         disabled={
