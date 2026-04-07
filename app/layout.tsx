@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     "MaheDeluxe - Multi-Vendor B2B Marketplace | Connect with Global Suppliers",
   description:
     "Source products from verified vendors worldwide. Build your business with our trusted multi-vendor B2B marketplace platform connecting buyers and sellers globally.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
