@@ -16,6 +16,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+const ActiveAdminHrefContext = React.createContext<string | null>(null);
+
 type AdminNavItem = { href: string; label: string };
 type AdminNavSection = { title: string; items: AdminNavItem[] };
 
@@ -46,7 +48,10 @@ const ADMIN_NAV: AdminNavSection[] = [
   },
   {
     title: "Product Management",
-    items: [{ href: "/admin/products", label: "All Products" }],
+    items: [
+      { href: "/admin/products", label: "All Products" },
+      { href: "/admin/products/own", label: "Own Products" },
+    ],
   },
   {
     title: "Commission",
@@ -99,6 +104,16 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
 
+  const activeHref = React.useMemo(() => {
+    if (!pathname) return null;
+
+    const match = ADMIN_NAV.flatMap((s) => s.items)
+      .sort((a, b) => b.href.length - a.href.length)
+      .find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+
+    return match?.href ?? null;
+  }, [pathname]);
+
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
@@ -113,7 +128,8 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <ActiveAdminHrefContext.Provider value={activeHref}>
+      <div className="min-h-screen bg-background text-foreground">
       <a
         href="#admin-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow"
@@ -250,7 +266,8 @@ export default function AdminLayout({
           </main>
         </div>
       </div>
-    </div>
+      </div>
+    </ActiveAdminHrefContext.Provider>
   );
 }
 
@@ -281,7 +298,7 @@ function Section({
   title: string;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const activeHref = React.useContext(ActiveAdminHrefContext);
 
   const getHrefProp = (child: React.ReactElement): string | null => {
     const props = child.props as unknown;
@@ -295,8 +312,8 @@ function Section({
   const hasActive = childrenArray.some((child) => {
     if (!React.isValidElement(child)) return false;
     const href = getHrefProp(child);
-    if (!href || !pathname) return false;
-    return pathname === href || pathname.startsWith(href);
+    if (!href || !activeHref) return false;
+    return activeHref === href;
   });
 
   const [open, setOpen] = useState(hasActive);
@@ -353,8 +370,8 @@ function NavItem({
   children: React.ReactNode;
   closeOnMobile?: boolean;
 }) {
-  const pathname = usePathname();
-  const isActive = pathname === href || (pathname && pathname.startsWith(href));
+  const activeHref = React.useContext(ActiveAdminHrefContext);
+  const isActive = activeHref === href;
 
   const link = (
     <Link

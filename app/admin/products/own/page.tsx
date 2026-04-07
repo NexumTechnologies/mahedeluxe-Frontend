@@ -1,0 +1,868 @@
+"use client";
+
+import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/axios";
+import ScreenModal from "@/components/ui/ScreenModal";
+
+type CategoryOption = {
+  id: number;
+  name: string;
+};
+
+type AdminProductCategory = {
+  id?: number;
+  name?: string;
+};
+
+type AdminOwnProduct = {
+  id: number;
+  user_id?: number;
+  name: string;
+  description?: string | null;
+  price?: number | string;
+  quantity?: number | string;
+  min_order_quantity?: number | string;
+  category_id?: number | string;
+  is_active?: boolean;
+  image_url?: string | string[] | null;
+  sizes?: string[] | string | null;
+  colors?: string[] | string | null;
+  Category?: AdminProductCategory;
+};
+
+type ProductsResponse =
+  | {
+      data?: { items?: AdminOwnProduct[] };
+      products?: AdminOwnProduct[];
+    }
+  | AdminOwnProduct[];
+
+type CategoriesResponse =
+  | {
+      data?: { items?: CategoryOption[] };
+      categories?: CategoryOption[];
+    }
+  | CategoryOption[];
+
+function getProductsFromResponse(payload: unknown): AdminOwnProduct[] {
+  const data = payload as ProductsResponse;
+  if (Array.isArray(data)) return data;
+  return data?.data?.items ?? data?.products ?? [];
+}
+
+function getCategoriesFromResponse(payload: unknown): CategoryOption[] {
+  const data = payload as CategoriesResponse;
+  if (Array.isArray(data)) return data;
+  return data?.data?.items ?? data?.categories ?? [];
+}
+
+export default function AdminOwnProductsPage() {
+  const queryClient = useQueryClient();
+
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    tone?: "success" | "error";
+  } | null>(null);
+
+  const [selectedProduct, setSelectedProduct] = useState<AdminOwnProduct | null>(
+    null,
+  );
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  const [productModalMode, setProductModalMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    quantity: "",
+    min_order_quantity: "1",
+    sizes: "",
+    colors: "",
+    category_id: "",
+  });
+  const [uploading, setUploading] = useState(false);
+  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+
+  const {
+    data: ownProductsData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["admin-own-products"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await api.get("/product/user/me", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+  });
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ["admin-own-categories-options"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await api.get("/category", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+  });
+
+  const categories = getCategoriesFromResponse(categoriesData);
+  const ownProducts = getProductsFromResponse(ownProductsData);
+
+  const imagesForSelected = (() => {
+    if (!selectedProduct) return [];
+    const raw = selectedProduct.image_url;
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string" && raw.trim()) return [raw];
+    return [];
+  })();
+
+  const isSaveReady =
+    form.name.trim().length > 0 &&
+    form.description.trim().length > 0 &&
+    String(form.price).trim().length > 0 &&
+    Number(form.price) > 0 &&
+    String(form.quantity).trim().length > 0 &&
+    Number(form.quantity) > 0 &&
+    String(form.min_order_quantity).trim().length > 0 &&
+    Number(form.min_order_quantity) >= 1 &&
+    Number(form.quantity) >= Number(form.min_order_quantity) &&
+    String(form.category_id).trim().length > 0 &&
+    uploadedUrls.length > 0;
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const token = localStorage.getItem("token");
+      const payload = {
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        quantity: Number(form.quantity),
+        min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
+        category_id: Number(form.category_id),
+        image_url: uploadedUrls,
+      };
+
+      const res = await api.post("/product", payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-own-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      setIsProductModalOpen(false);
+      setToast({
+        show: true,
+        message: "Product created successfully",
+        tone: "success",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+    onError: () => {
+      setToast({
+        show: true,
+        message: "Failed to create product",
+        tone: "error",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingProductId) throw new Error("Missing product id");
+
+      const token = localStorage.getItem("token");
+      const payload = {
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        quantity: Number(form.quantity),
+        min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
+        category_id: Number(form.category_id),
+        image_url: uploadedUrls,
+      };
+
+      const res = await api.put(`/product/${editingProductId}`, payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-own-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      setIsProductModalOpen(false);
+      setEditingProductId(null);
+      setProductModalMode("create");
+      setToast({
+        show: true,
+        message: "Product updated successfully",
+        tone: "success",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+    onError: () => {
+      setToast({ show: true, message: "Failed to update product", tone: "error" });
+      setTimeout(() => setToast(null), 2500);
+    },
+  });
+
+  const openCreateModal = () => {
+    setProductModalMode("create");
+    setEditingProductId(null);
+    setForm({
+      name: "",
+      description: "",
+      price: "",
+      quantity: "",
+      min_order_quantity: "1",
+      sizes: "",
+      colors: "",
+      category_id: "",
+    });
+    setUploadedUrls([]);
+    setSelectedProduct(null);
+    setSelectedImageIndex(0);
+    setIsProductModalOpen(true);
+  };
+
+  const openEditModal = (product: AdminOwnProduct) => {
+    const raw = product?.image_url;
+    const imgs: string[] = Array.isArray(raw)
+      ? raw
+      : typeof raw === "string" && raw.trim()
+        ? [raw]
+        : [];
+
+    setEditingProductId(product.id);
+    setForm({
+      name: product.name || "",
+      description: String(product.description ?? ""),
+      price: String(product.price ?? ""),
+      quantity: String(product.quantity ?? ""),
+      min_order_quantity: String(product.min_order_quantity ?? 1),
+      sizes: Array.isArray(product.sizes)
+        ? product.sizes.join(", ")
+        : String(product.sizes ?? ""),
+      colors: Array.isArray(product.colors)
+        ? product.colors.join(", ")
+        : String(product.colors ?? ""),
+      category_id: String(product.category_id || product.Category?.id || ""),
+    });
+    setUploadedUrls(imgs);
+    setSelectedProduct(null);
+    setSelectedImageIndex(0);
+    setProductModalMode("edit");
+    setIsProductModalOpen(true);
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {toast?.show && (
+        <div className="fixed top-6 right-6 z-50">
+          <div
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 shadow-lg text-sm font-medium ${
+              toast.tone === "error"
+                ? "bg-red-600 text-white"
+                : "bg-emerald-600 text-white"
+            }`}
+          >
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Own Products</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Products created by you (admin). You can edit these.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Add Product
+        </button>
+      </header>
+
+      <section className="bg-white border rounded-xl p-4 shadow-sm">
+        {isLoading ? (
+          <div className="py-8 text-center text-sm text-slate-500">
+            Loading your products...
+          </div>
+        ) : error ? (
+          <div className="py-8 text-center text-sm text-red-500">
+            Failed to load your products.
+          </div>
+        ) : !ownProducts.length ? (
+          <div className="py-8 text-center text-sm text-slate-500">
+            You have not created any products yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left text-slate-500 border-b bg-slate-50/60">
+                <tr>
+                  <th className="py-3 pr-4">Product</th>
+                  <th className="py-2 pr-4">Category</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Base Price</th>
+                  <th className="py-2 pr-4">Stock</th>
+                  <th className="py-2 pr-0 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {ownProducts.map((product) => {
+                  const images: string[] = Array.isArray(product.image_url)
+                    ? product.image_url
+                    : product.image_url
+                      ? [String(product.image_url)]
+                      : [];
+                  const primaryImage = images[0] || "/dummy-product.png";
+
+                  return (
+                    <tr key={product.id} className="align-top">
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-3 min-w-55">
+                          <div className="w-12 h-12 rounded-lg border bg-slate-100 overflow-hidden shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={primaryImage}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 truncate">
+                              {product.name}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              ID: {product.id}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2 pr-4 text-xs text-slate-700">
+                        {product.Category?.name || "-"}
+                      </td>
+                      <td className="py-2 pr-4">
+                        {product.is_active ? (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700">
+                            Approved
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <span className="font-semibold text-slate-900">
+                          {product.price} AED
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4 text-xs text-slate-700">
+                        {product.quantity}
+                      </td>
+                      <td className="py-2 pr-0 text-right">
+                        <div className="inline-flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setSelectedImageIndex(0);
+                            }}
+                            className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-slate-300 text-slate-700 hover:bg-slate-50"
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(product)}
+                            className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-blue-500 text-blue-600 hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {selectedProduct && (
+        <ScreenModal open={!!selectedProduct}>
+          <div className="app-modal-overlay">
+            <div className="app-modal-panel flex max-w-4xl flex-col">
+              <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-slate-900 truncate">
+                    {selectedProduct.name}
+                  </h2>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Product details
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProduct(null);
+                    setSelectedImageIndex(0);
+                  }}
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="app-modal-scroll grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-3">
+                <div className="md:col-span-1">
+                  {!imagesForSelected.length ? (
+                    <div className="w-full aspect-square rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400">
+                      No image available
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="w-full aspect-square rounded-lg bg-slate-100 overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imagesForSelected[selectedImageIndex]}
+                          alt={selectedProduct.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {imagesForSelected.length > 1 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {imagesForSelected.map((img: string, index: number) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => setSelectedImageIndex(index)}
+                              className={`w-full aspect-square rounded-md bg-slate-100 overflow-hidden border ${
+                                index === selectedImageIndex
+                                  ? "border-blue"
+                                  : "border-transparent"
+                              }`}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={img}
+                                alt={`${selectedProduct.name} ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:col-span-2 space-y-4 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[11px] text-slate-500">
+                      Product ID: <span className="text-slate-700">{selectedProduct.id}</span>
+                    </div>
+                    <div>
+                      {selectedProduct.is_active ? (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700">
+                          Approved
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedProduct.description ? (
+                    <div>
+                      <div className="text-xs font-semibold text-slate-600">
+                        Description
+                      </div>
+                      <div className="text-slate-900 mt-1 whitespace-pre-wrap">
+                        {selectedProduct.description}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-xs font-semibold text-slate-600">
+                        Description
+                      </div>
+                      <div className="text-slate-500 mt-1">No description</div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 border rounded-lg">
+                      <div className="text-xs text-slate-500">Price</div>
+                      <div className="font-semibold text-slate-900">
+                        {selectedProduct.price ?? "-"} AED
+                      </div>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="text-xs text-slate-500">Stock</div>
+                      <div className="font-semibold text-slate-900">
+                        {selectedProduct.quantity ?? "-"}
+                      </div>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="text-xs text-slate-500">Min order</div>
+                      <div className="font-semibold text-slate-900">
+                        {selectedProduct.min_order_quantity ?? 1}
+                      </div>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="text-xs text-slate-500">Category</div>
+                      <div className="font-semibold text-slate-900">
+                        {selectedProduct.Category?.name || "-"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScreenModal>
+      )}
+
+      {isProductModalOpen && (
+        <ScreenModal open={isProductModalOpen}>
+          <div className="app-modal-overlay">
+            <div className="app-modal-panel flex max-w-lg flex-col">
+              <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {productModalMode === "edit" ? "Edit Product" : "Add Product"}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {productModalMode === "edit"
+                      ? "Update your product details."
+                      : "This product will be auto-approved for marketplace."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProductModalOpen(false);
+                    setEditingProductId(null);
+                    setProductModalMode("create");
+                  }}
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="app-modal-scroll space-y-4 px-6 py-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    placeholder="Product name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, description: e.target.value }))
+                    }
+                    className="w-full border rounded-md px-3 py-2 text-sm min-h-24"
+                    placeholder="Write product description"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Price (AED)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.price}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, price: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="0"
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={form.quantity}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, quantity: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="0"
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Minimum Order Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={form.min_order_quantity}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, min_order_quantity: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="1"
+                      min={1}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Sizes
+                    </label>
+                    <input
+                      type="text"
+                      value={form.sizes}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sizes: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="S, M, L, XL"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Required. Comma separated.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Colors
+                    </label>
+                    <input
+                      type="text"
+                      value={form.colors}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, colors: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Red, Blue, Black"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Required. Comma separated.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={form.category_id}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, category_id: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-2">
+                  <div className="text-sm font-semibold text-slate-800">
+                    Product Images
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="admin-own-product-images"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Choose images
+                    </label>
+                    <span className="text-[11px] text-slate-500">
+                      JPG, PNG etc. You can select multiple files.
+                    </span>
+                  </div>
+                  <input
+                    id="admin-own-product-images"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+
+                      const formData = new FormData();
+                      Array.from(files).forEach((file) =>
+                        formData.append("images", file),
+                      );
+
+                      try {
+                        setUploading(true);
+                        const res = await api.post("/upload/multiple", formData, {
+                          headers: {
+                            "Content-Type": "multipart/form-data",
+                          },
+                        });
+                        const urls =
+                          res.data?.urls || res.data?.url || res.data || [];
+                        const newUrls = Array.isArray(urls) ? urls : [urls];
+                        setUploadedUrls((prev) => [...prev, ...newUrls]);
+                      } catch (err) {
+                        console.error("Image upload failed", err);
+                        setToast({
+                          show: true,
+                          message: "Image upload failed",
+                          tone: "error",
+                        });
+                        setTimeout(() => setToast(null), 2500);
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                  />
+
+                  {uploading && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Uploading images...
+                    </p>
+                  )}
+
+                  {uploadedUrls.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-emerald-700 font-medium">
+                        {uploadedUrls.length} image(s) uploaded. Click × to remove.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {uploadedUrls.map((url) => (
+                          <div
+                            key={url}
+                            className="relative w-16 h-16 border rounded overflow-hidden bg-slate-50"
+                          >
+                            <button
+                              type="button"
+                              className="absolute -top-1 -right-1 bg-white text-xs rounded-full border px-1 leading-none shadow"
+                              onClick={() =>
+                                setUploadedUrls((prev) =>
+                                  prev.filter((u) => u !== url),
+                                )
+                              }
+                            >
+                              ×
+                            </button>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt="Product"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductModalOpen(false);
+                      setEditingProductId(null);
+                      setProductModalMode("create");
+                    }}
+                    className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      !isSaveReady ||
+                      createMutation.isPending ||
+                      updateMutation.isPending
+                    }
+                    onClick={() => {
+                      if (productModalMode === "edit") {
+                        updateMutation.mutate();
+                        return;
+                      }
+                      createMutation.mutate();
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {createMutation.isPending || updateMutation.isPending
+                      ? productModalMode === "edit"
+                        ? "Updating..."
+                        : "Creating..."
+                      : productModalMode === "edit"
+                        ? "Update"
+                        : "Create"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScreenModal>
+      )}
+    </div>
+  );
+}

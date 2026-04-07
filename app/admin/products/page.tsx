@@ -22,10 +22,13 @@ type AdminProductCategory = {
 
 type AdminProduct = {
   id: number;
+  user_id?: number;
   name: string;
   description?: string | null;
   price?: number | string;
   quantity?: number | string;
+  min_order_quantity?: number | string;
+  category_id?: number | string;
   is_active?: boolean;
   image_url?: string | string[] | null;
   sizes?: string[] | string | null;
@@ -299,211 +302,212 @@ export default function AdminProductsPage() {
       </header>
 
       <section className="bg-white border rounded-xl p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-              activeTab === "all"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("seller")}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-              activeTab === "seller"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Seller
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("buyer")}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-              activeTab === "buyer"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Buyer
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("admin")}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-              activeTab === "admin"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Admin
-          </button>
-        </div>
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("all")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                activeTab === "all"
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("seller")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                activeTab === "seller"
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              Seller
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("buyer")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                activeTab === "buyer"
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              Buyer
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("admin")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                activeTab === "admin"
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              Admin
+            </button>
+          </div>
 
-        {isLoading ? (
-          <div className="py-8 text-center text-sm text-slate-500">
-            Loading products...
-          </div>
-        ) : error ? (
-          <div className="py-8 text-center text-sm text-red-500">
-            Failed to load products.
-          </div>
-        ) : !products.length ? (
-          <div className="py-8 text-center text-sm text-slate-500">
-            No products found.
-          </div>
-        ) : !displayProducts.length ? (
-          <div className="py-8 text-center text-sm text-slate-500">
-            No products found for this tab.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-slate-500 border-b bg-slate-50/60">
-                <tr>
-                  <th className="py-3 pr-4">Product</th>
-                  <th className="py-2 pr-4">Seller</th>
-                  <th className="py-2 pr-4">Category</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Base Price</th>
-                  <th className="py-2 pr-4">Stock</th>
-                  <th className="py-2 pr-0 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {displayProducts.map((product) => {
-                  const isApproved = Boolean(product.is_active);
-                  const images: string[] = Array.isArray(product.image_url)
-                    ? product.image_url
-                    : product.image_url
-                      ? [String(product.image_url)]
-                      : [];
-                  const primaryImage = images[0] || "/dummy-product.png";
-                  const isThisPending =
-                    approvalMutation.isPending && pendingApprovalId === product.id;
-                  const pendingLabel =
-                    pendingNextIsActive === true
-                      ? "Approving..."
-                      : pendingNextIsActive === false
-                        ? "Unapproving..."
-                        : "Updating...";
-                  const uploaderRole = product.User?.role
-                    ? String(product.User.role)
-                    : "";
+          {isLoading ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              Loading products...
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center text-sm text-red-500">
+              Failed to load products.
+            </div>
+          ) : !products.length ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              No products found.
+            </div>
+          ) : !displayProducts.length ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              No products found for this tab.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-left text-slate-500 border-b bg-slate-50/60">
+                  <tr>
+                    <th className="py-3 pr-4">Product</th>
+                    <th className="py-2 pr-4">Seller</th>
+                    <th className="py-2 pr-4">Category</th>
+                    <th className="py-2 pr-4">Status</th>
+                    <th className="py-2 pr-4">Base Price</th>
+                    <th className="py-2 pr-4">Stock</th>
+                    <th className="py-2 pr-0 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {displayProducts.map((product) => {
+                    const isApproved = Boolean(product.is_active);
+                    const images: string[] = Array.isArray(product.image_url)
+                      ? product.image_url
+                      : product.image_url
+                        ? [String(product.image_url)]
+                        : [];
+                    const primaryImage = images[0] || "/dummy-product.png";
+                    const isThisPending =
+                      approvalMutation.isPending &&
+                      pendingApprovalId === product.id;
+                    const pendingLabel =
+                      pendingNextIsActive === true
+                        ? "Approving..."
+                        : pendingNextIsActive === false
+                          ? "Unapproving..."
+                          : "Updating...";
+                    const uploaderRole = product.User?.role
+                      ? String(product.User.role)
+                      : "";
 
-                  return (
-                    <tr key={product.id} className="align-top">
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-3 min-w-55">
-                          <div className="w-12 h-12 rounded-lg border bg-slate-100 overflow-hidden shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={primaryImage}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 truncate">
-                              {product.name}
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              ID: {product.id}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2 pr-4">
-                        <div className="text-xs text-slate-900">
-                          {product.User?.name || "Seller"}
-                        </div>
-                        {uploaderRole && (
-                          <div className="text-[11px] text-slate-500 capitalize">
-                            {uploaderRole}
-                          </div>
-                        )}
-                        {product.User?.email && (
-                          <div className="text-[11px] text-slate-500">
-                            {product.User.email}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-2 pr-4 text-xs text-slate-700">
-                        {product.Category?.name || "-"}
-                      </td>
-                      <td className="py-2 pr-4">
-                        {isApproved ? (
-                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700">
-                            Approved
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600">
-                            Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-4">
-                        <span className="font-semibold text-slate-900">
-                          {product.price} AED
-                        </span>
-                      </td>
-                      <td className="py-2 pr-4 text-xs text-slate-700">
-                        {product.quantity}
-                      </td>
-                      <td className="py-2 pr-0 text-right">
-                        <div className="inline-flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedProduct(product);
-                              setSelectedImageIndex(0);
-                            }}
-                            className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-slate-300 text-slate-700 hover:bg-slate-50"
-                          >
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              approvalMutation.mutate({
-                                id: product.id,
-                                is_active: !isApproved,
-                              });
-                            }}
-                            disabled={approvalMutation.isPending}
-                            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-medium border transition-colors disabled:opacity-60 ${
-                              isApproved
-                                ? "border-red-500 text-red-600 hover:bg-red-50"
-                                : "border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-                            }`}
-                          >
-                            {isThisPending && (
-                              <span
-                                className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
-                                aria-hidden="true"
+                    return (
+                      <tr key={product.id} className="align-top">
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-3 min-w-55">
+                            <div className="w-12 h-12 rounded-lg border bg-slate-100 overflow-hidden shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={primaryImage}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
                               />
-                            )}
-                            {isThisPending
-                              ? pendingLabel
-                              : isApproved
-                                ? "Unapprove"
-                                : "Approve"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-slate-900 truncate">
+                                {product.name}
+                              </div>
+                              <div className="text-[11px] text-slate-500">
+                                ID: {product.id}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <div className="text-xs text-slate-900">
+                            {product.User?.name || "Seller"}
+                          </div>
+                          {uploaderRole && (
+                            <div className="text-[11px] text-slate-500 capitalize">
+                              {uploaderRole}
+                            </div>
+                          )}
+                          {product.User?.email && (
+                            <div className="text-[11px] text-slate-500">
+                              {product.User.email}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4 text-xs text-slate-700">
+                          {product.Category?.name || "-"}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {isApproved ? (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700">
+                              Approved
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4">
+                          <span className="font-semibold text-slate-900">
+                            {product.price} AED
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-xs text-slate-700">
+                          {product.quantity}
+                        </td>
+                        <td className="py-2 pr-0 text-right">
+                          <div className="inline-flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedProduct(product);
+                                setSelectedImageIndex(0);
+                              }}
+                              className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-slate-300 text-slate-700 hover:bg-slate-50"
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                approvalMutation.mutate({
+                                  id: product.id,
+                                  is_active: !isApproved,
+                                });
+                              }}
+                              disabled={approvalMutation.isPending}
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-medium border transition-colors disabled:opacity-60 ${
+                                isApproved
+                                  ? "border-red-500 text-red-600 hover:bg-red-50"
+                                  : "border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                              }`}
+                            >
+                              {isThisPending && (
+                                <span
+                                  className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              {isThisPending
+                                ? pendingLabel
+                                : isApproved
+                                  ? "Unapprove"
+                                  : "Approve"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
       </section>
 
       {selectedProduct && (
@@ -662,7 +666,9 @@ export default function AdminProductsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                }}
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close"
               >
@@ -894,14 +900,19 @@ export default function AdminProductsPage() {
               <div className="pt-2 flex items-center justify-end gap-2 border-t">
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                  }}
                   className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={!isCreateReady || createMutation.isPending}
+                  disabled={
+                    !isCreateReady ||
+                    createMutation.isPending
+                  }
                   onClick={() => createMutation.mutate()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60"
                 >
