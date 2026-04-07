@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { formatAED } from "@/lib/utils";
@@ -27,6 +26,36 @@ export default function SellerProductsPage() {
   });
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+
+  const startEdit = (product: any) => {
+    const imgs: string[] = Array.isArray(product?.image_url)
+      ? product.image_url
+      : product?.image_url
+        ? [product.image_url]
+        : [];
+
+    setFormMode("edit");
+    setEditingProductId(product?.id ?? null);
+    setForm({
+      name: product?.name || "",
+      description: product?.description || "",
+      price: String(product?.price ?? ""),
+      quantity: String(product?.quantity ?? ""),
+      min_order_quantity: String(product?.min_order_quantity ?? 1),
+      sizes: Array.isArray(product?.sizes)
+        ? product.sizes.join(", ")
+        : String(product?.sizes ?? ""),
+      colors: Array.isArray(product?.colors)
+        ? product.colors.join(", ")
+        : String(product?.colors ?? ""),
+      category_id: String(product?.category_id || product?.Category?.id || ""),
+      image_urls: "",
+    });
+    setUploadedUrls(imgs);
+    setSelectedProduct(null);
+    setSelectedImageIndex(0);
+    setIsModalOpen(true);
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["seller-products"],
@@ -314,11 +343,23 @@ export default function SellerProductsPage() {
                         {formatAED(product.price)}
                       </span>
                     </div>
-                    <div className="flex items-baseline gap-1 text-slate-500">
-                      <span className="text-[11px]">Stock</span>
-                      <span className="text-xs font-medium">
-                        {product.quantity}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-baseline gap-1 text-slate-500">
+                        <span className="text-[11px]">Stock</span>
+                        <span className="text-xs font-medium">
+                          {product.quantity}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(product);
+                        }}
+                        className="rounded-md border px-2 py-1 text-[11px] font-medium text-blue-600 border-blue-500 hover:bg-blue-50"
+                      >
+                        Edit
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -368,7 +409,7 @@ export default function SellerProductsPage() {
                   Description
                 </label>
                 <textarea
-                  className="w-full border rounded px-3 py-2 text-sm min-h-[80px]"
+                  className="w-full border rounded px-3 py-2 text-sm min-h-20"
                   value={form.description}
                   onChange={(e) =>
                     setForm({ ...form, description: e.target.value })
@@ -769,34 +810,7 @@ export default function SellerProductsPage() {
                   type="button"
                   onClick={() => {
                     if (!selectedProduct) return;
-                    const imgs: string[] = Array.isArray(selectedProduct.image_url)
-                      ? selectedProduct.image_url
-                      : selectedProduct.image_url
-                      ? [selectedProduct.image_url]
-                      : [];
-                    setFormMode("edit");
-                    setEditingProductId(selectedProduct.id);
-                    setForm({
-                      name: selectedProduct.name || "",
-                      description: selectedProduct.description || "",
-                      price: String(selectedProduct.price ?? ""),
-                      quantity: String(selectedProduct.quantity ?? ""),
-                      min_order_quantity: String(selectedProduct.min_order_quantity ?? 1),
-                      sizes: Array.isArray(selectedProduct.sizes)
-                        ? selectedProduct.sizes.join(", ")
-                        : String(selectedProduct.sizes ?? ""),
-                      colors: Array.isArray(selectedProduct.colors)
-                        ? selectedProduct.colors.join(", ")
-                        : String(selectedProduct.colors ?? ""),
-                      category_id: String(
-                        selectedProduct.category_id || selectedProduct.Category?.id || "",
-                      ),
-                      image_urls: "",
-                    });
-                    setUploadedUrls(imgs);
-                    setSelectedProduct(null);
-                    setSelectedImageIndex(0);
-                    setIsModalOpen(true);
+                    startEdit(selectedProduct);
                   }}
                   className="rounded-md border px-3 py-1.5 text-blue-600 border-blue-500 hover:bg-blue-50 font-medium"
                 >
