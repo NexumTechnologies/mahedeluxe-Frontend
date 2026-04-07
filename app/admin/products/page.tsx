@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import ScreenModal from "@/components/ui/ScreenModal";
 
 type CategoryOption = {
   id: number;
@@ -506,9 +507,10 @@ export default function AdminProductsPage() {
       </section>
 
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-4xl rounded-xl bg-white shadow-lg p-5">
-            <div className="flex items-start justify-between mb-4 gap-4">
+        <ScreenModal open={!!selectedProduct}>
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel flex max-w-4xl flex-col">
+            <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
               <div className="min-w-0">
                 <h2 className="text-base font-semibold text-slate-900 truncate">
                   {selectedProduct.name}
@@ -530,7 +532,7 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="app-modal-scroll grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-3">
               <div className="md:col-span-1">
                 {!imagesForSelected.length ? (
                   <div className="w-full aspect-square rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400">
@@ -644,12 +646,14 @@ export default function AdminProductsPage() {
             </div>
           </div>
         </div>
+        </ScreenModal>
       )}
 
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto px-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 my-10">
-            <div className="flex items-start justify-between gap-4 mb-4">
+        <ScreenModal open={isCreateModalOpen}>
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel flex max-w-lg flex-col">
+            <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
               <div className="min-w-0">
                 <h2 className="text-xl font-semibold text-slate-900">Add Product</h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -666,7 +670,7 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="app-modal-scroll space-y-4 px-6 py-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   Name
@@ -887,7 +891,7 @@ export default function AdminProductsPage() {
                 )}
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2 border-t">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
@@ -907,6 +911,7 @@ export default function AdminProductsPage() {
             </div>
           </div>
         </div>
+        </ScreenModal>
       )}
 
     </div>

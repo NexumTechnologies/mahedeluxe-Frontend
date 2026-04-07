@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { formatAED } from "@/lib/utils";
+import ScreenModal from "@/components/ui/ScreenModal";
 
 export default function SellerProductsPage() {
   const queryClient = useQueryClient();
@@ -328,14 +329,17 @@ export default function SellerProductsPage() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 my-10">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
+        <ScreenModal open={isModalOpen}>
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel flex max-w-lg flex-col">
+            <div className="border-b px-6 py-4">
+            <h2 className="text-xl font-semibold text-slate-900">
               {formMode === "create" ? "Add New Product" : "Edit Product"}
             </h2>
+            </div>
 
             <form
-              className="space-y-4"
+              className="flex min-h-0 flex-1 flex-col"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (formMode === "edit") {
@@ -345,6 +349,7 @@ export default function SellerProductsPage() {
                 }
               }}
             >
+              <div className="app-modal-scroll space-y-4 px-6 py-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Name
@@ -601,7 +606,9 @@ export default function SellerProductsPage() {
                 </div>
               )}
 
-              <div className="mt-4 flex justify-end gap-3">
+              </div>
+
+              <div className="mt-auto flex justify-end gap-3 border-t px-6 py-4">
                 <button
                   type="button"
                   className="px-4 py-2 text-sm rounded border"
@@ -625,11 +632,13 @@ export default function SellerProductsPage() {
             </form>
           </div>
         </div>
+        </ScreenModal>
       )}
 
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-hidden">
+        <ScreenModal open={!!selectedProduct}>
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel max-w-2xl">
             <div className="flex items-center justify-between border-b px-5 py-4 bg-white/80 backdrop-blur-sm">
               <div>
                 <h2 className="text-base font-semibold text-slate-900">
@@ -652,7 +661,7 @@ export default function SellerProductsPage() {
               </button>
             </div>
 
-            <div className="px-5 py-4 space-y-4 text-sm overflow-y-auto max-h-[calc(90vh-60px)]">
+            <div className="app-modal-scroll px-5 py-4 space-y-4 text-sm">
               {(() => {
                 const imgs: string[] = Array.isArray(selectedProduct.image_url)
                   ? selectedProduct.image_url
@@ -841,6 +850,7 @@ export default function SellerProductsPage() {
             </div>
           </div>
         </div>
+        </ScreenModal>
       )}
     </div>
   );

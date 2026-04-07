@@ -103,13 +103,9 @@ export default function AdminCategoriesPage() {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black opacity-40"
-            onClick={() => setModalOpen(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-lg w-11/12 max-w-2xl p-6 z-10">
-            <div className="flex items-center justify-between">
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel z-10 max-w-2xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
               <h3 className="text-lg font-semibold">
                 {editing ? "Edit Category" : "Add Category"}
               </h3>
@@ -121,7 +117,7 @@ export default function AdminCategoriesPage() {
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="app-modal-scroll space-y-3 px-6 py-4">
               <div>
                 <label className="text-sm">Name</label>
                 <input

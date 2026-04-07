@@ -6,7 +6,6 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import api from "@/lib/axios";
 import Link from "next/link";
-import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -94,7 +93,7 @@ export default function LoginForm() {
     <div className="w-full">
       {/* Desktop Title */}
       <div className="hidden md:block text-center">
-        <h1 className="text-blue text-[25px] font-bold leading-[35px]">
+        <h1 className="text-blue text-[25px] font-bold leading-8.75">
           Sign in to MaheDeluxe
         </h1>
         <p className="text-blue text-[16px] leading-[18.2px] font-medium mt-1">
@@ -205,31 +204,6 @@ export default function LoginForm() {
           >
             Forgot Your Password?
           </Link>
-        </div>
-
-        {/* Social Login */}
-        <div className="mt-8 space-y-3">
-          {["google", "facebook", "apple"].map((provider) => (
-            <button
-              key={provider}
-              type="button"
-              className="w-full h-12 border-2 border-blue rounded-lg flex items-center justify-between px-4 hover:bg-gray-50"
-            >
-              <div className="flex items-center gap-3">
-                <Image
-                  src={`/${provider}.svg`}
-                  alt={provider}
-                  width={24}
-                  height={24}
-                />
-                <span className="text-[16px] font-medium">
-                  Continue with{" "}
-                  {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                </span>
-              </div>
-              <span className="text-blue">{">"}</span>
-            </button>
-          ))}
         </div>
       </form>
     </div>

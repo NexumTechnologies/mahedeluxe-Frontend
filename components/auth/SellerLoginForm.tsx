@@ -64,7 +64,7 @@ export default function SellerLoginForm() {
     <div className="w-full">
       {/* Desktop Title - Hidden on mobile */}
       <div className="hidden md:block text-center">
-        <h1 className="text-blue text-[25px] font-bold leading-[35px]">
+        <h1 className="text-blue text-[25px] font-bold leading-8.75">
           Sign in to MaheDeluxe
         </h1>
         <p className="text-[#6B6B6B] text-[16px] leading-[18.2px] font-medium mt-1">
@@ -108,7 +108,7 @@ export default function SellerLoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-[22px] font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
+              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-5.5 font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
             />
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function SellerLoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-[22px] font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
+              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-5.5 font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
             />
           </div>
         </div>

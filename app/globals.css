@@ -158,3 +158,96 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* Shared modal layout helpers */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+  background: rgb(15 23 42 / 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.app-modal-panel {
+  position: relative;
+  width: 100%;
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 1rem;
+  background: rgb(255 255 255);
+  box-shadow: 0 24px 60px rgb(15 23 42 / 0.2);
+}
+
+.app-modal-scroll {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.auth-scene-grid {
+  background-image:
+    linear-gradient(rgb(148 163 184 / 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center;
+}
+
+.auth-float-slow {
+  animation: auth-float-slow 8s ease-in-out infinite;
+}
+
+.auth-float-medium {
+  animation: auth-float-medium 6.5s ease-in-out infinite;
+}
+
+.auth-float-fast {
+  animation: auth-float-fast 5.5s ease-in-out infinite;
+}
+
+@keyframes auth-float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes auth-float-medium {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+@keyframes auth-float-fast {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+@media (min-width: 640px) {
+  .app-modal-overlay {
+    align-items: center;
+    padding: 2rem 1.5rem;
+  }
+
+  .app-modal-panel {
+    max-height: calc(100dvh - 4rem);
+  }
+}

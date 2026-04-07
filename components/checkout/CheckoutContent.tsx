@@ -123,8 +123,8 @@ export default function CheckoutContent() {
       </div>
 
       {isConfirmModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-lg p-6 space-y-4">
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel max-w-md p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">
               Confirm your order
             </h2>

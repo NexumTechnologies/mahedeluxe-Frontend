@@ -279,8 +279,8 @@ export default function SellerOrdersPage() {
       </section>
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-lg bg-white shadow-lg">
+        <div className="app-modal-overlay z-40">
+          <div className="app-modal-panel max-w-lg">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">
@@ -302,7 +302,7 @@ export default function SellerOrdersPage() {
               </button>
             </div>
 
-            <div className="space-y-4 px-4 py-4 text-sm">
+            <div className="app-modal-scroll space-y-4 px-4 py-4 text-sm">
               <div className="flex gap-3">
                 {selectedOrder.Product?.image_url?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element

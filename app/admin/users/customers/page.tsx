@@ -124,15 +124,14 @@ export default function AdminCustomersPage() {
             <div className="p-4">
           {/* Modal */}
           {modalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="absolute inset-0 bg-black opacity-40" onClick={() => setModalOpen(false)} />
-              <div className="relative bg-white rounded-lg shadow-lg w-11/12 max-w-2xl p-6 z-10">
-                <div className="flex items-start justify-between">
+            <div className="app-modal-overlay">
+              <div className="app-modal-panel z-10 max-w-2xl">
+                <div className="flex items-start justify-between border-b px-6 py-4">
                   <h3 className="text-lg font-semibold">Customer details</h3>
                   <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-gray-700">Close</button>
                 </div>
 
-                <div className="mt-4">
+                <div className="app-modal-scroll px-6 py-4">
                   {!selectedUser ? (
                     <div className="text-center py-6">Loading details...</div>
                   ) : isErrorState(selectedUser) ? (

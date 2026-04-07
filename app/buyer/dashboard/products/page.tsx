@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import ScreenModal from "@/components/ui/ScreenModal";
 
 type CategoryOption = {
   id: number;
@@ -207,7 +208,8 @@ export default function BuyerProductsPage() {
               .map((u) => u.trim())
               .filter(Boolean);
 
-      const payload = urls.length > 0 ? { ...basePayload, image_url: urls } : basePayload;
+      const payload =
+        urls.length > 0 ? { ...basePayload, image_url: urls } : basePayload;
 
       const res = await api.put(`/product/${editingProductId}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
@@ -392,13 +394,17 @@ export default function BuyerProductsPage() {
 
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <div className="rounded-lg border bg-slate-50 px-3 py-2">
-                          <div className="text-[11px] text-slate-500">Stock</div>
+                          <div className="text-[11px] text-slate-500">
+                            Stock
+                          </div>
                           <div className="text-sm font-semibold text-slate-900">
                             {product.quantity ?? "-"}
                           </div>
                         </div>
                         <div className="rounded-lg border bg-slate-50 px-3 py-2">
-                          <div className="text-[11px] text-slate-500">Images</div>
+                          <div className="text-[11px] text-slate-500">
+                            Images
+                          </div>
                           <div className="text-sm font-semibold text-slate-900">
                             {images.length}
                           </div>
@@ -431,9 +437,10 @@ export default function BuyerProductsPage() {
       </section>
 
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-3xl rounded-xl bg-white shadow-lg p-5">
-            <div className="flex items-start justify-between mb-4 gap-4">
+        <ScreenModal open={!!selectedProduct}>
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel flex max-w-3xl flex-col">
+            <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
               <div>
                 <h2 className="text-base font-semibold text-slate-900">
                   {selectedProduct.name}
@@ -451,7 +458,7 @@ export default function BuyerProductsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="app-modal-scroll grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-3">
               <div className="md:col-span-1">
                 {!imagesForSelected.length ? (
                   <div className="w-full aspect-square rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400">
@@ -522,12 +529,14 @@ export default function BuyerProductsPage() {
             </div>
           </div>
         </div>
+        </ScreenModal>
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-xl rounded-xl bg-white shadow-lg p-5">
-            <div className="flex items-start justify-between mb-4 gap-4">
+        <ScreenModal open={isModalOpen}>
+        <div className="app-modal-overlay">
+          <div className="app-modal-panel flex max-w-xl flex-col">
+            <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
               <div>
                 <h2 className="text-base font-semibold text-slate-900">
                   {formMode === "create" ? "Add product" : "Edit product"}
@@ -547,7 +556,8 @@ export default function BuyerProductsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="app-modal-scroll px-5 py-4">
+            <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold text-slate-600">
                   Name
@@ -615,7 +625,10 @@ export default function BuyerProductsPage() {
                   min={1}
                   value={form.min_order_quantity}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, min_order_quantity: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      min_order_quantity: e.target.value,
+                    }))
                   }
                   className="mt-1 w-full border rounded px-3 py-2"
                 />
@@ -631,7 +644,9 @@ export default function BuyerProductsPage() {
                 <input
                   type="text"
                   value={form.sizes}
-                  onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sizes: e.target.value }))
+                  }
                   className="mt-1 w-full border rounded px-3 py-2"
                   placeholder="S, M, L, XL"
                 />
@@ -647,7 +662,9 @@ export default function BuyerProductsPage() {
                 <input
                   type="text"
                   value={form.colors}
-                  onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, colors: e.target.value }))
+                  }
                   className="mt-1 w-full border rounded px-3 py-2"
                   placeholder="Red, Blue, Black"
                 />
@@ -722,7 +739,10 @@ export default function BuyerProductsPage() {
                           const newUrls = Array.isArray(urls) ? urls : [urls];
                           setUploadedUrls((prev) => {
                             const next = [...prev, ...newUrls];
-                            setForm((f) => ({ ...f, image_urls: next.join(", ") }));
+                            setForm((f) => ({
+                              ...f,
+                              image_urls: next.join(", "),
+                            }));
                             return next;
                           });
                         } catch (err) {
@@ -763,7 +783,10 @@ export default function BuyerProductsPage() {
                                 onClick={() =>
                                   setUploadedUrls((prev) => {
                                     const next = prev.filter((u) => u !== url);
-                                    setForm((f) => ({ ...f, image_urls: next.join(", ") }));
+                                    setForm((f) => ({
+                                      ...f,
+                                      image_urls: next.join(", "),
+                                    }));
                                     return next;
                                   })
                                 }
@@ -804,7 +827,9 @@ export default function BuyerProductsPage() {
               </div>
             </div>
 
-            <div className="mt-5 flex justify-end gap-2">
+            </div>
+
+            <div className="mt-auto flex justify-end gap-2 border-t px-5 py-4">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
@@ -837,6 +862,7 @@ export default function BuyerProductsPage() {
             </div>
           </div>
         </div>
+        </ScreenModal>
       )}
     </div>
   );

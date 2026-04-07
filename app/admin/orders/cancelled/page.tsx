@@ -36,8 +36,8 @@ function OrderDetailModal({ order, onClose }: { order: AdminOrder | null; onClos
   const product = order.Product;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-      <div className="max-w-2xl w-full rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden">
+    <div className="app-modal-overlay z-40">
+      <div className="app-modal-panel max-w-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b bg-gray-50/60">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">Order #{order.id}</h2>
@@ -50,7 +50,7 @@ function OrderDetailModal({ order, onClose }: { order: AdminOrder | null; onClos
             Close
           </button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="app-modal-scroll p-5 space-y-4">
           <div className="flex gap-4">
             <div className="w-20 h-20 rounded-xl bg-linear-to-br from-rose-50 to-red-50 flex items-center justify-center text-xs font-semibold text-rose-700 overflow-hidden shrink-0">
               {product?.image_url ? (
