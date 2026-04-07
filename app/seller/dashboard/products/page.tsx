@@ -11,6 +11,7 @@ export default function SellerProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -116,6 +117,7 @@ export default function SellerProductsPage() {
     onSuccess: () => {
       setSelectedProduct(null);
       setSelectedImageIndex(0);
+      setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ["seller-products"] });
     },
   });
@@ -359,6 +361,16 @@ export default function SellerProductsPage() {
                         className="rounded-md border px-2 py-1 text-[11px] font-medium text-blue-600 border-blue-500 hover:bg-blue-50"
                       >
                         Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(product);
+                        }}
+                        className="rounded-md border px-2 py-1 text-[11px] font-medium border-red-500 text-red-600 hover:bg-red-50"
+                      >
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -841,10 +853,7 @@ export default function SellerProductsPage() {
                     disabled={deleteMutation.isPending}
                     onClick={() => {
                       if (!selectedProduct) return;
-                      if (!window.confirm("Are you sure you want to delete this product?")) {
-                        return;
-                      }
-                      deleteMutation.mutate(selectedProduct.id);
+                      setDeleteTarget(selectedProduct);
                     }}
                   >
                     Delete
@@ -864,6 +873,55 @@ export default function SellerProductsPage() {
             </div>
           </div>
         </div>
+        </ScreenModal>
+      )}
+
+      {deleteTarget && (
+        <ScreenModal open={!!deleteTarget}>
+          <div className="app-modal-overlay">
+            <div className="app-modal-panel flex max-w-md flex-col">
+              <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-slate-900">
+                    Delete Product
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Are you sure to delete this product?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="px-6 py-4 text-sm text-slate-600">
+                This action can’t be undone.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(deleteTarget.id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
         </ScreenModal>
       )}
     </div>

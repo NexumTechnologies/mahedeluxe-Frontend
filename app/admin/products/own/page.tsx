@@ -70,6 +70,7 @@ export default function AdminOwnProductsPage() {
     null,
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<AdminOwnProduct | null>(null);
 
   const [productModalMode, setProductModalMode] = useState<"create" | "edit">(
     "create",
@@ -229,6 +230,39 @@ export default function AdminOwnProductsPage() {
     },
     onError: () => {
       setToast({ show: true, message: "Failed to update product", tone: "error" });
+      setTimeout(() => setToast(null), 2500);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const token = localStorage.getItem("token");
+      const res = await api.delete(`/product/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-own-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      if (selectedProduct?.id === id) {
+        setSelectedProduct(null);
+        setSelectedImageIndex(0);
+      }
+      setDeleteTarget(null);
+      setToast({
+        show: true,
+        message: "Product deleted successfully",
+        tone: "success",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+    onError: () => {
+      setToast({
+        show: true,
+        message: "Failed to delete product",
+        tone: "error",
+      });
       setTimeout(() => setToast(null), 2500);
     },
   });
@@ -413,6 +447,13 @@ export default function AdminOwnProductsPage() {
                           >
                             Edit
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(product)}
+                            className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-red-300 text-red-700 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -423,6 +464,55 @@ export default function AdminOwnProductsPage() {
           </div>
         )}
       </section>
+
+      {deleteTarget && (
+        <ScreenModal open={!!deleteTarget}>
+          <div className="app-modal-overlay">
+            <div className="app-modal-panel flex max-w-md flex-col">
+              <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-slate-900">
+                    Delete Product
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Are you sure to delete this product?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="px-6 py-4 text-sm text-slate-600">
+                This action can’t be undone.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(deleteTarget.id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ScreenModal>
+      )}
 
       {selectedProduct && (
         <ScreenModal open={!!selectedProduct}>
