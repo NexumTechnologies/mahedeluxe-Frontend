@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function RegisterForm() {
   const [name, setName] = useState("");
@@ -191,6 +192,18 @@ export default function RegisterForm() {
         >
           {loading ? "Signing up..." : "SIGN UP"}
         </Button>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="text-[#7c3aed] hover:underline">
+            Terms &amp; Conditions
+          </Link>
+          {" "}and{" "}
+          <Link href="/privacy-policy" className="text-[#7c3aed] hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </div>
   );

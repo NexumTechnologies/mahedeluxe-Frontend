@@ -47,7 +47,7 @@ export default function SellerLoginForm() {
 
           window.dispatchEvent(new Event("auth-change"));
         }
-      } catch (err) {
+      } catch {
         // Ignore persistence errors; don't block login.
       }
 
@@ -179,6 +179,18 @@ export default function SellerLoginForm() {
             Forgot Your Password?
           </Link>
         </div>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="text-[#7c3aed] hover:underline">
+            Terms &amp; Conditions
+          </Link>
+          {" "}and{" "}
+          <Link href="/privacy-policy" className="text-[#7c3aed] hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </div>
   );

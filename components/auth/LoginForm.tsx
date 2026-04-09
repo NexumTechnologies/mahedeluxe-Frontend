@@ -9,6 +9,22 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+type AuthRole = "admin" | "seller" | "buyer" | "user" | (string & {});
+
+type AuthPayload = {
+  role?: AuthRole;
+  is_varified?: boolean;
+  [key: string]: unknown;
+};
+
+type LoginResponse = {
+  token?: string;
+  user?: AuthPayload;
+  data?: (AuthPayload & { token?: string }) | undefined;
+  message?: string;
+  success?: boolean;
+};
+
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,15 +38,16 @@ export default function LoginForm() {
       return resp.data;
     },
 
-    onSuccess: (resData: any) => {
+    onSuccess: (resData: unknown) => {
+      const normalized = (resData || {}) as LoginResponse;
       // API may return either { success, message, data: {...} } from backend
       // or { message, user, token } from Next.js /api/auth/login.
-      const payload = resData?.data || resData?.user || {};
+      const payload = (normalized.data || normalized.user || {}) as AuthPayload;
 
       // Persist auth info for header/cart (client-only).
       try {
-        if (resData?.token || (resData?.data && resData.data.token)) {
-          const token = resData.token || resData.data.token;
+        const token = normalized.token || normalized.data?.token;
+        if (token) {
           if (typeof window !== "undefined" && token) {
             localStorage.setItem("token", token);
           }
@@ -43,14 +60,14 @@ export default function LoginForm() {
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("auth-change"));
         }
-      } catch (e) {
+      } catch {
         // Swallow persistence errors; don't block login flow.
       }
 
-      const role = (payload as any).role;
+      const role = payload.role;
 
       // If user is not verified (and not an admin or user), send them to verification page
-      if ((payload as any).is_varified === false && role !== "admin" && role !== "user") {
+      if (payload.is_varified === false && role !== "admin" && role !== "user") {
         router.push("/auth/verification");
         router.refresh();
         return;
@@ -205,6 +222,18 @@ export default function LoginForm() {
             Forgot Your Password?
           </Link>
         </div>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="text-[#7c3aed] hover:underline">
+            Terms &amp; Conditions
+          </Link>
+          {" "}and{" "}
+          <Link href="/privacy-policy" className="text-[#7c3aed] hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </div>
   );

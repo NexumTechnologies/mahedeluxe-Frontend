@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { registerUser } from "@/lib/api";
@@ -52,15 +53,14 @@ export default function SellerRegisterStep1({ role = "seller" }: { role?: Role }
           name: fullName,
           email: workEmail,
           password,
-          // include mobileNumber and role
           mobileNumber,
           role: storedRole,
-        } as any);
+        });
         // on success, navigate to home
         router.push("/");
       } catch (err: unknown) {
-        const msg = err && typeof err === "object" && "message" in err ? (err as any).message : "Registration failed";
-        setError(msg as string);
+        const msg = err instanceof Error ? err.message : "Registration failed";
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -295,6 +295,18 @@ export default function SellerRegisterStep1({ role = "seller" }: { role?: Role }
         >
           {loading ? "Registering..." : "Next"}
         </Button>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="text-[#7c3aed] hover:underline">
+            Terms &amp; Conditions
+          </Link>
+          {" "}and{" "}
+          <Link href="/privacy-policy" className="text-[#7c3aed] hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </div>
   );

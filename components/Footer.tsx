@@ -74,8 +74,8 @@ export default function Footer() {
         <div className="mt-8 border-t pt-6 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>© {new Date().getFullYear()} MaheDeluxe. All rights reserved.</div>
           <div className="flex items-center gap-4">
-            <Link href="#" className="hover:text-slate-900">Privacy</Link>
-            <Link href="#" className="hover:text-slate-900">Terms</Link>
+            <Link href="/privacy-policy" className="hover:text-slate-900">Privacy</Link>
+            <Link href="/terms" className="hover:text-slate-900">Terms</Link>
             <Link href="#" className="hover:text-slate-900">Help</Link>
           </div>
         </div>
