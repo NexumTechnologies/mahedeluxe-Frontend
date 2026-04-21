@@ -2,6 +2,7 @@ import {
   decrementPendingRequests,
   incrementPendingRequests,
 } from "@/lib/requestTracker";
+import { getStoredToken } from "@/lib/authStorage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api/v1";
 
@@ -9,14 +10,18 @@ async function request(path: string, opts: RequestInit = {}) {
   const shouldTrack = typeof window !== "undefined";
   if (shouldTrack) incrementPendingRequests();
 
+  const token = getStoredToken();
+  const headers = new Headers(opts.headers || {});
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(opts.headers || {}),
-      },
+      headers,
       ...opts,
     });
   } finally {

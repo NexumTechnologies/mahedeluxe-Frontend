@@ -4,6 +4,7 @@ import {
   incrementPendingRequests,
 } from "@/lib/requestTracker";
 import { notifyError } from "@/lib/notifications";
+import { getStoredToken } from "@/lib/authStorage";
 
 // Prefer an explicit NEXT_PUBLIC_API_BASE_URL when provided (for staging/backend).
 // For local Next.js API routes default to relative "/api" so axios will call the app's
@@ -21,6 +22,21 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     (config as any).__tracked = true;
+
+    // If the backend expects `Authorization: Bearer <token>` and the app stored
+    // a token in localStorage, attach it automatically.
+    const token = getStoredToken();
+    if (token) {
+      const headers: any = config.headers || {};
+      const hasAuthHeader =
+        typeof headers.Authorization !== "undefined" ||
+        typeof headers.authorization !== "undefined";
+      if (!hasAuthHeader) {
+        headers.Authorization = `Bearer ${token}`;
+        config.headers = headers;
+      }
+    }
+
     incrementPendingRequests();
     return config;
   },

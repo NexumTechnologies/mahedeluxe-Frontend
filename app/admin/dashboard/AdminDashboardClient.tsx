@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminDashboardStats } from "@/lib/api";
+import { getStoredToken, getStoredUser } from "@/lib/authStorage";
 
 interface DashboardStats {
   totalUsers?: number;
@@ -81,11 +81,17 @@ function Card({
 }
 
 export default function AdminDashboardClient() {
+  const token = getStoredToken();
+  const user = getStoredUser();
+  const isAuthedAdmin = !!token && (user?.role === "admin" || user?.role === "Admin");
+
   const { data, isLoading, isError } = useQuery<DashboardStats>({
     queryKey: ["admin-dashboard-stats"],
+    enabled: isAuthedAdmin,
     queryFn: async () => {
       const res = await getAdminDashboardStats();
-      return (res as any)?.data as DashboardStats;
+      const payload = res as { data?: DashboardStats } | null;
+      return payload?.data ?? {};
     },
   });
 
