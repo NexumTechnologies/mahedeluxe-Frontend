@@ -67,14 +67,14 @@ const ADMIN_NAV: AdminNavSection[] = [
       { href: "/admin/orders/cancelled", label: "Cancelled / Refunded" },
     ],
   },
-  {
-    title: "Reports & Analytics",
-    items: [
-      { href: "/admin/reports/sales", label: "Sales Reports" },
-      { href: "/admin/reports/users", label: "User Reports" },
-      { href: "/admin/reports/revenue", label: "Revenue Reports" },
-    ],
-  },
+  // {
+  //   title: "Reports & Analytics",
+  //   items: [
+  //     { href: "/admin/reports/sales", label: "Sales Reports" },
+  //     { href: "/admin/reports/users", label: "User Reports" },
+  //     { href: "/admin/reports/revenue", label: "Revenue Reports" },
+  //   ],
+  // },
 ];
 
 function getAdminPageTitle(pathname: string | null) {
@@ -138,20 +138,22 @@ export default function AdminLayout({
       </a>
 
       <div className="flex min-h-screen">
-        {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen md:overflow-hidden">
+          {/* Desktop sidebar */}
+          <aside className="hidden md:flex w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen md:overflow-visible">
           <AdminSidebarHeader />
-          <nav className="px-4 py-4 space-y-3 flex-1 overflow-hidden">
-            {ADMIN_NAV.map((section) => (
-              <Section key={section.title} title={section.title}>
-                {section.items.map((item) => (
-                  <NavItem key={item.href} href={item.href}>
-                    {item.label}
-                  </NavItem>
-                ))}
-              </Section>
-            ))}
-          </nav>
+            <ScrollArea className="flex-1 overflow-auto">
+            <nav className="space-y-3 px-4 py-4">
+              {ADMIN_NAV.map((section) => (
+                <Section key={section.title} title={section.title}>
+                  {section.items.map((item) => (
+                    <NavItem key={item.href} href={item.href}>
+                      {item.label}
+                    </NavItem>
+                  ))}
+                </Section>
+              ))}
+            </nav>
+          </ScrollArea>
 
           <div className="p-4 border-t border-sidebar-border">
             <Button
@@ -350,11 +352,11 @@ function Section({
       </button>
 
       <div
-        className={cn(
-          "mt-1 space-y-1 overflow-hidden border-l border-sidebar-border pl-3 ml-2 transition-[max-height] duration-200",
-          open ? "max-h-96" : "max-h-0",
-        )}
-      >
+            className={cn(
+              "mt-1 space-y-1 overflow-hidden border-l border-sidebar-border pl-3 ml-2 transition-[max-height] duration-200",
+              open ? "max-h-[60vh]" : "max-h-0",
+            )}
+          >
         {children}
       </div>
     </div>

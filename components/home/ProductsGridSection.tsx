@@ -2,11 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ShoppingCart, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Heart, Sparkles, Star } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
+
+interface ProductApiItem {
+  id?: string | number;
+  name?: string;
+  image_url?: string | null;
+  price?: string | number | null;
+  customer_price?: string | number | null;
+  average_rating?: string | number | null;
+  rating?: string | number | null;
+  review_count?: string | number | null;
+  reviews?: string | number | null;
+}
 
 interface Product {
   id: string;
@@ -22,10 +34,10 @@ interface Product {
 async function fetchFeaturedProducts(): Promise<Product[]> {
   const res = await api.get("/product/public/listed", { params: { limit: 12 } });
   const data = res.data;
-  const items: any[] =
+  const items =
     data?.data?.items || data?.data || data?.products || data?.items || data || [];
 
-  return items.map((product: any) => {
+  return (Array.isArray(items) ? items : []).slice(0, 12).map((product: ProductApiItem) => {
     const image = getSafeImageFromValue(product.image_url, "/dummy-product.png");
     const name = product.name || "Product";
 
@@ -45,16 +57,16 @@ async function fetchFeaturedProducts(): Promise<Product[]> {
     return {
       id: String(product.id),
       name,
-      rating: 0,
+      rating: Number(product.average_rating ?? product.rating) || 0,
       discountPrice,
       cutPrice,
       image,
+      reviews: Number(product.review_count ?? product.reviews) || 0,
     } as Product;
   });
 }
 
 export default function ProductsGridSection() {
-  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   const {
@@ -81,175 +93,140 @@ export default function ProductsGridSection() {
   };
 
   return (
-    <section className="w-full bg-gradient-to-b from-gray-50 via-blue-50/20 to-white py-12 sm:py-16 lg:py-20">
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mb-8 lg:mb-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange to-orange-300 flex items-center justify-center shadow-lg">
-                  <Sparkles className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
-                    Featured Products
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium text-gray-600">
-                      Handpicked for You
-                    </span>
-                  </div>
-                </div>
+    <section className="w-full py-14 sm:py-18 lg:py-24">
+      <div className="mx-auto w-full max-w-350 px-4 sm:px-6 lg:px-8">
+        <div className="mb-10 rounded-4xl border border-stone-200/80 bg-white/90 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8 lg:mb-14 lg:p-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#f0d7ca] bg-[#fff5ee] px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-[#9a5b3c]">
+                <Sparkles className="h-3.5 w-3.5" />
+                Featured collection
               </div>
-              <p className="text-lg text-gray-600 ml-16">
-                Discover our curated selection of premium products
-              </p>
+              <div className="space-y-3">
+                <h2 className="max-w-xl text-4xl leading-none text-slate-900 sm:text-5xl lg:text-6xl">
+                  Products presented with clarity, not clutter.
+                </h2>
+                <p className="max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
+                  A cleaner catalog experience with polished product imagery, easier scanning,
+                  and typography that feels more premium across the storefront.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                <Star className="h-4 w-4 fill-[#f4b544] text-[#f4b544]" />
+                Showing 12 featured products. Browse the full catalog for everything else.
+              </div>
             </div>
-
-            <Link
-              href="/browse"
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-300 text-white font-semibold rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 whitespace-nowrap"
-            >
-              View All Products
-              <ArrowRight className="h-5 w-5" />
-            </Link>
           </div>
         </div>
 
-        {/* Products Grid */}
         {isLoading && (
-          <div className="py-8 text-center text-sm text-gray-500">
+          <div className="rounded-[1.75rem] border border-dashed border-stone-300 bg-white/80 py-10 text-center text-sm text-slate-500 shadow-sm">
             Loading featured products...
           </div>
         )}
         {!isLoading && error && (
-          <div className="py-8 text-center text-sm text-red-500">
+          <div className="rounded-[1.75rem] border border-red-100 bg-red-50 py-10 text-center text-sm text-red-600 shadow-sm">
             Failed to load featured products.
           </div>
         )}
         {!isLoading && !error && products.length === 0 && (
-          <div className="py-8 text-center text-sm text-gray-500">
+          <div className="rounded-[1.75rem] border border-dashed border-stone-300 bg-white/80 py-10 text-center text-sm text-slate-500 shadow-sm">
             No listed products available yet.
           </div>
         )}
 
         {products.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {products.map((product) => (
-            <Link
-              key={product.id}
-              href={`/products/${product.id}`}
-              className="group relative"
-              onMouseEnter={() => setHoveredProduct(product.id)}
-              onMouseLeave={() => setHoveredProduct(null)}
-            >
-              <div className="relative h-full bg-white rounded-2xl overflow-hidden border-2 border-gray-100 hover:border-blue transition-all duration-300 shadow-md hover:shadow-2xl group-hover:scale-[1.02]">
-                {/* Discount Badge */}
-                {product.discount && (
-                  <div className="absolute top-3 left-3 z-20">
-                    <div className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
-                      -{product.discount}%
+              <Link
+                key={product.id}
+                href={`/products/${product.id}`}
+                className="group relative flex h-full flex-col overflow-hidden rounded-[1.4rem] border border-stone-200/80 bg-white p-3 shadow-[0_18px_55px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.1)] sm:rounded-[1.75rem] sm:p-5"
+              >
+                <div className="absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-[#d6b6a5] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                <div className="mb-3 flex items-start justify-between gap-2 sm:mb-4 sm:gap-3">
+                  <div className="min-w-0 space-y-1.5 sm:space-y-2">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:px-3 sm:text-[0.68rem] sm:tracking-[0.2em]">
+                      Featured pick
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[0.82rem] text-slate-500 sm:gap-2 sm:text-sm">
+                      <Star className="h-3.5 w-3.5 fill-[#f4b544] text-[#f4b544] sm:h-4 sm:w-4" />
+                      <span className="font-semibold text-slate-700">{product.rating.toFixed(1)}</span>
+                      <span className="truncate">{product.reviews ? `${product.reviews} reviews` : "New listing"}</span>
                     </div>
                   </div>
-                )}
 
-                {/* Favorite Button */}
-                <button
-                  onClick={(e) => toggleFavorite(product.id, e)}
-                  className="absolute top-3 right-3 z-20 p-2 rounded-full bg-white/90 hover:bg-white shadow-md transition-all duration-300 hover:scale-110"
-                  aria-label="Add to favorites"
-                >
-                  <Heart
-                    className={`h-4 w-4 transition-colors ${
-                      favorites.has(product.id)
-                        ? "fill-red-500 text-red-500"
-                        : "text-gray-400 hover:text-red-500"
-                    }`}
-                  />
-                </button>
-
-                {/* Product Image Container */}
-                <div className="relative w-full h-[180px] sm:h-[200px] lg:h-[240px] bg-gradient-to-br from-gray-50 to-purple-50/30 overflow-hidden">
-                  <div className="absolute inset-0  transition-colors duration-300 z-10" />
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
-                  />
+                  <button
+                    onClick={(e) => toggleFavorite(product.id, e)}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-slate-400 transition-colors duration-300 hover:border-[#efc9b4] hover:text-[#c96d3f] sm:h-10 sm:w-10"
+                    aria-label="Add to favorites"
+                  >
+                    <Heart
+                      className={`h-4 w-4 transition-colors ${
+                        favorites.has(product.id)
+                          ? "fill-[#d4663a] text-[#d4663a]"
+                          : "text-current"
+                      }`}
+                    />
+                  </button>
                 </div>
 
-                {/* Product Info */}
-                <div className="p-4 sm:p-5 space-y-3">
-                  {/* Product Name and Rating */}
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-sm sm:text-base text-gray-900 group-hover:text-blue transition-colors line-clamp-2 min-h-[2.5rem]">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold text-xs text-gray-900">
-                          {product.rating}
-                        </span>
-                      </div>
-                      {product.reviews && (
-                        <span className="text-xs text-gray-500">
-                          ({product.reviews.toLocaleString()})
-                        </span>
-                      )}
-                    </div>
+                <div className="relative mb-3 overflow-hidden rounded-[1.1rem] bg-[linear-gradient(145deg,#fff7f1_0%,#f7f7f5_52%,#eef3f8_100%)] sm:mb-4 sm:rounded-3xl">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),transparent_55%)]" />
+                  <div className="relative aspect-square w-full sm:aspect-[4/3.5]">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-contain p-4 transition-transform duration-500 group-hover:scale-105 sm:p-5"
+                    />
                   </div>
+                </div>
 
-                  {/* Pricing */}
-                  <div className="space-y-1 pt-2 border-t border-gray-100">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-lg sm:text-xl text-blue">
-                        {product.discountPrice}
+                <div className="flex flex-1 flex-col px-0.5 sm:px-1">
+                  <h3 className="min-h-[2.8rem] line-clamp-2 text-[0.98rem] leading-5 text-slate-900 transition-colors duration-300 group-hover:text-[#8d4d2b] sm:min-h-12 sm:text-[1.2rem] sm:leading-6">
+                    {product.name}
+                  </h3>
+
+                  <div className="mt-auto flex items-end justify-between gap-2 border-t border-stone-200 pt-3 sm:gap-4 sm:pt-4">
+                    <div className="min-w-0 space-y-1">
+                      <span className="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-slate-400 sm:text-[0.68rem] sm:tracking-[0.22em]">
+                        Starting at
                       </span>
-                      {product.cutPrice !== product.discountPrice && (
-                        <span className="text-sm text-gray-400 line-through">
-                          {product.cutPrice}
+                      <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+                        <span className="text-[1.05rem] font-extrabold tracking-[-0.04em] text-slate-900 sm:text-2xl">
+                          {product.discountPrice}
                         </span>
-                      )}
+                        {product.cutPrice !== product.discountPrice && (
+                          <span className="text-xs text-slate-400 line-through sm:text-sm">
+                            {product.cutPrice}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2">
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue to-blue-300 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      <span>Add to Cart</span>
-                    </button>
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-[#0f172a] px-3 py-2 text-[0.74rem] font-semibold text-white transition-colors duration-300 group-hover:bg-[#8d4d2b] sm:px-4 sm:text-sm">
+                      View details
+                    </span>
                   </div>
                 </div>
-
-                {/* Hover Overlay Effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-blue-500/10 transition-all duration-300 pointer-events-none" />
-              </div>
-            </Link>
+              </Link>
             ))}
           </div>
         )}
 
-        {/* View More Link (Mobile) */}
-        <div className="mt-8 flex justify-center sm:hidden">
-          <Link
-            href="/browse"
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-blue-300 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-          >
-            View All Products
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-        </div>
+        {products.length > 0 && (
+          <div className="mt-8 flex justify-center">
+            <Link
+              href="/browse"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md"
+            >
+              View All Products
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

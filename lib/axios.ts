@@ -22,20 +22,28 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     (config as any).__tracked = true;
+    const headers: any = config.headers || {};
+
+    if (typeof headers["Cache-Control"] === "undefined") {
+      headers["Cache-Control"] = "no-cache";
+    }
+    if (typeof headers.Pragma === "undefined") {
+      headers.Pragma = "no-cache";
+    }
 
     // If the backend expects `Authorization: Bearer <token>` and the app stored
     // a token in localStorage, attach it automatically.
     const token = getStoredToken();
     if (token) {
-      const headers: any = config.headers || {};
       const hasAuthHeader =
         typeof headers.Authorization !== "undefined" ||
         typeof headers.authorization !== "undefined";
       if (!hasAuthHeader) {
         headers.Authorization = `Bearer ${token}`;
-        config.headers = headers;
       }
     }
+
+    config.headers = headers;
 
     incrementPendingRequests();
     return config;

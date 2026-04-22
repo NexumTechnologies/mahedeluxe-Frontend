@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import ConditionalHeader from "@/components/ConditionalHeader";
 import ReactQueryProvider from "@/components/ReactQueryProvider";
 import ConditionalFooter from "@/components/ConditionalFooter";
+import DeploymentVersionWatcher from "@/components/DeploymentVersionWatcher";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans-primary",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
@@ -29,8 +37,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${manrope.variable} ${cormorant.variable} ${manrope.className} antialiased`}>
         <ReactQueryProvider>
+          <DeploymentVersionWatcher />
           <ConditionalHeader />
           {children}
           <ConditionalFooter />

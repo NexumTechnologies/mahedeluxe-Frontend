@@ -78,17 +78,30 @@ export default function HeroSearchSection() {
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     type="text"
+                    readOnly
                     placeholder="Search products, suppliers, or categories..."
-                    className="w-full h-14 pl-12 pr-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange text-gray-900"
+                    onFocus={() => {
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(new Event("open-global-search"));
+                      }
+                    }}
+                    className="w-full h-14 pl-12 pr-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange text-gray-900 cursor-pointer"
                   />
                 </div>
-                <button className="h-14 px-8 bg-orange hover:bg-blue text-white rounded-xl font-semibold transition-colors whitespace-nowrap">
+                <button
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new Event("open-global-search"));
+                    }
+                  }}
+                  className="h-14 px-8 bg-orange hover:bg-blue text-white rounded-xl font-semibold transition-colors whitespace-nowrap"
+                >
                   Search
                 </button>
               </div>
 
               {/* Quick Filters */}
-              <div className="flex flex-wrap gap-2">
+              {/* <div className="flex flex-wrap gap-2">
                 <span className="text-sm text-gray-600">Popular:</span>
                 {["Electronics", "Apparel", "Home & Garden", "Industrial"].map(
                   (tag) => (
@@ -100,29 +113,25 @@ export default function HeroSearchSection() {
                     </button>
                   ),
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* Search Options */}
             <div className="grid grid-cols-2 gap-4">
-              <Link
-                href="/custom-orders"
+              <div
                 className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white hover:bg-white/20 transition-colors"
               >
                 <div className="font-semibold mb-1">Custom Orders</div>
                 <div className="text-sm text-white/80">
                   Bulk requests & quotes
                 </div>
-              </Link>
-              <Link
-                href="/on-demand"
-                className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white hover:bg-white/20 transition-colors"
-              >
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white hover:bg-white/20 transition-colors">
                 <div className="font-semibold mb-1">On-Demand</div>
                 <div className="text-sm text-white/80">
                   Custom manufacturing
                 </div>
-              </Link>
+              </div>
             </div>
           </div>
         </div>

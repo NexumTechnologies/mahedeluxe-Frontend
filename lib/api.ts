@@ -13,6 +13,8 @@ async function request(path: string, opts: RequestInit = {}) {
   const token = getStoredToken();
   const headers = new Headers(opts.headers || {});
   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (!headers.has("Cache-Control")) headers.set("Cache-Control", "no-cache");
+  if (!headers.has("Pragma")) headers.set("Pragma", "no-cache");
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -20,6 +22,7 @@ async function request(path: string, opts: RequestInit = {}) {
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
+      cache: "no-store",
       credentials: "include",
       headers,
       ...opts,

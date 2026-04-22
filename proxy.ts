@@ -1,6 +1,18 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+function applyNoStoreHeaders(response: NextResponse) {
+  response.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+  );
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  response.headers.set("Surrogate-Control", "no-store");
+
+  return response;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -20,7 +32,7 @@ export function proxy(request: NextRequest) {
   // url.search = "";
   // return NextResponse.redirect(url);
 
-  return NextResponse.next();
+  return applyNoStoreHeaders(NextResponse.next());
 }
 
 export const config = {
