@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
+import { getStoredUser } from "@/lib/authStorage";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +83,7 @@ async function searchProductsByName(search: string): Promise<SearchProduct[]> {
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,7 +92,13 @@ export default function Header() {
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [cartCount, setCartCount] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  usePathname();
+
+  const getDashboardHref = (role?: string) => {
+    if (role === "buyer") return "/buyer/dashboard";
+    if (role === "seller") return "/seller/dashboard";
+    if (role === "admin") return "/admin/dashboard";
+    return "/user/dashboard";
+  };
 
   const handleLogout = () => {
     try {
@@ -120,13 +128,12 @@ export default function Header() {
     const loadUserFromStorage = () => {
       if (typeof window === "undefined") return;
       try {
-        const raw = localStorage.getItem("user");
-        if (!raw) {
+        const storedUser = getStoredUser();
+        if (!storedUser) {
           setUser(null);
           return;
         }
-        const parsed = JSON.parse(raw) as HeaderUser;
-        setUser(parsed || null);
+        setUser(storedUser as HeaderUser);
       } catch {
         setUser(null);
       }
@@ -157,6 +164,14 @@ export default function Header() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+    if (!user?.role) return;
+
+    const dashboardHref = getDashboardHref(user.role);
+    router.replace(dashboardHref);
+  }, [pathname, router, user?.role]);
 
   // Fetch cart count for the logged-in user using the same API as buyer cart.
   useEffect(() => {
@@ -252,11 +267,7 @@ export default function Header() {
   };
 
   const profileHref = (() => {
-    if (!user?.role) return "/user/dashboard";
-    if (user.role === "buyer") return "/buyer/dashboard";
-    if (user.role === "seller") return "/seller/dashboard";
-    if (user.role === "admin") return "/admin/dashboard";
-    return "/user/dashboard";
+    return getDashboardHref(user?.role);
   })();
 
   const userInitials = (() => {
