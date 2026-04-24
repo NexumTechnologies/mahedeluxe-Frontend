@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { addGuestCartItem, hasStoredAuth } from "@/lib/cartStorage";
+import CartDrawer from "@/components/cart/CartDrawer";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -13,12 +15,9 @@ export default function ProductDetailPage() {
     null,
   );
   const [quantity, setQuantity] = useState(1);
+  const [isSavingGuest, setIsSavingGuest] = useState(false);
 
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["product-detail", id],
     queryFn: async () => {
       const res = await api.get(`/product/${id}`);
@@ -28,7 +27,13 @@ export default function ProductDetailPage() {
   });
 
   const addToCartMutation = useMutation({
-    mutationFn: async ({ product_id, quantity }: { product_id: number; quantity: number }) => {
+    mutationFn: async ({
+      product_id,
+      quantity,
+    }: {
+      product_id: number;
+      quantity: number;
+    }) => {
       const res = await api.post("/addToCart", { product_id, quantity });
       return res.data;
     },
@@ -37,7 +42,10 @@ export default function ProductDetailPage() {
         show: true,
         message: res?.message || "Added to cart",
       });
-      setTimeout(() => setToast(null), 3000);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("open-cart-drawer"));
+      }
+      setTimeout(() => setToast(null), 1000);
     },
     onError: (err: any) => {
       // If backend reports unauthorized, redirect to login.
@@ -49,7 +57,7 @@ export default function ProductDetailPage() {
         show: true,
         message: err?.response?.data?.message || "Failed to add to cart",
       });
-      setTimeout(() => setToast(null), 3000);
+      setTimeout(() => setToast(null), 1000);
     },
   });
 
@@ -67,18 +75,25 @@ export default function ProductDetailPage() {
     }
   })();
 
-  const moq = product && product.min_order_quantity != null
-    ? Math.max(1, Math.floor(Number(product.min_order_quantity) || 1))
-    : 1;
+  const moq =
+    product && product.min_order_quantity != null
+      ? Math.max(1, Math.floor(Number(product.min_order_quantity) || 1))
+      : 1;
   const minAllowedQty = userRole === "buyer" ? moq : 1;
-  const effectiveQuantity = Math.max(minAllowedQty, Math.floor(Number(quantity) || minAllowedQty));
+  const effectiveQuantity = Math.max(
+    minAllowedQty,
+    Math.floor(Number(quantity) || minAllowedQty),
+  );
 
   const basePrice = product ? Number(product.price) || 0 : 0;
-  const customerPriceRaw = product && product.customer_price != null
-    ? Number(product.customer_price)
-    : null;
+  const customerPriceRaw =
+    product && product.customer_price != null
+      ? Number(product.customer_price)
+      : null;
   const listingPrice =
-    (customerPriceRaw != null && !Number.isNaN(customerPriceRaw) ? customerPriceRaw : null) ??
+    (customerPriceRaw != null && !Number.isNaN(customerPriceRaw)
+      ? customerPriceRaw
+      : null) ??
     (product && product.listing && product.listing.display_price != null
       ? Number(product.listing.display_price)
       : basePrice);
@@ -87,14 +102,41 @@ export default function ProductDetailPage() {
     ? Array.isArray(product.image_url)
       ? product.image_url
       : product.image_url
-      ? [product.image_url]
-      : []
+        ? [product.image_url]
+        : []
     : [];
 
   const selectedImage = images[selectedImageIndex] || images[0] || null;
 
+  const saveGuestCartItem = () => {
+    if (!product) return;
+
+    // Store the selected quantity in the product snapshot we save to guest cart
+    // so the UI shows the chosen amount (not the stock level).
+    const productSnapshot = {
+      id: Number(product.id),
+      name: product.name,
+      price: listingPrice,
+      quantity: effectiveQuantity,
+      min_order_quantity: product.min_order_quantity,
+      image_url: product.image_url,
+      listing: product.listing
+        ? {
+            display_price: product.listing.display_price,
+            is_listed: product.listing.is_listed,
+          }
+        : undefined,
+    };
+
+    addGuestCartItem(productSnapshot, effectiveQuantity);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("open-cart-drawer"));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <CartDrawer />
       {toast?.show && (
         <div className="fixed top-6 right-6 z-50">
           <div className="flex items-center gap-3 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
@@ -181,7 +223,8 @@ export default function ProductDetailPage() {
                 )}
                 {product.User?.name && (
                   <p className="text-xs text-slate-500">
-                    Sold by <span className="font-medium">{product.User.name}</span>
+                    Sold by{" "}
+                    <span className="font-medium">{product.User.name}</span>
                   </p>
                 )}
               </div>
@@ -228,10 +271,16 @@ export default function ProductDetailPage() {
                     type="button"
                     onClick={() =>
                       setQuantity((q) =>
-                        Math.max(minAllowedQty, (Number(q) || minAllowedQty) - 1),
+                        Math.max(
+                          minAllowedQty,
+                          (Number(q) || minAllowedQty) - 1,
+                        ),
                       )
                     }
-                    disabled={effectiveQuantity <= minAllowedQty || product.quantity === 0}
+                    disabled={
+                      effectiveQuantity <= minAllowedQty ||
+                      product.quantity === 0
+                    }
                     className="w-9 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-lg"
                   >
                     −
@@ -245,11 +294,17 @@ export default function ProductDetailPage() {
                       setQuantity((q) =>
                         Math.min(
                           product.quantity || 1,
-                          Math.max(minAllowedQty, Math.floor(Number(q) || minAllowedQty)) + 1,
+                          Math.max(
+                            minAllowedQty,
+                            Math.floor(Number(q) || minAllowedQty),
+                          ) + 1,
                         ),
                       )
                     }
-                    disabled={effectiveQuantity >= (product.quantity || 0) || product.quantity === 0}
+                    disabled={
+                      effectiveQuantity >= (product.quantity || 0) ||
+                      product.quantity === 0
+                    }
                     className="w-9 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-lg"
                   >
                     +
@@ -261,12 +316,17 @@ export default function ProductDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const isLoggedIn =
-                      typeof window !== "undefined" &&
-                      !!localStorage.getItem("user");
-
-                    if (!isLoggedIn) {
-                      router.push("/auth/signin");
+                    if (!hasStoredAuth()) {
+                      if (isSavingGuest) return;
+                      setIsSavingGuest(true);
+                      saveGuestCartItem();
+                      setToast({
+                        show: true,
+                        message: "Saved to cart. You can check out when ready.",
+                      });
+                      setTimeout(() => setToast(null), 1000);
+                      // Prevent double-adds from rapid clicks
+                      setTimeout(() => setIsSavingGuest(false), 800);
                       return;
                     }
                     addToCartMutation.mutate({
@@ -274,7 +334,11 @@ export default function ProductDetailPage() {
                       quantity: effectiveQuantity,
                     });
                   }}
-                  disabled={addToCartMutation.isPending || product.quantity === 0}
+                  disabled={
+                    addToCartMutation.isPending ||
+                    product.quantity === 0 ||
+                    isSavingGuest
+                  }
                   className="flex-1 inline-flex items-center justify-center rounded-full border border-blue-600 text-blue-600 text-sm py-2.5 hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Add to cart
@@ -283,12 +347,9 @@ export default function ProductDetailPage() {
                   type="button"
                   disabled={product.quantity === 0}
                   onClick={() => {
-                    const isLoggedIn =
-                      typeof window !== "undefined" &&
-                      !!localStorage.getItem("user");
-
-                    if (!isLoggedIn) {
-                      router.push("/auth/signin");
+                    if (!hasStoredAuth()) {
+                      saveGuestCartItem();
+                      router.push("/checkout");
                       return;
                     }
                     // For "Buy now", add this item to the cart with the selected quantity,
@@ -313,7 +374,7 @@ export default function ProductDetailPage() {
                               err?.response?.data?.message ||
                               "Failed to prepare checkout",
                           });
-                          setTimeout(() => setToast(null), 3000);
+                          setTimeout(() => setToast(null), 1000);
                         },
                       },
                     );

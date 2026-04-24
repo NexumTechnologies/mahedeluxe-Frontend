@@ -20,7 +20,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
-import { getStoredUser } from "@/lib/authStorage";
+import { clearAllClientAuthState, getStoredUser } from "@/lib/authStorage";
+import { getGuestCart } from "@/lib/cartStorage";
 import {
   Dialog,
   DialogContent,
@@ -100,17 +101,14 @@ export default function Header() {
     return "/user/dashboard";
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.dispatchEvent(new Event("auth-change"));
-      }
+      await api.post("/auth/logout");
     } catch {
-      // ignore storage errors
+      // ignore logout API errors and still clear local state
     }
 
+    clearAllClientAuthState();
     setUser(null);
     router.push("/");
   };
@@ -173,12 +171,12 @@ export default function Header() {
     router.replace(dashboardHref);
   }, [pathname, router, user?.role]);
 
-  // Fetch cart count for the logged-in user using the same API as buyer cart.
+  // Show account cart count when logged in, otherwise fall back to the guest cart.
   useEffect(() => {
     const fetchCartCount = async () => {
       if (typeof window === "undefined") return;
       if (!user) {
-        setCartCount(null);
+        setCartCount(getGuestCart().totalItems || null);
         return;
       }
 
@@ -196,6 +194,21 @@ export default function Header() {
     };
 
     fetchCartCount();
+    const handleGuestCartChange = () => {
+      if (!user) {
+        setCartCount(getGuestCart().totalItems || null);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("guest-cart-change", handleGuestCartChange);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("guest-cart-change", handleGuestCartChange);
+      }
+    };
   }, [user]);
 
   useEffect(() => {

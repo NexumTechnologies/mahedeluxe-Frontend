@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { clearAllClientAuthState } from "@/lib/authStorage";
 import { SheetClose } from "@/components/ui/sheet";
 
 type BuyerSidebarProps = {
@@ -16,17 +17,9 @@ export default function BuyerSidebar({ closeOnNavigate }: BuyerSidebarProps) {
 
   const handleLogout = async () => {
     try {
-      // Clear cookie-based auth used by Next.js API routes.
       await api.post("/auth/logout");
-
-      sessionStorage.clear();
-      localStorage.removeItem("registration");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("auth-change"));
-      }
-    } catch (e) {}
+    } catch {}
+    clearAllClientAuthState();
     router.replace("/");
     router.refresh();
   };

@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import api from "@/lib/axios";
+import { clearAllClientAuthState } from "@/lib/authStorage";
 import { SheetClose } from "@/components/ui/sheet";
 import {
   LayoutDashboard,
@@ -27,16 +29,11 @@ export default function SellerSidebar({ closeOnNavigate }: SellerSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      sessionStorage.clear();
-      localStorage.removeItem("registration");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("auth-change"));
-      }
-    } catch (e) {}
+      await api.post("/auth/logout");
+    } catch {}
+    clearAllClientAuthState();
     router.replace("/");
     router.refresh();
   };

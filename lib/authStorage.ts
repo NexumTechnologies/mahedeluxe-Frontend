@@ -42,3 +42,18 @@ export function clearStoredAuth() {
     // ignore
   }
 }
+
+export function clearClientSession() {
+  if (!isBrowser()) return;
+  try {
+    window.sessionStorage.clear();
+    window.localStorage.removeItem("registration");
+  } catch {
+    // ignore
+  }
+}
+
+export function clearAllClientAuthState() {
+  clearClientSession();
+  clearStoredAuth();
+}

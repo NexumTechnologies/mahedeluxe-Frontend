@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import api from "@/lib/axios";
@@ -31,6 +31,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const mutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
@@ -65,10 +66,18 @@ export default function LoginForm() {
       }
 
       const role = payload.role;
+      const returnTo = searchParams.get("returnTo");
+      const safeReturnTo = returnTo && returnTo.startsWith("/") ? returnTo : null;
 
       // If user is not verified (and not an admin or user), send them to verification page
       if (payload.is_varified === false && role !== "admin" && role !== "user") {
         router.push("/auth/verification");
+        router.refresh();
+        return;
+      }
+
+      if (safeReturnTo) {
+        router.push(safeReturnTo);
         router.refresh();
         return;
       }

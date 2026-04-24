@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import api from "@/lib/axios";
+import { clearAllClientAuthState } from "@/lib/authStorage";
 
 type SettingsView = "main" | "profile" | "member_profile" | "connected_accounts" | "tax_info" | "password" | "email" | "phone" | "privacy" | "notifications" | "ads";
 
@@ -28,18 +30,11 @@ export default function AccountSettingsContent() {
   const [currentView, setCurrentView] = useState<SettingsView>("main");
   const router = useRouter();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      sessionStorage.clear();
-      localStorage.removeItem("registration");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("auth-change"));
-      }
-    } catch (e) {
-      // ignore storage errors
-    }
+      await api.post("/auth/logout");
+    } catch {}
+    clearAllClientAuthState();
     router.replace("/");
     router.refresh();
   };

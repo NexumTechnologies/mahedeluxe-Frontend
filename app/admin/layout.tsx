@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { clearAllClientAuthState } from "@/lib/authStorage";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -118,12 +119,13 @@ export default function AdminLayout({
     try {
       setLoggingOut(true);
       await api.post("/auth/logout");
-      router.push("/");
-      router.refresh();
     } catch (err) {
       console.error("Logout failed", err);
     } finally {
+      clearAllClientAuthState();
       setLoggingOut(false);
+      router.push("/");
+      router.refresh();
     }
   };
 
