@@ -58,6 +58,21 @@ export default function BuyerDetailPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const resp = await api.delete(`/users/${id}`);
+      return resp.data;
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      setToast({ show: true, message: res?.message || "User deleted" });
+      setTimeout(() => setToast({ show: false, message: "" }), 3000);
+      router.push("/admin/users/buyers");
+    },
+  });
+
+  const [confirm, setConfirm] = useState<{ open: boolean; action: "suspend" | "delete" | null }>({ open: false, action: null });
+
   const user = data?.data;
   const buyer = user?.Buyer;
   const documents = buyer?.documents as
@@ -148,6 +163,21 @@ export default function BuyerDetailPage() {
                   </button>
                 )}
               </div>
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  onClick={() => setConfirm({ open: true, action: "suspend" })}
+                  className="inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm"
+                >
+                  {user?.is_varified ? "Suspend user" : "Activate user"}
+                </button>
+
+                <button
+                  onClick={() => setConfirm({ open: true, action: "delete" })}
+                  className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm"
+                >
+                  Delete user
+                </button>
+              </div>
             </div>
 
             <div className="md:col-span-2">
@@ -227,6 +257,49 @@ export default function BuyerDetailPage() {
           </div>
         )}
       </div>
+      {confirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold">{confirm.action === "delete" ? "Delete user" : "Confirm status change"}</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              {confirm.action === "delete"
+                ? "This will permanently delete the user and cannot be undone. Are you sure?"
+                : "Are you sure you want to change this user's account status?"}
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirm({ open: false, action: null })}
+                className="px-4 py-2 rounded-lg bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (confirm.action === "delete") {
+                    deleteMutation.mutate();
+                  } else if (confirm.action === "suspend") {
+                    await toggleMutation.mutateAsync();
+                    setToast({ show: true, message: "User status updated" });
+                    setTimeout(() => setToast({ show: false, message: "" }), 3000);
+                    queryClient.invalidateQueries({ queryKey: ["admin-user", "buyer", id] });
+                    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+                  }
+                  setConfirm({ open: false, action: null });
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white"
+              >
+                {deleteMutation.status === "pending" || toggleMutation.status === "pending"
+                  ? "Processing..."
+                  : confirm.action === "delete"
+                  ? "Delete"
+                  : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

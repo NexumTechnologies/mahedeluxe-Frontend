@@ -7,6 +7,7 @@ import api from "@/lib/axios";
 
 type SellerProfile = {
   profile_image?: string | null;
+  verification_status?: string | null;
 };
 
 type SellerRow = {
@@ -57,6 +58,8 @@ export default function AdminSellersPage() {
       return resp.data;
     },
   });
+
+  console.log("here si the seller data to be checked", data);
 
   const payload = data as UsersResponse | undefined;
   const users = payload?.data?.items ?? [];
@@ -175,7 +178,17 @@ export default function AdminSellersPage() {
 
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div>
-                          {b.is_varified ? (
+                          {b.Seller?.verification_status === "approved" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              Verified
+                            </span>
+                          ) : b.Seller?.verification_status === "rejected" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-red-100">
+                              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                              Rejected
+                            </span>
+                          ) : b.is_varified ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                               Verified

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import LoginForm from "@/components/auth/LoginForm";
 import SignUpPromo from "@/components/auth/SignUpPromo";
@@ -28,7 +29,9 @@ export default function SignInPage() {
         {/* Right Column - Sign In Form (60%) */}
         <div className="w-[60%] flex items-center justify-center bg-white px-8">
           <div className="w-full max-w-md">
-            <LoginForm />
+            <React.Suspense fallback={<div>Loading form...</div>}>
+              <LoginForm />
+            </React.Suspense>
           </div>
         </div>
       </div>
@@ -44,7 +47,9 @@ export default function SignInPage() {
           </p>
         </div>
         <div className="px-4 py-8 bg-white">
-          <LoginForm />
+          <React.Suspense fallback={<div>Loading form...</div>}>
+            <LoginForm />
+          </React.Suspense>
           <div className="mt-8 text-center">
             <p className="text-[#6B6B6B] text-[16px]">
               Don&apos;t have account?{" "}

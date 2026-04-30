@@ -110,8 +110,38 @@ export default function SellerDetailPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const resp = await api.delete(`/users/${id}`);
+      return resp.data;
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      setToast({ show: true, message: res?.message || "User deleted" });
+      setTimeout(() => setToast({ show: false, message: "" }), 3000);
+      router.push("/admin/users/sellers");
+    },
+  });
+
+  const userToggleMutation = useMutation({
+    mutationFn: async () => {
+      const resp = await api.patch(`/users/${id}/toggle-status`);
+      return resp.data;
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-user", "seller", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      setToast({ show: true, message: res?.message || "User status updated" });
+      setTimeout(() => setToast({ show: false, message: "" }), 3000);
+    },
+  });
+
+  const [confirm, setConfirm] = useState<{ open: boolean; action: "suspend" | "delete" | null }>({ open: false, action: null });
+
   const user = data?.data;
   const seller = user?.Seller;
+  const sellerStatus = seller?.verification_status ?? null;
+  const showApproveRejectActions = sellerStatus === null || sellerStatus === "pending" || typeof sellerStatus === "undefined";
   const documents = seller?.documents as
     | {
         business_license_url?: string;
@@ -172,18 +202,41 @@ export default function SellerDetailPage() {
               </div>
 
               <div className="mt-2">
-                {user?.is_varified ? (
-                  <span className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm">
-                    <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Verified
-                  </span>
+                {seller ? (
+                  // Prefer seller's verification status when seller profile exists
+                  seller.verification_status === "approved" ? (
+                    <span className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm">
+                      <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Verified
+                    </span>
+                  ) : seller.verification_status === "rejected" ? (
+                    <span className="inline-flex items-center gap-2 bg-red-50 text-red-700 px-3 py-1 rounded-full text-sm">
+                      <span className="h-2 w-2 rounded-full bg-red-500" />
+                      Rejected
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-1 rounded-full text-sm ring-1 ring-amber-100">
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      Not verified
+                    </span>
+                  )
                 ) : (
-                  <span className="inline-flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-1 rounded-full text-sm ring-1 ring-amber-100">
-                    <span className="h-2 w-2 rounded-full bg-amber-500" />
-                    Not verified
-                  </span>
+                  // Fallback to user's is_varified when no seller profile
+                  user?.is_varified ? (
+                    <span className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm">
+                      <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-1 rounded-full text-sm ring-1 ring-amber-100">
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      Not verified
+                    </span>
+                  )
                 )}
               </div>
             </div>
@@ -317,38 +370,53 @@ export default function SellerDetailPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-3">
-                      {(seller.verification_status !== "approved" || !user?.is_varified) && (
-                        <button
-                          onClick={() => approveSellerMutation.mutate()}
-                          disabled={approveSellerMutation.status === "pending"}
-                          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60"
-                        >
-                          {approveSellerMutation.status === "pending" && (
-                            <span
-                              className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white"
-                              aria-hidden="true"
-                            />
-                          )}
-                          {approveSellerMutation.status === "pending"
-                            ? "Approving..."
-                            : "Approve seller"}
-                        </button>
-                      )}
+                      {showApproveRejectActions && (
+                        <>
+                          <button
+                            onClick={() => approveSellerMutation.mutate()}
+                            disabled={approveSellerMutation.status === "pending"}
+                            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60"
+                          >
+                            {approveSellerMutation.status === "pending" && (
+                              <span
+                                className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white"
+                                aria-hidden="true"
+                              />
+                            )}
+                            {approveSellerMutation.status === "pending"
+                              ? "Approving..."
+                              : "Approve seller"}
+                          </button>
 
-                      {seller.verification_status !== "approved" && (
-                        <button
-                          onClick={() =>
-                            sellerStatusMutation.mutate({
-                              sellerId: seller.id,
-                              status: "rejected",
-                            })
-                          }
-                          disabled={sellerStatusMutation.status === "pending"}
-                          className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60"
-                        >
-                          Reject seller
-                        </button>
+                          <button
+                            onClick={() =>
+                              sellerStatusMutation.mutate({
+                                sellerId: seller.id,
+                                status: "rejected",
+                              })
+                            }
+                            disabled={sellerStatusMutation.status === "pending"}
+                            className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60"
+                          >
+                            Reject seller
+                          </button>
+                        </>
                       )}
+                      <div className="ml-2 inline-flex gap-2">
+                        <button
+                          onClick={() => setConfirm({ open: true, action: "suspend" })}
+                          className="inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm"
+                        >
+                          {user?.is_varified ? "Suspend user" : "Activate user"}
+                        </button>
+
+                        <button
+                          onClick={() => setConfirm({ open: true, action: "delete" })}
+                          className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm"
+                        >
+                          Delete user
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -357,6 +425,45 @@ export default function SellerDetailPage() {
           </div>
         )}
       </div>
+      {confirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold">{confirm.action === "delete" ? "Delete user" : "Confirm status change"}</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              {confirm.action === "delete"
+                ? "This will permanently delete the user and cannot be undone. Are you sure?"
+                : "Are you sure you want to change this user's account status?"}
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirm({ open: false, action: null })}
+                className="px-4 py-2 rounded-lg bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (confirm.action === "delete") {
+                    deleteMutation.mutate();
+                  } else if (confirm.action === "suspend") {
+                    await userToggleMutation.mutateAsync();
+                  }
+                  setConfirm({ open: false, action: null });
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white"
+              >
+                {deleteMutation.status === "pending" || userToggleMutation.status === "pending"
+                  ? "Processing..."
+                  : confirm.action === "delete"
+                  ? "Delete"
+                  : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
