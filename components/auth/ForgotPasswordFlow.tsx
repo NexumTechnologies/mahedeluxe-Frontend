@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/LanguageProvider";
 
 type ForgotStep = "email" | "otp" | "reset" | "success";
 
@@ -20,36 +21,37 @@ export default function ForgotPasswordFlow() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const { dir, t } = useI18n();
 
   const currentTitle = useMemo(() => {
     switch (step) {
       case "email":
-        return "Forgot your password?";
+        return t("auth.forgotTitle");
       case "otp":
-        return "Verify OTP";
+        return t("auth.forgotOtpTitle");
       case "reset":
-        return "Create new password";
+        return t("auth.forgotResetTitle");
       case "success":
-        return "Password updated";
+        return t("auth.forgotSuccessTitle");
       default:
-        return "Forgot your password?";
+        return t("auth.forgotTitle");
     }
-  }, [step]);
+  }, [step, t]);
 
   const currentDescription = useMemo(() => {
     switch (step) {
       case "email":
-        return "Enter your email and we will send a one-time password to your account.";
+        return t("auth.forgotDescription");
       case "otp":
-        return `Enter the 6-digit OTP sent to ${email}.`;
+        return t("auth.forgotOtpDescription", { email });
       case "reset":
-        return "Set a strong new password for your account.";
+        return t("auth.forgotResetDescription");
       case "success":
-        return "Your password has been reset successfully. You can sign in now.";
+        return t("auth.forgotSuccessDescription");
       default:
         return "";
     }
-  }, [email, step]);
+  }, [email, step, t]);
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     if (axios.isAxiosError(err)) {
@@ -65,13 +67,13 @@ export default function ForgotPasswordFlow() {
     },
     onSuccess: (data) => {
       setError("");
-      setMessage(data?.message || "OTP sent successfully");
+      setMessage(data?.message || t("auth.otpSent"));
       setOtp("");
       setStep("otp");
     },
     onError: (err: unknown) => {
       setMessage("");
-      setError(getErrorMessage(err, "Failed to send OTP"));
+      setError(getErrorMessage(err, t("auth.failedToSendOtp")));
     },
   });
 
@@ -82,7 +84,7 @@ export default function ForgotPasswordFlow() {
     },
     onSuccess: (data) => {
       setError("");
-      setMessage(data?.message || "OTP verified successfully");
+      setMessage(data?.message || t("auth.otpVerified"));
       setResetToken(data?.data?.reset_token || "");
       setPassword("");
       setConfirmPassword("");
@@ -90,7 +92,7 @@ export default function ForgotPasswordFlow() {
     },
     onError: (err: unknown) => {
       setMessage("");
-      setError(getErrorMessage(err, "Failed to verify OTP"));
+      setError(getErrorMessage(err, t("auth.failedToVerifyOtp")));
     },
   });
 
@@ -105,12 +107,12 @@ export default function ForgotPasswordFlow() {
     },
     onSuccess: (data) => {
       setError("");
-      setMessage(data?.message || "Password reset successfully");
+      setMessage(data?.message || t("auth.passwordResetSuccess"));
       setStep("success");
     },
     onError: (err: unknown) => {
       setMessage("");
-      setError(getErrorMessage(err, "Failed to reset password"));
+      setError(getErrorMessage(err, t("auth.failedToResetPassword")));
     },
   });
 
@@ -139,7 +141,7 @@ export default function ForgotPasswordFlow() {
     setMessage("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.passwordMismatch"));
       return;
     }
 
@@ -151,7 +153,7 @@ export default function ForgotPasswordFlow() {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8">
+    <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8" dir={dir}>
       <div className="mb-6 text-center sm:text-left">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-[30px]">
           {currentTitle}
@@ -177,13 +179,13 @@ export default function ForgotPasswordFlow() {
         <form onSubmit={handleSendOtp} className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Email address
+              {t("auth.emailAddress")}
             </label>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t("auth.exampleEmail")}
               required
               className="h-12 rounded-xl border-slate-300 px-4"
             />
@@ -194,7 +196,7 @@ export default function ForgotPasswordFlow() {
             disabled={isBusy || !email.trim()}
             className="h-12 w-full rounded-xl bg-blue text-white hover:bg-blue-light"
           >
-            {sendOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
+            {sendOtpMutation.isPending ? t("auth.sendingOtp") : t("auth.sendOtp")}
           </Button>
         </form>
       )}
@@ -203,19 +205,19 @@ export default function ForgotPasswordFlow() {
         <form onSubmit={handleVerifyOtp} className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              One-Time Password
+              {t("auth.oneTimePassword")}
             </label>
             <Input
               type="text"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="Enter 6-digit OTP"
+              placeholder={t("auth.enterSixDigitOtp")}
               inputMode="numeric"
               required
               className="h-12 rounded-xl border-slate-300 px-4 tracking-[0.35em] text-center text-lg"
             />
             <p className="mt-2 text-xs text-slate-500">
-              OTP expires in 10 minutes. If you did not receive it, resend below.
+              {t("auth.otpExpires")}
             </p>
           </div>
 
@@ -231,14 +233,14 @@ export default function ForgotPasswordFlow() {
               }}
               className="h-12 flex-1 rounded-xl border-slate-300"
             >
-              {sendOtpMutation.isPending ? "Resending..." : "Resend OTP"}
+              {sendOtpMutation.isPending ? t("auth.resendingOtp") : t("auth.resendOtp")}
             </Button>
             <Button
               type="submit"
               disabled={isBusy || otp.trim().length !== 6}
               className="h-12 flex-1 rounded-xl bg-blue text-white hover:bg-blue-light"
             >
-              {verifyOtpMutation.isPending ? "Verifying..." : "Verify OTP"}
+              {verifyOtpMutation.isPending ? t("auth.verifyingOtp") : t("auth.verifyOtp")}
             </Button>
           </div>
         </form>
@@ -248,13 +250,13 @@ export default function ForgotPasswordFlow() {
         <form onSubmit={handleResetPassword} className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              New password
+              {t("auth.newPassword")}
             </label>
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter new password"
+              placeholder={t("auth.enterNewPassword")}
               required
               minLength={6}
               className="h-12 rounded-xl border-slate-300 px-4"
@@ -263,13 +265,13 @@ export default function ForgotPasswordFlow() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Confirm new password
+              {t("auth.confirmNewPassword")}
             </label>
             <Input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
+              placeholder={t("auth.confirmNewPasswordPlaceholder")}
               required
               minLength={6}
               className="h-12 rounded-xl border-slate-300 px-4"
@@ -286,7 +288,7 @@ export default function ForgotPasswordFlow() {
             }
             className="h-12 w-full rounded-xl bg-blue text-white hover:bg-blue-light"
           >
-            {resetPasswordMutation.isPending ? "Updating password..." : "Reset Password"}
+            {resetPasswordMutation.isPending ? t("auth.updatingPassword") : t("auth.resetPassword")}
           </Button>
         </form>
       )}
@@ -294,10 +296,10 @@ export default function ForgotPasswordFlow() {
       {step === "success" && (
         <div className="space-y-5">
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
-            Your password has been updated. Use your new password to sign in.
+            {t("auth.passwordUpdatedMessage")}
           </div>
           <Button asChild className="h-12 w-full rounded-xl bg-blue text-white hover:bg-blue-light">
-            <Link href="/auth/signin">Back to Sign In</Link>
+            <Link href="/auth/signin">{t("auth.backToSignIn")}</Link>
           </Button>
         </div>
       )}
@@ -321,11 +323,11 @@ export default function ForgotPasswordFlow() {
             }}
             className={`font-medium text-slate-500 hover:text-slate-800 ${step === "email" ? "invisible" : "visible"}`}
           >
-            Back
+            {t("auth.back")}
           </button>
 
           <Link href="/auth/signin" className="font-medium text-orange hover:underline">
-            Return to sign in
+            {t("auth.returnToSignIn")}
           </Link>
         </div>
       )}

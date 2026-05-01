@@ -14,8 +14,10 @@ import {
   removeGuestCartItem,
 } from "@/lib/cartStorage";
 import { getStoredUser } from "@/lib/authStorage";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function CheckoutContent() {
+  const { dir, t } = useI18n();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [shippingComplete, setShippingComplete] = useState(false);
@@ -187,22 +189,22 @@ export default function CheckoutContent() {
     syncGuestCartMutation.error || placeOrderMutation.error || placeGuestOrderMutation.error || error;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-8">
+    <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-8" dir={dir}>
       {syncGuestCartMutation.isPending && (
         <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          Moving your saved guest cart into your account so checkout stays attached to your login.
+          {t("checkout.movingGuestCart")}
         </div>
       )}
 
       <div className="mb-4 flex flex-col gap-2 border-b border-slate-200 pb-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-950">Checkout</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-950">{t("checkout.title")}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Review your items, enter your delivery address, and place your order.
+            {t("checkout.subtitle")}
           </p>
         </div>
         <div className="text-sm text-slate-600 sm:text-right">
-          <div className="text-sm">{totalItems} item{totalItems === 1 ? "" : "s"}</div>
+          <div className="text-sm">{totalItems} {totalItems === 1 ? t("checkout.itemSingle") : t("checkout.itemPlural")}</div>
           <div className="mt-1 text-base sm:text-lg font-semibold text-slate-950">{itemSubtotal} AED</div>
         </div>
       </div>
@@ -252,34 +254,34 @@ export default function CheckoutContent() {
           <div className="app-modal-panel max-w-md overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-0 shadow-2xl">
             <div className="bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.18),transparent_40%),linear-gradient(135deg,#ffffff,#f8fafc_65%,#fff7ed)] px-6 py-6">
               <span className="inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 shadow-sm">
-                Final step
+                {t("checkout.finalStep")}
               </span>
               <h2 className="mt-4 text-2xl font-semibold text-slate-950">
-                Login first or order directly.
+                {t("checkout.loginFirstOrOrderDirectly")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Your cart is already saved in this browser. You can log in and keep shopping with your account, or place this order as a guest right now.
+                {t("checkout.guestChoiceDescription")}
               </p>
             </div>
 
             <div className="space-y-4 px-6 py-5">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <div className="flex items-center justify-between">
-                  <span>Items</span>
+                  <span>{t("checkout.items")}</span>
                   <span className="font-medium text-slate-900">{totalItems}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <span>Total</span>
+                  <span>{t("checkout.total")}</span>
                   <span className="font-medium text-slate-900">{itemSubtotal} AED</span>
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
-                  Shipping to: {shippingAddress?.summary || "Complete your shipping address first."}
+                  {t("checkout.shippingTo")} {shippingAddress?.summary || t("checkout.completeShippingFirst")}
                 </div>
               </div>
 
               {placeGuestOrderMutation.isError && (
                 <p className="text-xs text-red-600">
-                  Failed to place guest order. Please try again.
+                  {t("checkout.guestOrderFailed")}
                 </p>
               )}
 
@@ -290,7 +292,7 @@ export default function CheckoutContent() {
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
                   disabled={isBusy}
                 >
-                  Login and continue
+                  {t("checkout.loginAndContinue")}
                 </button>
                 <button
                   type="button"
@@ -298,7 +300,7 @@ export default function CheckoutContent() {
                   className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isBusy}
                 >
-                  {placeGuestOrderMutation.isPending ? "Placing order..." : "Order directly"}
+                  {placeGuestOrderMutation.isPending ? t("checkout.placingOrder") : t("checkout.orderDirectly")}
                 </button>
               </div>
 
@@ -308,7 +310,7 @@ export default function CheckoutContent() {
                 className="w-full text-sm text-slate-500 transition hover:text-slate-700"
                 disabled={isBusy}
               >
-                Cancel
+                {t("checkout.cancel")}
               </button>
             </div>
           </div>
@@ -320,25 +322,25 @@ export default function CheckoutContent() {
           <div className="app-modal-panel max-w-md overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-0 shadow-2xl">
             <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-6 py-5">
               <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Review order
+                {t("checkout.reviewOrder")}
               </span>
               <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                Confirm and place order
+                {t("checkout.confirmAndPlace")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Check the delivery address and total once more before placing the order.
+                {t("checkout.confirmDescription")}
               </p>
             </div>
             <div className="space-y-4 px-6 py-5 text-sm text-slate-700 max-h-[60vh] overflow-y-auto">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
-                  Shipping address
+                  {t("checkout.shippingAddress")}
                 </h3>
                 <p>{shippingAddress?.summary || ""}</p>
               </div>
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
-                  Items
+                  {t("checkout.items")}
                 </h3>
                 <ul className="space-y-1">
                   {items.map((item: any) => (
@@ -372,7 +374,7 @@ export default function CheckoutContent() {
                         return (
                           <>
                             <span className="truncate mr-2">
-                              {item.Product?.name || "Product"} x{quantity}
+                              {item.Product?.name || t("checkout.productFallback")} x{quantity}
                             </span>
                             <span className="font-medium">{lineTotal} AED</span>
                           </>
@@ -383,7 +385,7 @@ export default function CheckoutContent() {
                 </ul>
               </div>
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-900">Total</span>
+                <span className="font-medium text-slate-900">{t("checkout.total")}</span>
                 <span className="font-semibold text-slate-900">
                   {itemSubtotal} AED
                 </span>
@@ -391,7 +393,7 @@ export default function CheckoutContent() {
             </div>
             {placeOrderMutation.isError && (
               <p className="text-xs text-red-600">
-                Failed to place order. Please try again.
+                {t("checkout.placeOrderFailed")}
               </p>
             )}
             <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-5">
@@ -401,7 +403,7 @@ export default function CheckoutContent() {
                 className="px-4 py-2 text-xs sm:text-sm rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50"
                 disabled={isBusy}
               >
-                Cancel
+                {t("checkout.cancel")}
               </button>
               <button
                 type="button"
@@ -410,8 +412,8 @@ export default function CheckoutContent() {
                 className="px-4 py-2 text-xs sm:text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {placeOrderMutation.isPending
-                  ? "Placing order..."
-                  : "Confirm order"}
+                  ? t("checkout.placingOrder")
+                  : t("checkout.confirmOrder")}
               </button>
             </div>
           </div>

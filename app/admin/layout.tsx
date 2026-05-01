@@ -6,8 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { clearAllClientAuthState } from "@/lib/authStorage";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import DashboardLanguageSwitcher from "@/components/DashboardLanguageSwitcher";
+import { translateDashboard } from "@/lib/dashboard-i18n";
 import {
   Sheet,
   SheetClose,
@@ -19,53 +22,53 @@ import {
 
 const ActiveAdminHrefContext = React.createContext<string | null>(null);
 
-type AdminNavItem = { href: string; label: string };
-type AdminNavSection = { title: string; items: AdminNavItem[] };
+type AdminNavItem = { href: string; labelKey: string };
+type AdminNavSection = { titleKey: string; items: AdminNavItem[] };
 
 const ADMIN_NAV: AdminNavSection[] = [
   {
-    title: "Dashboard",
-    items: [{ href: "/admin/dashboard", label: "Overview" }],
+    titleKey: "common.dashboard",
+    items: [{ href: "/admin/dashboard", labelKey: "adminLayout.overview" }],
   },
   {
-    title: "User Management",
+    titleKey: "adminLayout.userManagement",
     items: [
-      { href: "/admin/users/buyers", label: "Buyers" },
-      { href: "/admin/users/sellers", label: "Sellers" },
-      { href: "/admin/users/customers", label: "Customers" },
-      { href: "/admin/users/admins", label: "Admin Users" },
+      { href: "/admin/users/buyers", labelKey: "adminLayout.buyers" },
+      { href: "/admin/users/sellers", labelKey: "adminLayout.sellers" },
+      { href: "/admin/users/customers", labelKey: "adminLayout.customers" },
+      { href: "/admin/users/admins", labelKey: "adminLayout.adminUsers" },
     ],
   },
   {
-    title: "Category Management",
-    items: [{ href: "/admin/categories", label: "Categories" }],
+    titleKey: "adminLayout.categoryManagement",
+    items: [{ href: "/admin/categories", labelKey: "adminLayout.categories" }],
   },
   {
-    title: "Approvals",
+    titleKey: "adminLayout.approvals",
     items: [
-      { href: "/admin/approvals/buyers", label: "Buyer Approvals" },
-      { href: "/admin/approvals/sellers", label: "Seller Approvals" },
+      { href: "/admin/approvals/buyers", labelKey: "adminLayout.buyerApprovals" },
+      { href: "/admin/approvals/sellers", labelKey: "adminLayout.sellerApprovals" },
     ],
   },
   {
-    title: "Product Management",
+    titleKey: "adminLayout.productManagement",
     items: [
-      { href: "/admin/products", label: "All Products" },
-      { href: "/admin/products/own", label: "Own Products" },
+      { href: "/admin/products", labelKey: "adminLayout.allProducts" },
+      { href: "/admin/products/own", labelKey: "adminLayout.ownProducts" },
     ],
   },
   {
-    title: "Commission",
-    items: [{ href: "/admin/orders/percentage", label: "Order Percentage" }],
+    titleKey: "adminLayout.commission",
+    items: [{ href: "/admin/orders/percentage", labelKey: "adminLayout.orderPercentage" }],
   },
   {
-    title: "Order Management",
+    titleKey: "adminLayout.orderManagement",
     items: [
-      { href: "/admin/orders", label: "All Orders" },
-      { href: "/admin/orders/my-sales", label: "My Sales Orders" },
-      { href: "/admin/orders/pending", label: "Pending Orders" },
-      { href: "/admin/orders/completed", label: "Completed Orders" },
-      { href: "/admin/orders/cancelled", label: "Cancelled / Refunded" },
+      { href: "/admin/orders", labelKey: "adminLayout.allOrders" },
+      { href: "/admin/orders/my-sales", labelKey: "adminLayout.mySalesOrders" },
+      { href: "/admin/orders/pending", labelKey: "adminLayout.pendingOrders" },
+      { href: "/admin/orders/completed", labelKey: "adminLayout.completedOrders" },
+      { href: "/admin/orders/cancelled", labelKey: "adminLayout.cancelledRefunded" },
     ],
   },
   // {
@@ -78,17 +81,17 @@ const ADMIN_NAV: AdminNavSection[] = [
   // },
 ];
 
-function getAdminPageTitle(pathname: string | null) {
-  if (!pathname) return "Admin";
+function getAdminPageTitle(pathname: string | null, locale: "en" | "ar") {
+  if (!pathname) return translateDashboard(locale, "common.admin");
 
   const match = ADMIN_NAV.flatMap((s) => s.items)
     .sort((a, b) => b.href.length - a.href.length)
     .find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
 
-  if (match) return match.label;
+  if (match) return translateDashboard(locale, match.labelKey);
 
   const segment = pathname.replace(/\/$/, "").split("/").filter(Boolean).at(-1);
-  if (!segment) return "Admin";
+  if (!segment) return translateDashboard(locale, "common.admin");
 
   return segment
     .split("-")
@@ -101,9 +104,12 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
 
   const activeHref = React.useMemo(() => {
     if (!pathname) return null;
@@ -136,7 +142,7 @@ export default function AdminLayout({
         href="#admin-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow"
       >
-        Skip to content
+        {td("common.skipToContent")}
       </a>
 
       <div className="flex min-h-screen">
@@ -146,10 +152,10 @@ export default function AdminLayout({
             <ScrollArea className="flex-1 overflow-auto">
             <nav className="space-y-3 px-4 py-4">
               {ADMIN_NAV.map((section) => (
-                <Section key={section.title} title={section.title}>
+                <Section key={section.titleKey} title={td(section.titleKey)}>
                   {section.items.map((item) => (
                     <NavItem key={item.href} href={item.href}>
-                      {item.label}
+                      {td(item.labelKey)}
                     </NavItem>
                   ))}
                 </Section>
@@ -158,13 +164,16 @@ export default function AdminLayout({
           </ScrollArea>
 
           <div className="p-4 border-t border-sidebar-border">
+            <div className="mb-3">
+              <DashboardLanguageSwitcher className="w-full justify-between bg-sidebar-accent/40" />
+            </div>
             <Button
               onClick={handleLogout}
               disabled={loggingOut}
               variant="ghost"
               className="w-full justify-start text-destructive hover:text-destructive"
             >
-              {loggingOut ? "Logging out…" : "Logout"}
+              {loggingOut ? td("common.loggingOut") : td("common.logout")}
             </Button>
           </div>
         </aside>
@@ -180,7 +189,7 @@ export default function AdminLayout({
                     <Button
                       variant="outline"
                       size="icon"
-                      aria-label="Open admin navigation"
+                      aria-label={td("common.openAdminNavigation")}
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -205,21 +214,21 @@ export default function AdminLayout({
                     <SheetHeader className="border-b">
                       <SheetTitle>
                         <Link href="/admin/dashboard" className="font-semibold">
-                          Admin Panel
+                          {td("common.adminPanel")}
                         </Link>
                       </SheetTitle>
                     </SheetHeader>
                     <ScrollArea className="h-[calc(100vh-56px-72px)]">
                       <nav className="px-3 py-4">
                         {ADMIN_NAV.map((section) => (
-                          <Section key={section.title} title={section.title}>
+                          <Section key={section.titleKey} title={td(section.titleKey)}>
                             {section.items.map((item) => (
                               <NavItem
                                 key={item.href}
                                 href={item.href}
                                 closeOnMobile
                               >
-                                {item.label}
+                                {td(item.labelKey)}
                               </NavItem>
                             ))}
                           </Section>
@@ -228,6 +237,9 @@ export default function AdminLayout({
                     </ScrollArea>
 
                     <div className="p-4 border-t">
+                      <div className="mb-3">
+                        <DashboardLanguageSwitcher className="w-full justify-between" />
+                      </div>
                       <SheetClose asChild>
                         <Button
                           onClick={handleLogout}
@@ -235,7 +247,7 @@ export default function AdminLayout({
                           variant="ghost"
                           className="w-full justify-start text-destructive hover:text-destructive"
                         >
-                          {loggingOut ? "Logging out…" : "Logout"}
+                          {loggingOut ? td("common.loggingOut") : td("common.logout")}
                         </Button>
                       </SheetClose>
                     </div>
@@ -245,11 +257,19 @@ export default function AdminLayout({
 
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">
-                  {getAdminPageTitle(pathname)}
+                  {getAdminPageTitle(pathname, locale)}
                 </div>
                 <div className="hidden sm:block text-xs text-muted-foreground truncate">
                   {pathname}
                 </div>
+              </div>
+
+              <div className="hidden sm:block md:hidden">
+                <DashboardLanguageSwitcher />
+              </div>
+
+              <div className="hidden md:block">
+                <DashboardLanguageSwitcher />
               </div>
 
               <div className="hidden md:block">
@@ -259,7 +279,7 @@ export default function AdminLayout({
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
                 >
-                  {loggingOut ? "Logging out…" : "Logout"}
+                  {loggingOut ? td("common.loggingOut") : td("common.logout")}
                 </Button>
               </div>
             </div>
@@ -276,6 +296,10 @@ export default function AdminLayout({
 }
 
 function AdminSidebarHeader() {
+  const { locale } = useI18n();
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
+
   return (
     <div className="px-5 py-5 border-b border-sidebar-border">
       <Link href="/admin/dashboard" className="flex items-center gap-2">
@@ -284,10 +308,10 @@ function AdminSidebarHeader() {
         </div>
         <div className="leading-tight">
           <div className="text-sm font-semibold tracking-tight">
-            Admin Panel
+            {td("common.adminPanel")}
           </div>
           <div className="text-xs text-muted-foreground">
-            Manage your marketplace
+            {td("common.manageMarketplace")}
           </div>
         </div>
       </Link>

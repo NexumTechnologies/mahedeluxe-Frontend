@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { useI18n } from "@/components/LanguageProvider";
+import { getVerificationStatusLabel, translateDashboard } from "@/lib/dashboard-i18n";
 
 export default function ProfilePage() {
+  const { dir, locale } = useI18n();
   const [passwordForm, setPasswordForm] = useState({
     current_password: "",
     new_password: "",
@@ -21,6 +24,8 @@ export default function ProfilePage() {
     show: false,
     message: "",
   });
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
 
   const {
     data: profileData,
@@ -40,8 +45,6 @@ export default function ProfilePage() {
   const seller =
     profileData?.data || profileData?.seller || profileData || null;
 
-    console.log("seller profile data", profileData);
-
   const passwordMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem("token");
@@ -51,11 +54,11 @@ export default function ProfilePage() {
       return res.data;
     },
     onSuccess: (res: any) => {
-      setPasswordSuccess(res?.message || "Password updated successfully.");
+      setPasswordSuccess(res?.message || td("common.passwordUpdatedSuccessfully"));
       setPasswordError(null);
       setToast({
         show: true,
-        message: res?.message || "Password updated successfully.",
+        message: res?.message || td("common.passwordUpdatedSuccessfully"),
       });
       setTimeout(() => setToast({ show: false, message: "" }), 3000);
       setPasswordForm({
@@ -66,7 +69,7 @@ export default function ProfilePage() {
     },
     onError: (err: any) => {
       const message =
-        err?.response?.data?.message || "Failed to update password.";
+        err?.response?.data?.message || td("common.failedToUpdatePassword");
       setPasswordError(message);
       setPasswordSuccess(null);
     },
@@ -81,19 +84,19 @@ export default function ProfilePage() {
       : "bg-amber-50 text-amber-700";
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6" dir={dir}>
       {toast.show && (
         <div className="fixed top-6 right-6 z-50">
           <div className="flex items-center gap-3 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
-            <span>Password updated successfully</span>
+            <span>{toast.message}</span>
           </div>
         </div>
       )}
       <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Seller Profile</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{td("sellerProfile.title")}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            View your business details and manage your account security.
+            {td("sellerProfile.subtitle")}
           </p>
         </div>
       </header>
@@ -108,11 +111,11 @@ export default function ProfilePage() {
         ) : error ? (
           <div className="text-sm text-red-600">
             {(error as any)?.response?.data?.message ||
-              "Unable to load seller profile."}
+              td("sellerProfile.unableToLoad")}
           </div>
         ) : !seller ? (
           <div className="text-sm text-slate-500">
-            No seller profile found for this account.
+            {td("sellerProfile.noProfile")}
           </div>
         ) : (
           <>
@@ -128,7 +131,7 @@ export default function ProfilePage() {
               <span
                 className={`text-xs font-medium px-3 py-1 rounded-full ${statusColor}`}
               >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {getVerificationStatusLabel(locale, status)}
               </span>
             </div>
 
@@ -141,7 +144,7 @@ export default function ProfilePage() {
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Business email
+                  {td("common.businessEmail")}
                 </p>
                 <p className="font-medium text-slate-900">
                   {seller.business_email}
@@ -150,7 +153,7 @@ export default function ProfilePage() {
 
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Phone
+                  {td("common.phone")}
                 </p>
                 <p className="font-medium text-slate-900">
                   {seller.business_phone}
@@ -159,7 +162,7 @@ export default function ProfilePage() {
 
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Address
+                  {td("common.address")}
                 </p>
                 <p className="font-medium text-slate-900">
                   {seller.business_address}
@@ -168,7 +171,7 @@ export default function ProfilePage() {
 
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wide text-slate-500">
-                  City / Country
+                  {td("common.cityCountry")}
                 </p>
                 <p className="font-medium text-slate-900">
                   {seller.city}, {seller.country}
@@ -181,11 +184,10 @@ export default function ProfilePage() {
 
       <section className="bg-white border rounded-xl p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">
-          Change Password
+          {td("common.changePassword")}
         </h2>
         <p className="text-xs text-slate-500 mb-4">
-          Update your account password. Make sure to choose a strong, unique
-          password.
+          {td("sellerProfile.passwordHelp")}
         </p>
 
         <form
@@ -197,7 +199,7 @@ export default function ProfilePage() {
         >
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              Current password
+              {td("common.currentPassword")}
             </label>
             <div className="relative">
               <input
@@ -222,14 +224,14 @@ export default function ProfilePage() {
                   }))
                 }
               >
-                {showPasswords.current ? "Hide" : "Show"}
+                {showPasswords.current ? td("common.hide") : td("common.show")}
               </button>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              New password
+              {td("common.newPassword")}
             </label>
             <div className="relative">
               <input
@@ -254,14 +256,14 @@ export default function ProfilePage() {
                   }))
                 }
               >
-                {showPasswords.next ? "Hide" : "Show"}
+                {showPasswords.next ? td("common.hide") : td("common.show")}
               </button>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              Confirm new password
+              {td("common.confirmNewPassword")}
             </label>
             <div className="relative">
               <input
@@ -286,7 +288,7 @@ export default function ProfilePage() {
                   }))
                 }
               >
-                {showPasswords.confirm ? "Hide" : "Show"}
+                {showPasswords.confirm ? td("common.hide") : td("common.show")}
               </button>
             </div>
           </div>
@@ -304,7 +306,7 @@ export default function ProfilePage() {
               className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
               disabled={passwordMutation.isPending}
             >
-              {passwordMutation.isPending ? "Updating..." : "Update Password"}
+              {passwordMutation.isPending ? td("common.updating") : td("common.updatePasswordTitle")}
             </button>
           </div>
         </form>

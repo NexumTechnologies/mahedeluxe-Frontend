@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import ConditionalHeader from "@/components/ConditionalHeader";
 import ReactQueryProvider from "@/components/ReactQueryProvider";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import DeploymentVersionWatcher from "@/components/DeploymentVersionWatcher";
+import LanguageProvider from "@/components/LanguageProvider";
+import { getDirection, LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -30,19 +33,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
+  const dir = getDirection(locale);
+
   return (
-    <html lang="en">
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <body className={`${manrope.variable} ${cormorant.variable} ${manrope.className} antialiased`}>
         <ReactQueryProvider>
-          <DeploymentVersionWatcher />
-          <ConditionalHeader />
-          {children}
-          <ConditionalFooter />
+          <LanguageProvider initialLocale={locale}>
+            <DeploymentVersionWatcher />
+            <ConditionalHeader />
+            {children}
+            <ConditionalFooter />
+          </LanguageProvider>
         </ReactQueryProvider>
       </body>
     </html>

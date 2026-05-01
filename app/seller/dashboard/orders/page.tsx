@@ -3,9 +3,19 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { useI18n } from "@/components/LanguageProvider";
+import {
+  formatDashboardDate,
+  formatDashboardDateTime,
+  getOrderStatusLabel,
+  translateDashboard,
+} from "@/lib/dashboard-i18n";
 
 export default function SellerOrdersPage() {
+  const { dir, locale } = useI18n();
   const queryClient = useQueryClient();
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "processing" | "completed">(
@@ -22,9 +32,6 @@ export default function SellerOrdersPage() {
       return res.data;
     },
   });
-
-  console.log("here is the seller oders", data)
-
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       const token = localStorage.getItem("token");
@@ -59,12 +66,12 @@ export default function SellerOrdersPage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-4">
+    <div className="max-w-6xl mx-auto p-6 space-y-4" dir={dir}>
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Orders</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{td("sellerOrders.title")}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Orders placed by buyers for your products.
+            {td("sellerOrders.subtitle")}
           </p>
         </div>
         <button
@@ -73,7 +80,7 @@ export default function SellerOrdersPage() {
           className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
           disabled={isLoading}
         >
-          {isLoading ? "Refreshing..." : "Refresh"}
+          {isLoading ? td("common.refreshing") : td("common.refresh")}
         </button>
       </header>
 
@@ -88,7 +95,7 @@ export default function SellerOrdersPage() {
                 : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
             }`}
           >
-            All
+            {td("common.all")}
           </button>
           <button
             type="button"
@@ -99,7 +106,7 @@ export default function SellerOrdersPage() {
                 : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
             }`}
           >
-            Pending
+            {td("common.pending")}
           </button>
           <button
             type="button"
@@ -110,7 +117,7 @@ export default function SellerOrdersPage() {
                 : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
             }`}
           >
-            Processing
+            {td("common.processing")}
           </button>
           <button
             type="button"
@@ -121,38 +128,38 @@ export default function SellerOrdersPage() {
                 : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
             }`}
           >
-            Completed
+            {td("common.completed")}
           </button>
         </div>
 
         {isLoading ? (
           <div className="py-8 text-center text-sm text-slate-500">
-            Loading your orders...
+            {td("sellerOrders.loading")}
           </div>
         ) : error ? (
           <div className="py-8 text-center text-sm text-red-500">
-            Failed to load orders.
+            {td("sellerOrders.failed")}
           </div>
         ) : !orders.length ? (
           <div className="py-8 text-center text-sm text-slate-500">
-            You have not received any orders yet.
+            {td("sellerOrders.empty")}
           </div>
         ) : !displayOrders.length ? (
           <div className="py-8 text-center text-sm text-slate-500">
-            No orders found for this tab.
+            {td("sellerOrders.emptyTab")}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="text-left text-slate-500">
+            <thead className={`${dir === "rtl" ? "text-right" : "text-left"} text-slate-500`}>
               <tr>
-                <th className="py-2">Order</th>
-                <th className="py-2">Product</th>
-                <th className="py-2">Qty</th>
-                <th className="py-2">Buyer</th>
-                <th className="py-2">Amount</th>
-                <th className="py-2">Status</th>
-                <th className="py-2">Date</th>
-                <th className="py-2 text-right">Actions</th>
+                <th className="py-2">{td("common.order")}</th>
+                <th className="py-2">{td("common.product")}</th>
+                <th className="py-2">{td("common.qty")}</th>
+                <th className="py-2">{td("common.buyerLabel")}</th>
+                <th className="py-2">{td("common.amount")}</th>
+                <th className="py-2">{td("common.status")}</th>
+                <th className="py-2">{td("common.date")}</th>
+                <th className="py-2 text-right">{td("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -165,7 +172,7 @@ export default function SellerOrdersPage() {
                   </td>
                   <td className="py-2 pr-4 max-w-xs">
                     <div className="text-slate-900 truncate">
-                      {order.Product?.name || "Product"}
+                      {order.Product?.name || td("common.product")}
                     </div>
                   </td>
                   <td className="py-2 pr-4 text-xs text-slate-700">
@@ -173,7 +180,7 @@ export default function SellerOrdersPage() {
                   </td>
                   <td className="py-2 pr-4">
                     <div className="text-slate-900 text-xs">
-                      {order.User?.name || "Buyer"}
+                      {order.User?.name || td("common.buyerLabel")}
                     </div>
                     {order.User?.email && (
                       <div className="text-[11px] text-slate-500">
@@ -187,12 +194,12 @@ export default function SellerOrdersPage() {
                     </div>
                     {typeof order.admin_earning_amount === "number" && (
                       <div className="text-[11px] text-slate-500">
-                        Admin margin: {order.admin_earning_amount} AED
+                        {td("common.adminMargin", { amount: order.admin_earning_amount })}
                       </div>
                     )}
                     {typeof order.seller_earning_amount === "number" && (
                       <div className="text-[11px] text-emerald-700 font-medium">
-                        Your earning: {order.seller_earning_amount} AED
+                        {td("common.yourEarning", { amount: order.seller_earning_amount })}
                       </div>
                     )}
                   </td>
@@ -206,13 +213,11 @@ export default function SellerOrdersPage() {
                           : "bg-amber-50 text-amber-700"
                       }`}
                     >
-                      {order.status}
+                      {getOrderStatusLabel(locale, order.status)}
                     </span>
                   </td>
                   <td className="py-2 text-slate-500 text-xs">
-                    {order.createdAt
-                      ? new Date(order.createdAt).toLocaleDateString()
-                      : "-"}
+                    {formatDashboardDate(locale, order.createdAt)}
                   </td>
                   <td className="py-2 pr-0 text-right">
                     <div className="inline-flex gap-2">
@@ -221,7 +226,7 @@ export default function SellerOrdersPage() {
                         onClick={() => setSelectedOrder(order)}
                         className="px-3 py-1 rounded-full border border-slate-300 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
                       >
-                        View
+                        {td("common.view")}
                       </button>
                       {order.status === "pending" && (
                         <button
@@ -235,7 +240,7 @@ export default function SellerOrdersPage() {
                           }
                           className="px-3 py-1 rounded-full border border-blue-500 text-[11px] font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Mark processing
+                          {td("sellerOrders.markProcessing")}
                         </button>
                       )}
                       {order.status === "processing" && (
@@ -250,7 +255,7 @@ export default function SellerOrdersPage() {
                           }
                           className="px-3 py-1 rounded-full border border-emerald-500 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Mark delivered
+                          {td("sellerOrders.markDelivered")}
                         </button>
                       )}
                       <button
@@ -267,7 +272,7 @@ export default function SellerOrdersPage() {
                         }
                         className="px-3 py-1 rounded-full border border-red-500 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Cancel
+                        {td("common.cancel")}
                       </button>
                     </div>
                   </td>
@@ -284,12 +289,10 @@ export default function SellerOrdersPage() {
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">
-                  Order #{selectedOrder.id}
+                  {td("common.order")} #{selectedOrder.id}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {selectedOrder.createdAt
-                    ? new Date(selectedOrder.createdAt).toLocaleString()
-                    : "-"}
+                  {formatDashboardDateTime(locale, selectedOrder.createdAt)}
                 </p>
               </div>
               <button
@@ -297,7 +300,7 @@ export default function SellerOrdersPage() {
                 onClick={() => setSelectedOrder(null)}
                 className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <span className="sr-only">Close</span>
+                <span className="sr-only">{td("common.close")}</span>
                 ✕
               </button>
             </div>
@@ -308,36 +311,36 @@ export default function SellerOrdersPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={selectedOrder.Product.image_url[0]}
-                    alt={selectedOrder.Product.name || "Product image"}
+                    alt={selectedOrder.Product.name || td("common.productImage")}
                     className="h-20 w-20 shrink-0 rounded-md object-cover border"
                   />
                 ) : (
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-md border bg-slate-50 text-xs text-slate-400">
-                    No image
+                    {td("common.noImage")}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-slate-900 truncate">
-                    {selectedOrder.Product?.name || "Product"}
+                    {selectedOrder.Product?.name || td("common.product")}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Total amount: {selectedOrder.total_amount} AED
+                    {td("common.totalAmount", { amount: selectedOrder.total_amount })}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    Quantity: {typeof selectedOrder.quantity === "number" ? selectedOrder.quantity : "-"}
+                    {td("common.quantityLabel", { quantity: typeof selectedOrder.quantity === "number" ? selectedOrder.quantity : "-" })}
                   </p>
                   {typeof selectedOrder.admin_earning_amount === "number" && (
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Admin margin: {selectedOrder.admin_earning_amount} AED
+                      {td("common.adminMargin", { amount: selectedOrder.admin_earning_amount })}
                     </p>
                   )}
                   {typeof selectedOrder.seller_earning_amount === "number" && (
                     <p className="mt-0.5 text-xs text-emerald-700 font-medium">
-                      Your earning: {selectedOrder.seller_earning_amount} AED
+                      {td("common.yourEarning", { amount: selectedOrder.seller_earning_amount })}
                     </p>
                   )}
                   <div className="mt-1 text-xs text-slate-500">
-                    <span className="font-medium text-slate-700">Status: </span>
+                    <span className="font-medium text-slate-700">{td("common.orderStatus")} </span>
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${
                         selectedOrder.status === "delivered"
@@ -347,7 +350,7 @@ export default function SellerOrdersPage() {
                           : "bg-amber-50 text-amber-700"
                       }`}
                     >
-                      {selectedOrder.status}
+                      {getOrderStatusLabel(locale, selectedOrder.status)}
                     </span>
                   </div>
                 </div>
@@ -355,9 +358,9 @@ export default function SellerOrdersPage() {
 
               <div className="grid gap-2 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
                 <div className="flex justify-between gap-4">
-                  <span className="font-medium">Buyer</span>
+                  <span className="font-medium">{td("common.buyerLabel")}</span>
                   <span className="text-right">
-                    {selectedOrder.User?.name || "Buyer"}
+                    {selectedOrder.User?.name || td("common.buyerLabel")}
                     {selectedOrder.User?.email && (
                       <>
                         <br />
@@ -370,7 +373,7 @@ export default function SellerOrdersPage() {
                 </div>
                 {selectedOrder.address && (
                   <div className="flex justify-between gap-4">
-                    <span className="font-medium">Shipping address</span>
+                    <span className="font-medium">{td("common.shippingAddress")}</span>
                     <span className="max-w-65 text-right text-slate-600">
                       {selectedOrder.address}
                     </span>
@@ -384,7 +387,7 @@ export default function SellerOrdersPage() {
                   onClick={() => setSelectedOrder(null)}
                   className="rounded-md border px-3 py-1.5 text-slate-600 hover:bg-slate-50"
                 >
-                  Close
+                  {td("common.close")}
                 </button>
               </div>
             </div>

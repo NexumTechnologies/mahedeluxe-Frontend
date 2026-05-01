@@ -8,6 +8,7 @@ import api from "@/lib/axios";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/LanguageProvider";
 
 type AuthRole = "admin" | "seller" | "buyer" | "user" | (string & {});
 
@@ -32,6 +33,7 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { dir, t } = useI18n();
 
   const mutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
@@ -66,6 +68,7 @@ export default function LoginForm() {
       }
 
       const role = payload.role;
+      const roleLower = typeof role === "string" ? role.toLowerCase() : "";
       const returnTo = searchParams.get("returnTo");
       const safeReturnTo = returnTo && returnTo.startsWith("/") ? returnTo : null;
 
@@ -82,13 +85,14 @@ export default function LoginForm() {
         return;
       }
 
-      if (role === "admin") {
+      if (roleLower === "admin") {
         router.push("/admin/dashboard");
-      } else if (role === "seller") {
+      } else if (roleLower === "seller") {
         router.push("/seller/dashboard");
-      } else if (role === "buyer") {
+      } else if (roleLower === "buyer") {
         router.push("/buyer/dashboard");
-      } else if (role === "user") {
+      } else if (roleLower === "user" || roleLower === "customer") {
+        // Customers (role 'user' or legacy 'customer') should go to home page
         router.push("/");
       } else {
         router.push("/");
@@ -98,12 +102,12 @@ export default function LoginForm() {
 
     onError: (err: unknown) => {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || err.message || "Login failed");
+        setError(err.response?.data?.message || err.message || t("auth.loginFailed"));
       } else {
         setError(
           err instanceof Error
             ? err.message
-            : "An error occurred. Please try again.",
+            : t("auth.genericError"),
         );
       }
     },
@@ -116,14 +120,14 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full" dir={dir}>
       {/* Desktop Title */}
       <div className="hidden md:block text-center">
         <h1 className="text-blue text-[25px] font-bold leading-8.75">
-          Sign in to MaheDeluxe
+          {t("auth.loginTitle")}
         </h1>
         <p className="text-blue text-[16px] leading-[18.2px] font-medium mt-1">
-          or use your email account:
+          {t("auth.loginSubtitle")}
         </p>
       </div>
 
@@ -152,7 +156,7 @@ export default function LoginForm() {
 
             <Input
               type="email"
-              placeholder="Email"
+              placeholder={t("auth.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -188,7 +192,7 @@ export default function LoginForm() {
             <div className="relative">
               <Input
                 type={showPassword ? "text" : "password"}
-                placeholder="Password"
+                placeholder={t("auth.password")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -197,7 +201,7 @@ export default function LoginForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800"
               >
                 {showPassword ? (
@@ -219,7 +223,7 @@ export default function LoginForm() {
           disabled={mutation.status === "pending"}
           className="w-full h-12 bg-blue text-white rounded-lg"
         >
-          {mutation.status === "pending" ? "Signing in..." : "SIGN IN"}
+          {mutation.status === "pending" ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
 
         {/* Forgot */}
@@ -228,18 +232,18 @@ export default function LoginForm() {
             href="/auth/forgot-password"
             className="text-orange hover:underline"
           >
-            Forgot Your Password?
+            {t("auth.forgotPassword")}
           </Link>
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-500">
-          By continuing, you agree to our{" "}
+          {t("auth.agreementPrefix")}{" "}
           <Link href="/terms" className="text-[#7c3aed] hover:underline">
-            Terms &amp; Conditions
+            {t("auth.termsAndConditions")}
           </Link>
-          {" "}and{" "}
+          {" "}{t("auth.and")}{" "}
           <Link href="/privacy-policy" className="text-[#7c3aed] hover:underline">
-            Privacy Policy
+            {t("auth.privacyPolicy")}
           </Link>
           .
         </p>

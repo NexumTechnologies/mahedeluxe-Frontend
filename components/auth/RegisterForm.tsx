@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function RegisterForm() {
   const [name, setName] = useState("");
@@ -13,6 +14,7 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { dir, t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,7 @@ export default function RegisterForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Registration failed");
+        setError(data.message || t("auth.registrationFailed"));
         setLoading(false);
         return;
       }
@@ -40,20 +42,20 @@ export default function RegisterForm() {
       router.push("/");
       router.refresh();
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t("auth.genericError"));
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full" dir={dir}>
       {/* Desktop Title - Hidden on mobile */}
       <div className="hidden md:block text-center">
-        <h1 className="text-blue text-[25px] font-bold leading-[35px]">
-          Create Account
+        <h1 className="text-blue text-[25px] font-bold leading-8.75">
+          {t("auth.registerTitle")}
         </h1>
         <p className="text-[#6B6B6B] text-[16px] leading-[18.2px] font-medium mt-1">
-          or use you email registration:
+          {t("auth.registerSubtitle")}
         </p>
       </div>
 
@@ -87,11 +89,11 @@ export default function RegisterForm() {
             </div>
             <Input
               type="text"
-              placeholder="Name"
+              placeholder={t("auth.name")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-[22px] font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
+              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-5.5 font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
             />
           </div>
         </div>
@@ -127,11 +129,11 @@ export default function RegisterForm() {
             </div>
             <Input
               type="email"
-              placeholder="Email"
+              placeholder={t("auth.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-[22px] font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
+              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-5.5 font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
             />
           </div>
         </div>
@@ -172,11 +174,11 @@ export default function RegisterForm() {
             </div>
             <Input
               type="password"
-              placeholder="Password"
+              placeholder={t("auth.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-[22px] font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
+              className="pl-12 h-12 border-0 border-b-2 border-[#6B6B6B] rounded-none text-[16px] leading-5.5 font-normal placeholder:text-[#6B6B6B] focus-visible:ring-0 focus-visible:border-b-2 focus-visible:border-blue"
             />
           </div>
         </div>
@@ -190,17 +192,17 @@ export default function RegisterForm() {
           disabled={loading}
           className="w-full h-12 bg-blue  text-white text-[16px] font-medium rounded-lg"
         >
-          {loading ? "Signing up..." : "SIGN UP"}
+          {loading ? t("auth.signingUp") : t("auth.signUp")}
         </Button>
 
         <p className="mt-6 text-center text-xs text-slate-500">
-          By continuing, you agree to our{" "}
+          {t("auth.agreementPrefix")}{" "}
           <Link href="/terms" className="text-[#7c3aed] hover:underline">
-            Terms &amp; Conditions
+            {t("auth.termsAndConditions")}
           </Link>
-          {" "}and{" "}
+          {" "}{t("auth.and")}{" "}
           <Link href="/privacy-policy" className="text-[#7c3aed] hover:underline">
-            Privacy Policy
+            {t("auth.privacyPolicy")}
           </Link>
           .
         </p>

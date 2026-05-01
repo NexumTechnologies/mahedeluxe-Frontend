@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 
 type CustomerProfile = {
@@ -45,12 +45,15 @@ function initials(name?: string) {
 }
 
 export default function AdminCustomersPage() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [unverifiedOnly, setUnverifiedOnly] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SelectedUserState>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CustomerRow | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const size = 10;
 
   useEffect(() => {
@@ -66,6 +69,31 @@ export default function AdminCustomersPage() {
         params: { role: "user", page, size, search: debouncedSearch },
       });
       return resp.data;
+    },
+  });
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: async (customerId: number) => {
+      const resp = await api.delete(`/users/${customerId}`);
+      return resp.data;
+    },
+    onSuccess: () => {
+      setDeleteError("");
+      setDeleteTarget(null);
+      setModalOpen(false);
+      setSelectedUser(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-users", "user"] });
+    },
+    onError: (mutationError: unknown) => {
+      const message =
+        typeof mutationError === "object" &&
+        mutationError !== null &&
+        "response" in mutationError &&
+        typeof (mutationError as { response?: { data?: { message?: string } } }).response?.data
+          ?.message === "string"
+          ? (mutationError as { response?: { data?: { message?: string } } }).response?.data?.message
+          : "Failed to delete customer";
+      setDeleteError(message || "Failed to delete customer");
     },
   });
 
@@ -122,45 +150,97 @@ export default function AdminCustomersPage() {
             </div>
 
             <div className="p-4">
-          {/* Modal */}
-          {modalOpen && (
-            <div className="app-modal-overlay">
-              <div className="app-modal-panel z-10 max-w-2xl">
-                <div className="flex items-start justify-between border-b px-6 py-4">
-                  <h3 className="text-lg font-semibold">Customer details</h3>
-                  <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-gray-700">Close</button>
-                </div>
-
-                <div className="app-modal-scroll px-6 py-4">
-                  {!selectedUser ? (
-                    <div className="text-center py-6">Loading details...</div>
-                  ) : isErrorState(selectedUser) ? (
-                    <div className="text-red-600">{selectedUser.message || 'Failed to load'}</div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm text-gray-500">Name</div>
-                        <div className="font-medium">{selectedUser.name}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Email</div>
-                        <div className="font-medium">{selectedUser.email}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Role</div>
-                        <div className="font-medium">{selectedUser.role}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Verified</div>
-                        <div className="font-medium">{selectedUser.is_varified ? 'Yes' : 'No'}</div>
-                      </div>
-                      {/* additional details removed per request */}
+              {/* Modal */}
+              {modalOpen && (
+                <div className="app-modal-overlay">
+                  <div className="app-modal-panel z-10 max-w-2xl">
+                    <div className="flex items-start justify-between border-b px-6 py-4">
+                      <h3 className="text-lg font-semibold">Customer details</h3>
+                      <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-gray-700">Close</button>
                     </div>
-                  )}
+
+                    <div className="app-modal-scroll px-6 py-4">
+                      {!selectedUser ? (
+                        <div className="text-center py-6">Loading details...</div>
+                      ) : isErrorState(selectedUser) ? (
+                        <div className="text-red-600">{selectedUser.message || 'Failed to load'}</div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Name</div>
+                            <div className="font-medium">{selectedUser.name}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-500">Email</div>
+                            <div className="font-medium">{selectedUser.email}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-500">Role</div>
+                            <div className="font-medium">{selectedUser.role}</div>
+                          </div>
+                          {/* Verified intentionally hidden for customers */}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
+
+              {deleteTarget && (
+                <div className="app-modal-overlay">
+                  <div className="app-modal-panel z-10 max-w-md">
+                    <div className="flex items-start justify-between border-b px-6 py-4">
+                      <h3 className="text-lg font-semibold">Delete customer</h3>
+                      <button
+                        onClick={() => {
+                          if (!deleteCustomerMutation.isPending) {
+                            setDeleteTarget(null);
+                            setDeleteError("");
+                          }
+                        }}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <div className="px-6 py-4 space-y-4">
+                      <p className="text-sm text-gray-600">
+                        Are you sure you want to delete <span className="font-medium text-gray-900">{deleteTarget.name}</span>? This action cannot be undone.
+                      </p>
+
+                      {deleteError ? (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                          {deleteError}
+                        </div>
+                      ) : null}
+
+                      <div className="flex justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteTarget(null);
+                            setDeleteError("");
+                          }}
+                          disabled={deleteCustomerMutation.isPending}
+                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteCustomerMutation.mutate(deleteTarget.id)}
+                          disabled={deleteCustomerMutation.isPending}
+                          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deleteCustomerMutation.isPending ? "Deleting..." : "Confirm delete"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <ul className="divide-y">
                 {users.map((c) => (
                   <li key={c.id} className="flex items-center justify-between py-3">
@@ -180,18 +260,18 @@ export default function AdminCustomersPage() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <div>
-                        {c.is_varified ? (
-                          <span className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-sm">
-                            <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Verified
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm">Not verified</span>
-                        )}
-                      </div>
+                      <div>{/* no badge for customers */}</div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError("");
+                          setDeleteTarget(c);
+                        }}
+                        className="inline-flex items-center gap-2 text-sm border border-red-200 bg-red-50 px-3 py-1 rounded-lg text-red-600 hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
 
                       <button
                         onClick={async () => {
@@ -215,7 +295,7 @@ export default function AdminCustomersPage() {
               </ul>
             </div>
 
-            <div className="p-4 flex items-center justify-between">
+                <div className="p-4 flex items-center justify-between">
               <div className="text-sm text-gray-600">Total: {total}</div>
               <div className="flex items-center gap-2">
                 <button

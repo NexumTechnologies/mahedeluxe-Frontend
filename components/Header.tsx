@@ -10,7 +10,6 @@ import {
   LogIn,
   LogOut,
   Globe,
-  MapPin,
   ChevronDown,
   ArrowUpRight,
   LoaderCircle,
@@ -22,6 +21,7 @@ import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
 import { clearAllClientAuthState, getStoredUser } from "@/lib/authStorage";
 import { getGuestCart } from "@/lib/cartStorage";
+import { useI18n } from "@/components/LanguageProvider";
 import {
   Dialog,
   DialogContent,
@@ -85,6 +85,7 @@ async function searchProductsByName(search: string): Promise<SearchProduct[]> {
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const { locale, dir, setLocale, t } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,6 +94,8 @@ export default function Header() {
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [cartCount, setCartCount] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement | null>(null);
 
   const getDashboardHref = (role?: string) => {
     if (role === "buyer") return "/buyer/dashboard";
@@ -167,9 +170,30 @@ export default function Header() {
     if (pathname !== "/") return;
     if (!user?.role) return;
 
-    const dashboardHref = getDashboardHref(user.role);
+    // Only redirect to dashboards for roles that have dedicated dashboards.
+    // Customers with role 'user' (or legacy 'customer') should stay on the home page.
+    const role = (user.role || "").toLowerCase();
+    if (!["buyer", "seller", "admin"].includes(role)) return;
+
+    const dashboardHref = getDashboardHref(role);
     router.replace(dashboardHref);
   }, [pathname, router, user?.role]);
+
+  const handleSelectLang = (lang: "en" | "ar") => {
+    setLocale(lang);
+    setIsLangMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!langMenuRef.current?.contains(event.target as Node)) {
+        setIsLangMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   // Show account cart count when logged in, otherwise fall back to the guest cart.
   useEffect(() => {
@@ -336,14 +360,14 @@ export default function Header() {
                 </div>
                 <div className="pr-28 pl-8">
                   <div className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Search products
+                    {t("header.searchProducts")}
                   </div>
                   {/* <div className="mt-1 text-sm text-slate-600">
                     Find a product by name and jump straight to its detail page.
                   </div> */}
                 </div>
                 <span className="absolute right-3 top-1/2 inline-flex h-9 -translate-y-1/2 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white">
-                  Open Search
+                  {t("header.openSearch")}
                 </span>
               </button>
             </div>
@@ -358,17 +382,43 @@ export default function Header() {
                 <Search className="h-6 w-6" />
               </button>
 
-              {/* Location (Desktop) */}
-              <div className="hidden lg:flex items-center gap-2 text-sm text-gray-700 hover:text-orange transition-colors cursor-pointer group">
-                <MapPin className="h-4 w-4 text-orange" />
-                <span className="font-medium">UAE</span>
-                <ChevronDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
+              {/* Language (Desktop) - dropdown for English / Arabic */}
+              <div ref={langMenuRef} className="relative hidden lg:flex">
+                <button
+                  type="button"
+                  onClick={() => setIsLangMenuOpen((s) => !s)}
+                  className="flex items-center gap-2 text-gray-700 hover:text-orange transition-colors"
+                  aria-expanded={isLangMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  <Globe className="h-5 w-5 text-orange" />
+                  <span className="text-sm font-medium">
+                    {locale === "ar" ? t("header.arabic") : t("header.english")}
+                  </span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
 
-              {/* Language (Desktop) */}
-              <button className="hidden lg:flex items-center gap-2 text-gray-700 hover:text-orange transition-colors">
-                <Globe className="h-5 w-5 text-orange" />
-              </button>
+                {isLangMenuOpen && (
+                  <div
+                    className={`absolute ${dir === "rtl" ? "left-0" : "right-0"} z-50 mt-2 w-40 rounded-md border bg-white shadow-lg`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSelectLang("en")}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-stone-50"
+                    >
+                      {t("header.english")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectLang("ar")}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-stone-50"
+                    >
+                      {t("header.arabic")}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Cart */}
               <Link
@@ -401,7 +451,7 @@ export default function Header() {
                       )}
                     </div>
                     <div className="hidden max-w-30 flex-col items-start leading-tight xl:flex">
-                      <span className="text-[11px] text-gray-500">Hi,</span>
+                      <span className="text-[11px] text-gray-500">{t("header.hi")}</span>
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {user.name || user.email}
                       </span>
@@ -413,7 +463,7 @@ export default function Header() {
                     className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-orange transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
-                    <span className="hidden xl:inline">Logout</span>
+                    <span className="hidden xl:inline">{t("header.logout")}</span>
                   </button>
                 </div>
               ) : (
@@ -425,7 +475,7 @@ export default function Header() {
                   >
                     <Briefcase className="h-6 w-6" />
                     <span className="hidden xl:block text-sm font-medium">
-                      Business Registration
+                      {t("header.businessRegistration")}
                     </span>
                   </Link>
 
@@ -436,7 +486,7 @@ export default function Header() {
                   >
                     <LogIn className="h-6 w-6" />
                     <span className="hidden xl:block text-sm font-medium">
-                      Login
+                      {t("header.login")}
                     </span>
                   </Link>
                 </>
@@ -450,10 +500,10 @@ export default function Header() {
         <DialogContent className="max-w-[calc(100%-1.25rem)] rounded-[1.75rem] border-stone-200 bg-[#fffdfa] p-0 shadow-[0_28px_90px_rgba(15,23,42,0.18)] sm:max-w-3xl">
           <DialogHeader className="border-b border-stone-200/80 px-5 py-5 sm:px-7 sm:py-6">
             <DialogTitle className="text-2xl text-slate-900 sm:text-3xl">
-              Search products
+              {t("header.searchDialogTitle")}
             </DialogTitle>
             <DialogDescription className="text-sm leading-6 text-slate-500">
-              Type a product name and open the exact detail page from the matching results.
+              {t("header.searchDialogDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -465,7 +515,7 @@ export default function Header() {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by product name"
+                placeholder={t("header.searchPlaceholder")}
                 className="h-14 w-full rounded-[1.4rem] bg-transparent pl-12 pr-12 text-sm text-slate-900 outline-hidden placeholder:text-slate-400 sm:h-16 sm:text-base"
               />
               {isSearching && (
@@ -476,13 +526,13 @@ export default function Header() {
             <div className="mt-5 max-h-[60vh] overflow-y-auto rounded-3xl border border-stone-200/80 bg-white/90 p-2 sm:p-3">
               {!debouncedSearchTerm && (
                 <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-8 text-center text-sm text-slate-500">
-                  Start typing a product name to see matching items.
+                  {t("header.searchStartTyping")}
                 </div>
               )}
 
               {debouncedSearchTerm && !isSearching && searchResults.length === 0 && (
                 <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-8 text-center text-sm text-slate-500">
-                  No products found for &quot;{debouncedSearchTerm}&quot;.
+                  {t("header.searchNoResults", { term: debouncedSearchTerm })}
                 </div>
               )}
 
@@ -506,7 +556,7 @@ export default function Header() {
 
                       <div className="min-w-0 flex-1">
                         <div className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                          Matching product
+                          {t("header.matchingProduct")}
                         </div>
                         <div className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-900 sm:text-base">
                           {product.name}
@@ -517,7 +567,7 @@ export default function Header() {
                       </div>
 
                       <span className="hidden items-center gap-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white sm:inline-flex">
-                        Open
+                        {t("header.open")}
                         <ArrowUpRight className="h-4 w-4" />
                       </span>
                     </button>

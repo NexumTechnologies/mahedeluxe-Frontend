@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Star, ShoppingCart, Heart } from "lucide-react";
 import { useState } from "react";
 import { getSafeImageSrc } from "@/lib/utils";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface ProductCardProps {
   id: string;
@@ -37,6 +38,7 @@ export default function ProductCard({
 }: ProductCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const safeImage = getSafeImageSrc(image);
+  const { dir, t } = useI18n();
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,12 +50,13 @@ export default function ProductCard({
     <Link
       href={`/products/${id}`}
       className={`group relative ${className}`}
+      dir={dir}
     >
       <div className="relative h-full bg-white rounded-2xl overflow-hidden border-2 border-gray-100 hover:border-blue transition-all duration-300 shadow-md hover:shadow-2xl group-hover:scale-[1.02]">
         {/* Discount Badge */}
         {discount && (
           <div className="absolute top-3 left-3 z-20">
-            <div className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
+            <div className="px-2.5 py-1 bg-linear-to-r from-red-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
               -{discount}%
             </div>
           </div>
@@ -64,7 +67,7 @@ export default function ProductCard({
           <button
             onClick={toggleFavorite}
             className="absolute top-3 right-3 z-20 p-2 rounded-full bg-white/90 hover:bg-white shadow-md transition-all duration-300 hover:scale-110"
-            aria-label="Add to favorites"
+            aria-label={t("home.addToFavorites")}
           >
             <Heart
               className={`h-4 w-4 transition-colors ${
@@ -77,7 +80,7 @@ export default function ProductCard({
         )}
 
         {/* Product Image Container */}
-        <div className="relative w-full h-[180px] sm:h-[200px] lg:h-[240px] bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-hidden">
+        <div className="relative w-full h-45 sm:h-50 lg:h-60 bg-linear-to-br from-gray-50 to-blue-50/30 overflow-hidden">
           <div className="absolute inset-0   transition-colors duration-300 z-10" />
           <Image
             src={safeImage}
@@ -91,7 +94,7 @@ export default function ProductCard({
         <div className="p-4 sm:p-5 space-y-3">
           {/* Product Name and Rating */}
           <div className="space-y-2">
-            <h3 className="font-bold text-sm sm:text-base text-gray-900 group-hover:text-blue transition-colors line-clamp-2 min-h-[2.5rem]">
+            <h3 className="font-bold text-sm sm:text-base text-gray-900 group-hover:text-blue transition-colors line-clamp-2 min-h-10">
               {name}
             </h3>
             {rating && (
@@ -138,17 +141,17 @@ export default function ProductCard({
                   e.preventDefault();
                   e.stopPropagation();
                 }}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue to-blue-300 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-linear-to-r from-blue to-blue-300 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
               >
                 <ShoppingCart className="h-4 w-4" />
-                <span>Add to Cart</span>
+                <span>{t("browse.addToCart")}</span>
               </button>
             </div>
           )}
         </div>
 
         {/* Hover Overlay Effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/5 group-hover:to-blue-500/10 transition-all duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-linear-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/5 group-hover:to-blue-500/10 transition-all duration-300 pointer-events-none" />
       </div>
     </Link>
   );

@@ -1,5 +1,7 @@
 import React from "react";
 import BuyerSidebar from "@/components/buyer/BuyerSidebar";
+import { useI18n } from "@/components/LanguageProvider";
+import { translateDashboard } from "@/lib/dashboard-i18n";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +17,10 @@ export const metadata = {
 };
 
 export default function BuyerDashboardLayout({ children }: { children: React.ReactNode }) {
+  const { locale } = useI18n();
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="flex min-h-screen">
@@ -27,7 +33,7 @@ export default function BuyerDashboardLayout({ children }: { children: React.Rea
             <div className="flex h-14 items-center gap-3 px-4">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Open buyer navigation">
+                  <Button variant="outline" size="icon" aria-label={td("common.openBuyerNavigation")}>
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -47,7 +53,7 @@ export default function BuyerDashboardLayout({ children }: { children: React.Rea
                   <SheetHeader className="border-b">
                     <SheetTitle>
                       <Link href="/buyer/dashboard" className="font-semibold">
-                        Buyer Dashboard
+                        {td("common.buyerDashboard")}
                       </Link>
                     </SheetTitle>
                   </SheetHeader>
@@ -58,8 +64,8 @@ export default function BuyerDashboardLayout({ children }: { children: React.Rea
               </Sheet>
 
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-900">Dashboard</div>
-                <div className="text-[11px] text-slate-500">Buyer</div>
+                <div className="text-sm font-semibold text-slate-900">{td("common.dashboard")}</div>
+                <div className="text-[11px] text-slate-500">{td("common.buyer")}</div>
               </div>
             </div>
           </header>

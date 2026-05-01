@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { useI18n } from "@/components/LanguageProvider";
+import { translateDashboard } from "@/lib/dashboard-i18n";
 
 type BuyerProfile = {
   profile_image?: string | null;
@@ -37,10 +39,13 @@ function initials(name?: string) {
 }
 
 export default function AdminBuyersPage() {
+  const { dir, locale } = useI18n();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const size = 10;
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
@@ -65,12 +70,12 @@ export default function AdminBuyersPage() {
   const end = Math.min(page * size, total || 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={dir}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Buyers</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{td("adminBuyers.title")}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage buyer accounts, verification, and purchase activity.
+            {td("adminBuyers.subtitle")}
           </p>
         </div>
 
@@ -78,7 +83,7 @@ export default function AdminBuyersPage() {
           <div className="hidden sm:block text-xs text-gray-500">
             <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1 ring-1 ring-gray-100">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              {total} total buyers
+              {td("adminBuyers.totalBuyers", { total })}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -87,7 +92,7 @@ export default function AdminBuyersPage() {
                 href="/admin/approvals/buyers"
                 className="text-sm font-medium text-[#7c3aed] hover:text-[#5b21b6]"
               >
-                View Approvals
+                {td("adminBuyers.viewApprovals")}
               </Link>
             </div>
             <div>
@@ -97,7 +102,7 @@ export default function AdminBuyersPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Search by name or email"
+                placeholder={td("common.searchByNameOrEmail")}
                 className="px-3 py-2 border border-gray-200 rounded-lg w-64 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
               />
             </div>
@@ -107,33 +112,31 @@ export default function AdminBuyersPage() {
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
         {isLoading ? (
-          <div className="p-6 text-center">Loading...</div>
+          <div className="p-6 text-center">{td("common.loading")}</div>
         ) : error ? (
-          <div className="p-6 text-center text-red-600">Failed to load buyers</div>
+          <div className="p-6 text-center text-red-600">{td("adminBuyers.failed")}</div>
         ) : (
           <>
             <div className="p-4 border-b flex items-center justify-between bg-gray-50/60">
               <div className="text-sm text-gray-600">
-                Showing <span className="font-medium">{start}</span>-
-                <span className="font-medium">{end}</span> of
-                <span className="font-medium"> {total}</span>
+                {td("common.showingRange", { start, end, total })}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Per page: {size}</span>
+                <span className="text-sm text-gray-500">{td("common.perPage", { size })}</span>
               </div>
             </div>
 
             <div className="p-4 bg-gray-50/60">
               {users.length === 0 ? (
                 <div className="py-8 text-center text-sm text-gray-500">
-                  No buyers found. Try adjusting your search.
+                  {td("adminBuyers.empty")}
                 </div>
               ) : (
                 <ul className="space-y-3">
                   {users.map((b) => (
                     <li
                       key={b.id}
-                      className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-px hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-lg font-semibold text-indigo-700 overflow-hidden">
@@ -152,7 +155,7 @@ export default function AdminBuyersPage() {
                           <div className="font-medium text-gray-900">{b.name}</div>
                           <div className="text-sm text-gray-500">{b.email}</div>
                           <div className="mt-1 text-xs text-gray-500">
-                            Total orders:
+                            {td("adminBuyers.totalOrders")}
                             <span className="ml-1 font-medium text-gray-900">
                               {b.ordersCount ?? 0}
                             </span>
@@ -165,12 +168,12 @@ export default function AdminBuyersPage() {
                           {b.is_varified ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                              Verified
+                              {td("common.verified")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-100">
                               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                              Not verified
+                              {td("common.notVerified")}
                             </span>
                           )}
                         </div>
@@ -179,7 +182,7 @@ export default function AdminBuyersPage() {
                           href={`/admin/users/buyers/${b.id}`}
                           className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
                         >
-                          View
+                          {td("common.view")}
                         </Link>
                       </div>
                     </li>
@@ -189,22 +192,22 @@ export default function AdminBuyersPage() {
             </div>
 
             <div className="p-4 flex items-center justify-between bg-white border-t border-gray-100">
-              <div className="text-sm text-gray-600">Total: {total}</div>
+              <div className="text-sm text-gray-600">{td("common.total", { total })}</div>
               <div className="flex items-center gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="px-3 py-1 border rounded disabled:opacity-50"
                 >
-                  Prev
+                  {td("common.prev")}
                 </button>
-                <span className="px-3 py-1 border rounded bg-gray-50">Page {page}</span>
+                <span className="px-3 py-1 border rounded bg-gray-50">{td("common.page", { page })}</span>
                 <button
                   disabled={page >= Math.ceil((total || 0) / size)}
                   onClick={() => setPage((p) => p + 1)}
                   className="px-3 py-1 border rounded disabled:opacity-50"
                 >
-                  Next
+                  {td("common.next")}
                 </button>
               </div>
             </div>

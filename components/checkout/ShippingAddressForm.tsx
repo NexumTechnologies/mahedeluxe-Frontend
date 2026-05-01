@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CheckCircle2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/LanguageProvider";
 
 export interface ShippingAddressData {
   country: string;
@@ -33,8 +34,9 @@ export default function ShippingAddressForm({
   onActivate,
   onAddressChange,
 }: ShippingAddressFormProps) {
+  const { dir, t } = useI18n();
   const [formData, setFormData] = useState({
-    country: "United Arab Emirates",
+    country: t("checkout.unitedArabEmirates"),
     firstName: "",
     lastName: "",
     phone: "",
@@ -56,7 +58,7 @@ export default function ShippingAddressForm({
     if (data.city) addressLineParts.push(data.city);
     if (data.state) addressLineParts.push(data.state);
     if (data.postalCode) addressLineParts.push(data.postalCode);
-    addressLineParts.push("United Arab Emirates");
+    addressLineParts.push(t("checkout.unitedArabEmirates"));
 
     parts.push(addressLineParts.filter(Boolean).join(", "));
     return parts.filter(Boolean).join(" | ");
@@ -93,7 +95,7 @@ export default function ShippingAddressForm({
   };
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm" dir={dir}>
       <div className="mb-4 flex items-center gap-3">
         <div
           className={`flex h-9 w-9 items-center justify-center rounded-full ${
@@ -112,10 +114,10 @@ export default function ShippingAddressForm({
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg sm:text-xl font-semibold text-slate-950">
-            Delivery details
+            {t("checkout.deliveryDetails")}
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Enter your shipping address.
+            {t("checkout.enterShippingAddress")}
           </p>
         </div>
         {isComplete && (
@@ -125,7 +127,7 @@ export default function ShippingAddressForm({
             onClick={onActivate}
             className="ml-auto text-sm text-blue-600 hover:text-blue-700"
           >
-            Change
+            {t("checkout.change")}
           </Button>
         )}
       </div>
@@ -133,13 +135,13 @@ export default function ShippingAddressForm({
       {isComplete && !isActive ? (
         <div className="space-y-2 text-sm text-slate-600">
           <p className="font-medium text-slate-950">
-            {`${formData.firstName} ${formData.lastName}`.trim() || "Name"}
+            {`${formData.firstName} ${formData.lastName}`.trim() || t("checkout.nameFallback")}
           </p>
           {formData.phone && <p>{formData.phone}</p>}
           <p>
             {[formData.apartment, formData.city, formData.state,
               formData.postalCode,
-              "United Arab Emirates",
+              t("checkout.unitedArabEmirates"),
             ]
               .filter(Boolean)
               .join(", ")}
@@ -150,26 +152,26 @@ export default function ShippingAddressForm({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                First name
+                {t("checkout.firstName")}
               </label>
               <Input
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="First name"
+                placeholder={t("checkout.firstName")}
                 className="h-10 border-slate-300 bg-white"
                 required
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                Last name
+                {t("checkout.lastName")}
               </label>
               <Input
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Last name"
+                placeholder={t("checkout.lastName")}
                 className="h-10 border-slate-300 bg-white"
                 required
               />
@@ -178,13 +180,13 @@ export default function ShippingAddressForm({
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Phone number
+              {t("checkout.phoneNumber")}
             </label>
             <Input
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="Phone Number"
+              placeholder={t("checkout.phoneNumber")}
               className="h-10 border-slate-300 bg-white"
               required
             />
@@ -192,13 +194,13 @@ export default function ShippingAddressForm({
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Apartment or building
+              {t("checkout.apartmentOrBuilding")}
             </label>
             <Input
               name="apartment"
               value={formData.apartment}
               onChange={handleChange}
-              placeholder="Apartment, suite, unit, building, floor (optional)"
+              placeholder={t("checkout.apartmentPlaceholder")}
               className="h-10 border-slate-300 bg-white"
             />
           </div>
@@ -206,39 +208,39 @@ export default function ShippingAddressForm({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                State / province
+                {t("checkout.stateProvince")}
               </label>
               <Input
                 name="state"
                 value={formData.state}
                 onChange={handleChange}
-                placeholder="State / province"
+                placeholder={t("checkout.stateProvince")}
                 className="h-10 border-slate-300 bg-white"
                 required
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                City
+                {t("checkout.city")}
               </label>
               <Input
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
-                placeholder="City"
+                placeholder={t("checkout.city")}
                 className="h-10 border-slate-300 bg-white"
                 required
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                Postal code
+                {t("checkout.postalCode")}
               </label>
               <Input
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
-                placeholder="Postal code"
+                placeholder={t("checkout.postalCode")}
                 className="h-10 border-slate-300 bg-white"
                 required
               />
@@ -246,14 +248,14 @@ export default function ShippingAddressForm({
           </div>
 
           <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-            Country: <span className="font-medium text-slate-900">United Arab Emirates</span>
+            {t("checkout.country")}: <span className="font-medium text-slate-900">{t("checkout.unitedArabEmirates")}</span>
           </div>
 
           <button
             type="submit"
             className="inline-flex h-10 w-full items-center justify-center rounded-md bg-amber-400 text-sm sm:text-base font-medium text-slate-950 transition hover:bg-amber-500"
           >
-            Use this address
+            {t("checkout.useThisAddress")}
           </button>
         </form>
       )}

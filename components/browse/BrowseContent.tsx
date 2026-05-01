@@ -8,11 +8,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
+import { useI18n } from "@/components/LanguageProvider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,13 +95,14 @@ async function fetchBrowseProducts(
 }
 
 export default function BrowseContent() {
+  const { dir, locale, t } = useI18n();
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("category");
   const minPriceParam = searchParams.get("minPrice");
   const maxPriceParam = searchParams.get("maxPrice");
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState("Recommended");
+  const [sortBy, setSortBy] = useState(t("browse.recommended"));
   const [currentPage, setCurrentPage] = useState(1);
   const {
     data: products = [],
@@ -120,34 +122,37 @@ export default function BrowseContent() {
   );
 
   const sortOptions = [
-    "Recommended",
-    "Latest",
-    "Price: Low to High",
-    "Price: High to Low",
-    "Rating",
+    t("browse.recommended"),
+    t("browse.latest"),
+    t("browse.priceLowToHigh"),
+    t("browse.priceHighToLow"),
+    t("browse.rating"),
   ];
 
+  useEffect(() => {
+    setSortBy(t("browse.recommended"));
+  }, [locale, t]);
+
   return (
-    <div className="flex-1">
+    <div className="flex-1" dir={dir}>
       {/* Top Bar */}
       <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <p className="text-sm text-gray-600">
             {isLoading ? (
-              "Loading products..."
+              t("browse.loadingProducts")
             ) : error ? (
-              "Failed to load products."
+              t("browse.failedToLoadProducts")
             ) : products.length ? (
-              <>
-                Showing{" "}
-                <span className="font-bold text-gray-900">
-                  {startIndex + 1}-
-                  {Math.min(startIndex + ITEMS_PER_PAGE, products.length)}
-                </span>{" "}
-                of {products.length} products
-              </>
+              <span>
+                {t("browse.showingRange", {
+                  start: startIndex + 1,
+                  end: Math.min(startIndex + ITEMS_PER_PAGE, products.length),
+                  count: products.length,
+                })}
+              </span>
             ) : (
-              "No products found."
+              t("browse.noProductsFound")
             )}
           </p>
         </div>
@@ -155,7 +160,7 @@ export default function BrowseContent() {
         <div className="flex items-center gap-6">
           {/* Sorting */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Sort by:</span>
+            <span className="text-sm text-gray-500">{t("browse.sortBy")}</span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue/20">
@@ -165,7 +170,7 @@ export default function BrowseContent() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-[200px] bg-white border border-gray-100 rounded-xl shadow-xl p-1 z-50"
+                className="w-50 bg-white border border-gray-100 rounded-xl shadow-xl p-1 z-50"
               >
                 {sortOptions.map((option) => (
                   <DropdownMenuItem
@@ -208,17 +213,17 @@ export default function BrowseContent() {
       >
         {isLoading && (
           <div className="col-span-full text-center text-gray-500">
-            Loading products...
+            {t("browse.loadingProducts")}
           </div>
         )}
         {error && !isLoading && (
           <div className="col-span-full text-center text-red-500">
-            Failed to load products.
+            {t("browse.failedToLoadProducts")}
           </div>
         )}
         {!isLoading && !error && !currentProducts.length && (
           <div className="col-span-full text-center text-gray-500">
-            No products found.
+            {t("browse.noProductsFound")}
           </div>
         )}
         {!isLoading &&

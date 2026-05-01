@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface Category {
   id: string;
@@ -42,6 +43,7 @@ async function fetchBrowseCategories(): Promise<Category[]> {
 }
 
 export default function BrowseSidebar() {
+  const { dir, t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const categoryParam = searchParams.get("category");
@@ -94,21 +96,21 @@ export default function BrowseSidebar() {
   };
 
   return (
-    <aside className="w-full lg:w-72 space-y-8">
+    <aside className="w-full lg:w-72 space-y-8" dir={dir}>
       {/* Categories */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-6">
           <Filter className="h-5 w-5 text-orange" />
-          <h2 className="font-bold text-gray-900">Categories</h2>
+          <h2 className="font-bold text-gray-900">{t("browse.categories")}</h2>
         </div>
 
         <nav className="space-y-1">
           {isLoading && !categories.length && (
-            <div className="text-sm text-gray-500">Loading categories...</div>
+            <div className="text-sm text-gray-500">{t("browse.loadingCategories")}</div>
           )}
 
           {!isLoading && !categories.length && (
-            <div className="text-sm text-gray-500">No categories found.</div>
+            <div className="text-sm text-gray-500">{t("browse.noCategoriesFound")}</div>
           )}
 
           {categories.map((category) => (
@@ -136,12 +138,12 @@ export default function BrowseSidebar() {
 
       {/* Price Range */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="font-bold text-gray-900 mb-6">Price Range</h2>
+        <h2 className="font-bold text-gray-900 mb-6">{t("browse.priceRange")}</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <input 
               type="number" 
-              placeholder="Min" 
+              placeholder={t("browse.min")} 
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               className="w-full h-10 px-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue/20 focus:border-blue transition-all"
@@ -149,7 +151,7 @@ export default function BrowseSidebar() {
             <span className="text-gray-400">-</span>
             <input 
               type="number" 
-              placeholder="Max" 
+              placeholder={t("browse.max")} 
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               className="w-full h-10 px-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue/20 focus:border-blue transition-all"
@@ -160,7 +162,7 @@ export default function BrowseSidebar() {
             onClick={handleApplyPriceFilter}
             className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-orange transition-colors"
           >
-            Apply Filter
+            {t("browse.applyFilter")}
           </button>
         </div>
       </div>

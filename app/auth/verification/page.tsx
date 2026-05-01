@@ -21,6 +21,11 @@ export default function VerificationPage() {
         router.push("/auth/signin");
         return;
       }
+      // Customers (role 'user') do not require admin approval — treat as verified
+      if (user.role === "user") {
+        router.push("/");
+        return;
+      }
 
       if (user.is_varified) {
         // Redirect to appropriate dashboard

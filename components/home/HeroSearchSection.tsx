@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { Search, TrendingUp, Users, Package } from "lucide-react";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function HeroSearchSection() {
+  const { dir, t } = useI18n();
+
   return (
-    <section className="relative w-full min-h-[500px] lg:min-h-[600px] bg-gradient-to-tr from-blue via-blue-light to-blue">
+    <section className="relative w-full min-h-125 lg:min-h-150 bg-linear-to-tr from-blue via-blue-light to-blue" dir={dir}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div
@@ -17,25 +20,24 @@ export default function HeroSearchSection() {
         />
       </div>
 
-      <div className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-24 lg:pb-28">
+      <div className="relative w-full max-w-350 mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-24 lg:pb-28">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left: Content */}
-          <div className="text-center lg:text-left">
+          <div className={`text-center ${dir === "rtl" ? "lg:text-right" : "lg:text-left"}`}>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium mb-6">
               <TrendingUp className="h-4 w-4" />
-              <span>Multi-Vendor B2B Platform</span>
+              <span>{t("home.heroBadge")}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Connect with <span className="text-orange">Global</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-pink-200">
-                <span className="text-orange">Suppliers</span> & Buyers
+              {t("home.heroTitleLine1")} <span className="text-orange">{t("home.heroTitleHighlight")}</span>
+              <span className="block text-transparent bg-clip-text bg-linear-to-r from-yellow-200 to-pink-200">
+                <span className="text-orange">{t("home.heroTitleLine2")}</span> {t("home.heroTitleLine2Suffix")}
               </span>
             </h1>
 
             <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-xl mx-auto lg:mx-0">
-              Source products from verified vendors worldwide. Build your
-              business with our trusted multi-vendor marketplace.
+              {t("home.heroDescription")}
             </p>
 
             {/* Quick Stats */}
@@ -43,12 +45,12 @@ export default function HeroSearchSection() {
               <div className="flex items-center gap-2 text-white">
                 <Users className="h-5 w-5" />
                 <span className="font-semibold">10K+</span>
-                <span className="text-white/80 text-orange">Vendors</span>
+                <span className="text-orange">{t("home.vendors")}</span>
               </div>
               <div className="flex items-center gap-2 text-white">
                 <Package className="h-5 w-5" />
                 <span className="font-semibold">500K+</span>
-                <span className="text-white/80">Products</span>
+                <span className="text-white/80">{t("home.products")}</span>
               </div>
             </div>
 
@@ -58,13 +60,13 @@ export default function HeroSearchSection() {
                 href="/browse"
                 className="px-8 py-4 bg-white text-orange rounded-lg font-semibold hover:bg-gray-100 transition-colors text-center"
               >
-                Browse Products
+                {t("home.browseProducts")}
               </Link>
               <Link
                 href="/auth/seller/signin"
                 className="px-8 py-4 bg-transparent border-2 border-orange text-white rounded-lg font-semibold hover:bg-white/10 transition-colors text-center"
               >
-                Start Selling
+                {t("home.startSelling")}
               </Link>
             </div>
           </div>
@@ -79,7 +81,7 @@ export default function HeroSearchSection() {
                   <input
                     type="text"
                     readOnly
-                    placeholder="Search products, suppliers, or categories..."
+                    placeholder={t("home.heroSearchPlaceholder")}
                     onFocus={() => {
                       if (typeof window !== "undefined") {
                         window.dispatchEvent(new Event("open-global-search"));
@@ -96,7 +98,7 @@ export default function HeroSearchSection() {
                   }}
                   className="h-14 px-8 bg-orange hover:bg-blue text-white rounded-xl font-semibold transition-colors whitespace-nowrap"
                 >
-                  Search
+                  {t("home.search")}
                 </button>
               </div>
 
@@ -121,15 +123,15 @@ export default function HeroSearchSection() {
               <div
                 className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white hover:bg-white/20 transition-colors"
               >
-                <div className="font-semibold mb-1">Custom Orders</div>
+                <div className="font-semibold mb-1">{t("home.customOrders")}</div>
                 <div className="text-sm text-white/80">
-                  Bulk requests & quotes
+                  {t("home.bulkRequests")}
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white hover:bg-white/20 transition-colors">
-                <div className="font-semibold mb-1">On-Demand</div>
+                <div className="font-semibold mb-1">{t("home.onDemand")}</div>
                 <div className="text-sm text-white/80">
-                  Custom manufacturing
+                  {t("home.customManufacturing")}
                 </div>
               </div>
             </div>

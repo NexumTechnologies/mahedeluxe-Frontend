@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { useI18n } from "@/components/LanguageProvider";
 import {
   Shirt,
   Monitor,
@@ -79,27 +80,28 @@ async function fetchHomeCategories(): Promise<Category[]> {
 
 export default function CategoriesSection() {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const { dir, t } = useI18n();
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["home-categories"],
     queryFn: fetchHomeCategories,
   });
 
   return (
-    <section className="w-full bg-gradient-to-b from-white to-gray-50 py-12 sm:py-16 lg:py-20">
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="w-full bg-linear-to-b from-white to-gray-50 py-12 sm:py-16 lg:py-20" dir={dir}>
+      <div className="w-full max-w-350 mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-10 lg:mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full mb-4">
             <TrendingUp className="h-4 w-4 text-blue" />
             <span className="text-sm font-semibold text-blue">
-              Explore Categories
+              {t("home.categoriesBadge")}
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            Shop by <span className="text-orange">Category</span>
+            {t("home.categoriesTitlePrefix")} <span className="text-orange">{t("home.categoriesTitleHighlight")}</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Browse thousands of products across multiple categories from verified vendors
+            {t("home.categoriesDescription")}
           </p>
         </div>
 
@@ -107,7 +109,7 @@ export default function CategoriesSection() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 lg:mb-16">
           {isLoading && categories.length === 0 && (
             <div className="col-span-2 md:col-span-3 lg:col-span-4 text-center text-gray-500">
-              Loading categories...
+              {t("home.loadingCategories")}
             </div>
           )}
 
@@ -121,7 +123,7 @@ export default function CategoriesSection() {
             >
               {/* Background Gradient on Hover */}
               <div
-                className={`absolute inset-0 bg-gradient-to-br from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                className={`absolute inset-0 bg-linear-to-br from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
               />
               
               {/* Content */}
@@ -130,7 +132,7 @@ export default function CategoriesSection() {
                 <div
                   className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
                     hoveredCategory === category.id
-                      ? "bg-gradient-to-br from-blue to-blue-200 text-white scale-110"
+                      ? "bg-linear-to-br from-blue to-blue-200 text-white scale-110"
                       : "bg-blue-100 text-blue"
                   }`}
                 >
@@ -145,13 +147,13 @@ export default function CategoriesSection() {
                 {/* Product Count */}
                 {category.count && (
                   <p className="text-sm text-gray-500 mb-3">
-                    {category.count} products
+                    {category.count} {t("home.productsLabel")}
                   </p>
                 )}
 
                 {/* Arrow Icon */}
                 <div className="flex items-center gap-2 text-blue opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-sm font-medium">Explore</span>
+                  <span className="text-sm font-medium">{t("home.explore")}</span>
                   <ArrowRight className="h-4 w-4" />
                 </div>
               </div>
@@ -162,7 +164,7 @@ export default function CategoriesSection() {
         {/* Trending Searches Section */}
         <div className="relative">
           {/* Background with gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-3xl opacity-50" />
+          <div className="absolute inset-0 bg-linear-to-br from-blue-50 via-white to-purple-50 rounded-3xl opacity-50" />
           
           <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 sm:p-10 lg:p-12 shadow-xl">
             {/* Header */}
@@ -251,9 +253,9 @@ export default function CategoriesSection() {
             {/* Mobile View All Link */}
             <Link
               href="/browse"
-              className="sm:hidden flex items-center justify-center gap-2 mt-8 px-6 py-3 bg-gradient-to-r from-blue to-blue-200 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              className="sm:hidden flex items-center justify-center gap-2 mt-8 px-6 py-3 bg-linear-to-r from-blue to-blue-200 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
             >
-              View All Categories
+              {t("home.viewAllCategories")}
               <ArrowRight className="h-5 w-5" />
             </Link>
           </div>

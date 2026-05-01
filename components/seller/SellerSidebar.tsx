@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import api from "@/lib/axios";
 import { clearAllClientAuthState } from "@/lib/authStorage";
+import { useI18n } from "@/components/LanguageProvider";
 import { SheetClose } from "@/components/ui/sheet";
+import DashboardLanguageSwitcher from "@/components/DashboardLanguageSwitcher";
+import { translateDashboard } from "@/lib/dashboard-i18n";
 import {
   LayoutDashboard,
   Tags,
@@ -26,8 +29,11 @@ type SellerSidebarProps = {
 };
 
 export default function SellerSidebar({ closeOnNavigate }: SellerSidebarProps) {
+  const { locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
 
   const handleLogout = async () => {
     try {
@@ -39,11 +45,11 @@ export default function SellerSidebar({ closeOnNavigate }: SellerSidebarProps) {
   };
 
   const items: NavItem[] = [
-    { href: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/seller/dashboard/categories", label: "Categories", icon: Tags },
-    { href: "/seller/dashboard/products", label: "Products", icon: Package },
-    { href: "/seller/dashboard/orders", label: "My Orders", icon: ShoppingBag },
-    { href: "/seller/dashboard/profile", label: "Profile", icon: User2 },
+    { href: "/seller/dashboard", label: td("common.dashboard"), icon: LayoutDashboard },
+    { href: "/seller/dashboard/categories", label: td("sellerSidebar.categories"), icon: Tags },
+    { href: "/seller/dashboard/products", label: td("sellerSidebar.products"), icon: Package },
+    { href: "/seller/dashboard/orders", label: td("sellerSidebar.myOrders"), icon: ShoppingBag },
+    { href: "/seller/dashboard/profile", label: td("sellerSidebar.profile"), icon: User2 },
   ];
 
   const isActive = (href: string) => {
@@ -62,15 +68,18 @@ export default function SellerSidebar({ closeOnNavigate }: SellerSidebarProps) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-400">
-            Seller
+            {td("common.seller")}
           </p>
           <h2 className="mt-1 text-lg font-semibold text-gray-900">
-            Dashboard Menu
+            {td("common.dashboardMenu")}
           </h2>
         </div>
-        <span className="hidden rounded-full bg-blue/5 px-3 py-1 text-[11px] font-medium text-blue lg:inline-flex">
-          Manage Store
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="hidden rounded-full bg-blue/5 px-3 py-1 text-[11px] font-medium text-blue lg:inline-flex">
+            {td("common.manageStore")}
+          </span>
+          <DashboardLanguageSwitcher className="shrink-0" />
+        </div>
       </div>
 
       <nav className="space-y-1">
@@ -117,7 +126,7 @@ export default function SellerSidebar({ closeOnNavigate }: SellerSidebarProps) {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
                 <LogOut className="h-4 w-4" />
               </span>
-              <span>Logout</span>
+              <span>{td("common.logout")}</span>
             </span>
           </button>
         </Wrap>

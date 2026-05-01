@@ -1,5 +1,7 @@
 import React from "react";
 import SellerSidebar from "@/components/seller/SellerSidebar";
+import { useI18n } from "@/components/LanguageProvider";
+import { translateDashboard } from "@/lib/dashboard-i18n";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +21,10 @@ export default function SellerDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { locale } = useI18n();
+  const td = (key: string, vars?: Record<string, string | number>) =>
+    translateDashboard(locale, key, vars);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex min-h-screen">
@@ -31,7 +37,7 @@ export default function SellerDashboardLayout({
             <div className="flex h-14 items-center gap-3 px-4">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Open seller navigation">
+                  <Button variant="outline" size="icon" aria-label={td("common.openSellerNavigation")}>
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -51,7 +57,7 @@ export default function SellerDashboardLayout({
                   <SheetHeader className="border-b">
                     <SheetTitle>
                       <Link href="/seller/dashboard" className="font-semibold">
-                        Seller Dashboard
+                        {td("common.sellerDashboard")}
                       </Link>
                     </SheetTitle>
                   </SheetHeader>
@@ -60,8 +66,8 @@ export default function SellerDashboardLayout({
               </Sheet>
 
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-gray-900">Dashboard</div>
-                <div className="text-[11px] text-gray-500">Seller</div>
+                <div className="text-sm font-semibold text-gray-900">{td("common.dashboard")}</div>
+                <div className="text-[11px] text-gray-500">{td("common.seller")}</div>
               </div>
             </div>
           </header>

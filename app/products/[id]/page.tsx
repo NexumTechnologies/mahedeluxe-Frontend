@@ -6,8 +6,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { addGuestCartItem, hasStoredAuth } from "@/lib/cartStorage";
 import CartDrawer from "@/components/cart/CartDrawer";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function ProductDetailPage() {
+  const { dir, t } = useI18n();
   const { id } = useParams();
   const router = useRouter();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -40,7 +42,7 @@ export default function ProductDetailPage() {
     onSuccess: (res) => {
       setToast({
         show: true,
-        message: res?.message || "Added to cart",
+        message: res?.message || t("product.addedToCart"),
       });
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("open-cart-drawer"));
@@ -55,7 +57,7 @@ export default function ProductDetailPage() {
       }
       setToast({
         show: true,
-        message: err?.response?.data?.message || "Failed to add to cart",
+        message: err?.response?.data?.message || t("product.failedToAddToCart"),
       });
       setTimeout(() => setToast(null), 1000);
     },
@@ -135,7 +137,7 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50" dir={dir}>
       <CartDrawer />
       {toast?.show && (
         <div className="fixed top-6 right-6 z-50">
@@ -151,20 +153,20 @@ export default function ProductDetailPage() {
           onClick={() => router.back()}
           className="mb-4 text-xs sm:text-sm text-slate-500 hover:text-slate-800"
         >
-          ← Back to products
+          ← {t("product.backToProducts")}
         </button>
 
         {isLoading ? (
           <div className="py-16 text-center text-slate-500">
-            Loading product...
+            {t("product.loadingProduct")}
           </div>
         ) : error ? (
           <div className="py-16 text-center text-red-500">
-            Failed to load product.
+            {t("product.failedToLoadProduct")}
           </div>
         ) : !product ? (
           <div className="py-16 text-center text-slate-500">
-            Product not found.
+            {t("product.productNotFound")}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
@@ -180,7 +182,7 @@ export default function ProductDetailPage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
-                    No image available
+                    {t("product.noImageAvailable")}
                   </div>
                 )}
               </div>
@@ -223,7 +225,7 @@ export default function ProductDetailPage() {
                 )}
                 {product.User?.name && (
                   <p className="text-xs text-slate-500">
-                    Sold by{" "}
+                    {t("product.soldBy")}{" "}
                     <span className="font-medium">{product.User.name}</span>
                   </p>
                 )}
@@ -238,7 +240,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-8 text-sm">
                 <div className="space-y-1">
                   <div className="text-xs uppercase tracking-wide text-slate-500">
-                    Price
+                    {t("product.price")}
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-semibold text-emerald-700">
@@ -249,7 +251,7 @@ export default function ProductDetailPage() {
 
                 <div className="space-y-1">
                   <div className="text-xs uppercase tracking-wide text-slate-500">
-                    In stock
+                    {t("product.inStock")}
                   </div>
                   <div className="text-sm font-medium text-slate-900">
                     {product.quantity}
@@ -259,11 +261,11 @@ export default function ProductDetailPage() {
 
               <div className="pt-1">
                 <div className="text-xs uppercase tracking-wide text-slate-500 mb-1.5">
-                  Quantity
+                  {t("product.quantity")}
                 </div>
                 {userRole === "buyer" && (
                   <div className="text-[11px] text-slate-500 mb-2">
-                    Minimum order: <span className="font-medium">{moq}</span>
+                    {t("product.minimumOrder")} <span className="font-medium">{moq}</span>
                   </div>
                 )}
                 <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 overflow-hidden">
@@ -322,7 +324,7 @@ export default function ProductDetailPage() {
                       saveGuestCartItem();
                       setToast({
                         show: true,
-                        message: "Saved to cart. You can check out when ready.",
+                        message: t("product.savedToCartReady"),
                       });
                       setTimeout(() => setToast(null), 1000);
                       // Prevent double-adds from rapid clicks
@@ -341,7 +343,7 @@ export default function ProductDetailPage() {
                   }
                   className="flex-1 inline-flex items-center justify-center rounded-full border border-blue-600 text-blue-600 text-sm py-2.5 hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Add to cart
+                  {t("product.addToCart")}
                 </button>
                 <button
                   type="button"
@@ -372,7 +374,7 @@ export default function ProductDetailPage() {
                             show: true,
                             message:
                               err?.response?.data?.message ||
-                              "Failed to prepare checkout",
+                              t("product.failedToPrepareCheckout"),
                           });
                           setTimeout(() => setToast(null), 1000);
                         },
@@ -381,7 +383,7 @@ export default function ProductDetailPage() {
                   }}
                   className="flex-1 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-sm py-2.5 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Buy now
+                  {t("product.buyNow")}
                 </button>
               </div>
             </div>
