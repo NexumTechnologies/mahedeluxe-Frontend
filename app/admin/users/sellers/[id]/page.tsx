@@ -27,6 +27,9 @@ export default function SellerDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSelected, setPreviewSelected] = useState(0);
+  const [fullOpen, setFullOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-user", "seller", id],
@@ -156,10 +159,24 @@ export default function SellerDetailPage() {
     { label: "Tax certificate", url: documents?.tax_certificate_url },
     { label: "Factory / Warehouse photo", url: documents?.factory_photo_url },
   ];
+  const availableDocItems = docItems.filter((item) => item.url);
 
   const isImageUrl = (value?: string) =>
     typeof value === "string" &&
     /\.(png|jpe?g|webp|gif|bmp|svg)(\?.*)?$/i.test(value);
+
+  const isPdfUrl = (value?: string) =>
+    typeof value === "string" && /\.pdf(\?.*)?$/i.test(value);
+  
+  const getPdfPreviewSrc = (value: string) =>
+    `/api/document?url=${encodeURIComponent(value)}`;
+
+  const openPreview = (index: number) => {
+    setPreviewSelected(index);
+    setPreviewOpen(true);
+  };
+
+  const selectedPreviewDoc = availableDocItems[previewSelected];
 
   return (
     <div className="space-y-6">
@@ -335,26 +352,34 @@ export default function SellerDetailPage() {
                             <div className="text-xs text-gray-500">{d.label}</div>
                             <div className="mt-2">
                               {d.url ? (
-                                <a
-                                  href={d.url}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const docIndex = availableDocItems.findIndex(
+                                      (item) => item.label === d.label && item.url === d.url,
+                                    );
+                                    openPreview(docIndex >= 0 ? docIndex : 0);
+                                  }}
                                   className="text-sm text-indigo-600 hover:text-indigo-800"
                                 >
                                   View document
-                                </a>
+                                </button>
                               ) : (
                                 <div className="text-sm text-gray-400">Not provided</div>
                               )}
                             </div>
 
                             {d.url && isImageUrl(d.url) && (
-                              <a
-                                href={d.url}
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const docIndex = availableDocItems.findIndex(
+                                    (item) => item.label === d.label && item.url === d.url,
+                                  );
+                                  openPreview(docIndex >= 0 ? docIndex : 0);
+                                }}
                                 className="mt-3 block overflow-hidden rounded-md border bg-gray-50 hover:opacity-90"
-                                aria-label={`Open ${d.label} in new tab`}
+                                aria-label={`Preview ${d.label}`}
                               >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
@@ -362,7 +387,22 @@ export default function SellerDetailPage() {
                                   alt={d.label}
                                   className="w-full h-28 object-cover"
                                 />
-                              </a>
+                              </button>
+                            )}
+
+                            {d.url && isPdfUrl(d.url) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const docIndex = availableDocItems.findIndex(
+                                    (item) => item.label === d.label && item.url === d.url,
+                                  );
+                                  openPreview(docIndex >= 0 ? docIndex : 0);
+                                }}
+                                className="mt-3 flex h-28 w-full items-center justify-center rounded-md border border-dashed bg-gray-50 px-4 text-center text-sm font-medium text-red-600 hover:bg-gray-100"
+                              >
+                                PDF document
+                              </button>
                             )}
                           </div>
                         ))}
@@ -461,6 +501,127 @@ export default function SellerDetailPage() {
                   : "Confirm"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              setPreviewOpen(false);
+              setFullOpen(false);
+            }}
+          />
+          <div className="relative z-10 w-full max-w-5xl overflow-hidden rounded-lg bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b p-4">
+              <div className="text-sm font-medium">Document preview</div>
+              <div className="flex items-center gap-3">
+                {selectedPreviewDoc?.url ? (
+                  <a
+                    href={selectedPreviewDoc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-indigo-600 hover:text-indigo-800"
+                  >
+                    Open in new tab
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-sm text-gray-600"
+                  onClick={() => {
+                    setPreviewOpen(false);
+                    setFullOpen(false);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-3">
+              <div className="md:col-span-2">
+                {!selectedPreviewDoc?.url ? (
+                  <div className="p-8 text-center text-sm text-gray-500">No document available</div>
+                ) : isImageUrl(selectedPreviewDoc.url) ? (
+                  <button
+                    type="button"
+                    onClick={() => setFullOpen(true)}
+                    className="block w-full overflow-hidden rounded-md bg-gray-50"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selectedPreviewDoc.url}
+                      alt={selectedPreviewDoc.label}
+                      className="h-120 w-full object-contain bg-gray-50"
+                    />
+                  </button>
+                ) : isPdfUrl(selectedPreviewDoc.url) ? (
+                  <div className="space-y-3">
+                    <iframe
+                      key={selectedPreviewDoc.url}
+                      src={getPdfPreviewSrc(selectedPreviewDoc.url)}
+                      title={selectedPreviewDoc.label}
+                      className="h-130 w-full rounded-md border"
+                    />
+                    <div className="text-xs text-gray-500">
+                      If the PDF does not load in your browser, use "Open in new tab".
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border p-6 text-sm">
+                    <a
+                      href={selectedPreviewDoc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-indigo-600"
+                    >
+                      Open document in new tab
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 md:col-span-1">
+                {availableDocItems.map((doc, index) => (
+                  <button
+                    key={doc.label + index}
+                    type="button"
+                    onClick={() => {
+                      setPreviewSelected(index);
+                      setFullOpen(false);
+                    }}
+                    className={`w-full rounded p-2 text-left ${index === previewSelected ? "bg-gray-100" : "hover:bg-gray-50"}`}
+                  >
+                    <div className="text-sm font-medium">{doc.label}</div>
+                    <div className="truncate text-xs text-gray-500">{doc.url}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fullOpen && selectedPreviewDoc?.url && isImageUrl(selectedPreviewDoc.url) && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setFullOpen(false)} />
+          <div className="relative z-10 flex max-h-[96vh] w-full max-w-[96vw] items-center justify-center overflow-hidden rounded bg-black">
+            <button
+              type="button"
+              className="absolute left-3 top-3 z-20 rounded-full bg-black/40 p-2 text-white"
+              onClick={() => setFullOpen(false)}
+            >
+              Close
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={selectedPreviewDoc.url}
+              alt={selectedPreviewDoc.label}
+              className="max-h-[92vh] max-w-full object-contain"
+            />
           </div>
         </div>
       )}

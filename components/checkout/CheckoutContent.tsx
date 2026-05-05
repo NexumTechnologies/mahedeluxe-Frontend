@@ -20,6 +20,7 @@ export default function CheckoutContent() {
   const { dir, t } = useI18n();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [toast, setToast] = useState<{ show: boolean; message: string } | null>(null);
   const [shippingComplete, setShippingComplete] = useState(false);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddressData | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -114,9 +115,16 @@ export default function CheckoutContent() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       setIsConfirmModalOpen(false);
+
+      setToast({
+        show: true,
+        message: res?.message || t("checkout.orderPlacedSuccess"),
+      });
+      setTimeout(() => setToast(null), 1500);
+
       let redirectTo = "/";
 
       try {
@@ -135,7 +143,9 @@ export default function CheckoutContent() {
         redirectTo = "/";
       }
 
-      router.push(redirectTo);
+      setTimeout(() => {
+        router.push(redirectTo);
+      }, 700);
     },
   });
 
@@ -161,11 +171,20 @@ export default function CheckoutContent() {
       });
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       clearGuestCart();
       setGuestCart(getGuestCart());
       setIsGuestChoiceModalOpen(false);
-      router.push("/");
+
+      setToast({
+        show: true,
+        message: res?.message || t("checkout.guestOrderPlacedSuccess"),
+      });
+      setTimeout(() => setToast(null), 1500);
+
+      setTimeout(() => {
+        router.push("/");
+      }, 700);
     },
   });
 
@@ -190,6 +209,13 @@ export default function CheckoutContent() {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-8" dir={dir}>
+      {toast?.show && (
+        <div className="fixed top-6 right-6 z-50">
+          <div className="flex items-center gap-3 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
       {syncGuestCartMutation.isPending && (
         <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           {t("checkout.movingGuestCart")}

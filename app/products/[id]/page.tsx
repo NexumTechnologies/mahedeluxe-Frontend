@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Mail, MessageCircle } from "lucide-react";
 import api from "@/lib/axios";
 import { addGuestCartItem, hasStoredAuth } from "@/lib/cartStorage";
 import CartDrawer from "@/components/cart/CartDrawer";
@@ -27,6 +28,8 @@ export default function ProductDetailPage() {
     },
     enabled: !!id,
   });
+
+  console.log("Product detail data:", data, "data:", data);
 
   const addToCartMutation = useMutation({
     mutationFn: async ({
@@ -81,7 +84,10 @@ export default function ProductDetailPage() {
     product && product.min_order_quantity != null
       ? Math.max(1, Math.floor(Number(product.min_order_quantity) || 1))
       : 1;
-  const minAllowedQty = userRole === "buyer" ? moq : 1;
+  // Guest orders are allowed (public endpoin t) and MOQ is enforced server-side,
+  // so guests should also see/obey MOQ in the quantity selector.
+  const isPurchaseFlowUser = userRole === "buyer" || userRole == null;
+  const minAllowedQty = isPurchaseFlowUser ? moq : 1;
   const effectiveQuantity = Math.max(
     minAllowedQty,
     Math.floor(Number(quantity) || minAllowedQty),
@@ -135,6 +141,35 @@ export default function ProductDetailPage() {
       window.dispatchEvent(new Event("open-cart-drawer"));
     }
   };
+
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";
+  const whatsappNumberRaw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
+  const whatsappNumber = whatsappNumberRaw.replace(/[^\d]/g, "");
+  const canWhatsapp = Boolean(whatsappNumber);
+  const canEmail = Boolean(supportEmail);
+
+  const productName = product?.name ? String(product.name) : "";
+  const productUrl = typeof window !== "undefined" ? window.location.href : "";
+  const whatsappText = [
+    "Hello, I have a question about this product:",
+    productName,
+    productUrl,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const whatsappHref = canWhatsapp
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`
+    : "";
+  const emailHref = canEmail
+    ? `mailto:${supportEmail}?subject=${encodeURIComponent(
+        productName ? `Product inquiry: ${productName}` : "Product inquiry",
+      )}&body=${encodeURIComponent(
+        productUrl
+          ? `Hi,\n\nI have a question about this product:\n${productUrl}`
+          : "Hi,\n\nI have a question about this product.",
+      )}`
+    : "";
 
   return (
     <div className="min-h-screen bg-slate-50" dir={dir}>
@@ -263,9 +298,10 @@ export default function ProductDetailPage() {
                 <div className="text-xs uppercase tracking-wide text-slate-500 mb-1.5">
                   {t("product.quantity")}
                 </div>
-                {userRole === "buyer" && (
+                {isPurchaseFlowUser && (
                   <div className="text-[11px] text-slate-500 mb-2">
-                    {t("product.minimumOrder")} <span className="font-medium">{moq}</span>
+                    {t("product.minimumOrder")}{" "}
+                    <span className="font-medium">{moq}</span>
                   </div>
                 )}
                 <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 overflow-hidden">
@@ -345,6 +381,31 @@ export default function ProductDetailPage() {
                 >
                   {t("product.addToCart")}
                 </button>
+
+                {(canWhatsapp || canEmail) && (
+                  <div className="inline-flex items-center justify-center gap-2 sm:gap-3">
+                    {canWhatsapp && (
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="WhatsApp"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50"
+                      >
+                        <MessageCircle className="h-5 w-5" />
+                      </a>
+                    )}
+                    {canEmail && (
+                      <a
+                        href={emailHref}
+                        aria-label="Email"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50"
+                      >
+                        <Mail className="h-5 w-5" />
+                      </a>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   disabled={product.quantity === 0}

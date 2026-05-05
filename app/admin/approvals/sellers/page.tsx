@@ -258,7 +258,7 @@ export default function SellerApprovalsPage() {
                         );
                       }
                       if (isPdf) {
-                        return <iframe src={url} className="w-full h-130" />;
+                        return <iframe src={`/api/document?url=${encodeURIComponent(url)}`} className="w-full h-130" />;
                       }
                       return (
                         <div className="p-6 border rounded text-sm">
@@ -322,7 +322,7 @@ export default function SellerApprovalsPage() {
                   );
                 }
                 if (isPdf) {
-                  return <iframe src={url} className="w-full h-[92vh]" />;
+                  return <iframe src={`/api/document?url=${encodeURIComponent(url)}`} className="w-full h-[92vh]" />;
                 }
                 return (
                   <div className="p-6">

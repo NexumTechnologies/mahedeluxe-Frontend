@@ -80,6 +80,8 @@ export default function ProductsGridSection() {
     queryFn: fetchFeaturedProducts,
   });
 
+  console.log("Fetched products:", products);
+
   const toggleFavorite = (productId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
