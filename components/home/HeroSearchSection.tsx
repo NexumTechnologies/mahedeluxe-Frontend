@@ -119,46 +119,9 @@ export default function HeroSearchSection() {
     <section className="w-full bg-[#eef3fb]" dir={dir}>
       <div className="mx-auto w-full max-w-350 px-2 py-2 sm:px-6 sm:py-4 lg:px-8">
         <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#d8e4f5] bg-gradient-to-br from-[#e8f1ff] via-[#f6f9ff] to-[#fff7e6] shadow-[0_10px_26px_rgba(29,78,216,0.12)] sm:rounded-3xl sm:shadow-[0_18px_45px_rgba(29,78,216,0.16)] lg:min-h-[calc(100vh-90px)]">
-          <div className="p-2 sm:p-6 lg:p-8">
-            <div className="relative h-[48vh] min-h-[310px] w-full max-h-[520px] overflow-hidden rounded-[20px] border border-white/70 shadow-[0_14px_30px_rgba(15,23,42,0.14)] sm:h-[46vh] sm:min-h-[320px] sm:max-h-none sm:rounded-[28px] sm:shadow-[0_20px_45px_rgba(15,23,42,0.18)] lg:h-[62vh] lg:min-h-[500px]">
-              {HERO_SLIDES.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`absolute inset-0 transition-opacity duration-[1400ms] ease-in-out ${
-                    activeSlide === index ? "opacity-100" : "opacity-0"
-                  }`}
-                >
-                  <Image
-                    src={item.image}
-                    alt={item.imageAlt}
-                    fill
-                    priority={index === 0}
-                    className="object-cover object-center"
-                    sizes="100vw"
-                  />
-                </div>
-              ))}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/12" />
 
-              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-white/85 px-2 py-1 backdrop-blur sm:bottom-6 sm:left-6 sm:gap-2 sm:px-3 sm:py-2">
-                {HERO_SLIDES.map((item, index) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setActiveSlide(index)}
-                    aria-label={`Go to slide ${index + 1}`}
-                    className={`h-2 rounded-full transition-all sm:h-2.5 ${
-                      activeSlide === index
-                        ? "w-5 bg-[#1d4ed8] sm:w-6"
-                        : "w-2 bg-[#93c5fd] hover:bg-[#60a5fa] sm:w-2.5"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-[#dbe5f4] bg-white/92 px-2 py-2 backdrop-blur sm:px-6 sm:py-3">
+          {/* ── Categories strip – above the banner ── */}
+          <div className="border-b border-[#dbe5f4] bg-white/92 px-2 py-2 backdrop-blur sm:px-6 sm:py-3">
             {isLoading ? (
               <div className="px-2 text-xs font-medium text-slate-500 sm:text-sm">{t("home.loadingCategories")}</div>
             ) : (
@@ -199,7 +162,6 @@ export default function HeroSearchSection() {
                     </span>
                   </Link>
                 ))}
-
                 <Link
                   href="/browse"
                   className="group flex min-w-[88px] flex-col items-center gap-1.5 rounded-lg px-1 py-2 transition hover:bg-[#eff6ff] sm:min-w-[96px] sm:gap-2 sm:rounded-xl"
@@ -215,6 +177,47 @@ export default function HeroSearchSection() {
               </div>
             )}
           </div>
+
+          {/* ── Hero banner ── */}
+          <div className="p-2 sm:p-6 lg:p-8">
+            <div className="relative h-[48vh] min-h-[310px] w-full max-h-[520px] overflow-hidden rounded-[20px] border border-white/70 shadow-[0_14px_30px_rgba(15,23,42,0.14)] sm:h-[46vh] sm:min-h-[320px] sm:max-h-none sm:rounded-[28px] sm:shadow-[0_20px_45px_rgba(15,23,42,0.18)] lg:h-[62vh] lg:min-h-[500px]">
+              {HERO_SLIDES.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`absolute inset-0 transition-opacity duration-[1400ms] ease-in-out ${
+                    activeSlide === index ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  <Image
+                    src={item.image}
+                    alt={item.imageAlt}
+                    fill
+                    priority={index === 0}
+                    className="object-cover object-center"
+                    sizes="100vw"
+                  />
+                </div>
+              ))}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/12" />
+
+              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-white/85 px-2 py-1 backdrop-blur sm:bottom-6 sm:left-6 sm:gap-2 sm:px-3 sm:py-2">
+                {HERO_SLIDES.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveSlide(index)}
+                    aria-label={`Go to slide ${index + 1}`}
+                    className={`h-2 rounded-full transition-all sm:h-2.5 ${
+                      activeSlide === index
+                        ? "w-5 bg-[#1d4ed8] sm:w-6"
+                        : "w-2 bg-[#93c5fd] hover:bg-[#60a5fa] sm:w-2.5"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
