@@ -43,6 +43,14 @@ api.interceptors.request.use(
       }
     }
 
+    // When the body is FormData, the Content-Type must include the multipart
+    // boundary which only the browser/axios can compute automatically.
+    // Remove any preset Content-Type so axios sets it correctly.
+    if (config.data instanceof FormData) {
+      delete headers["Content-Type"];
+      delete headers["content-type"];
+    }
+
     config.headers = headers;
 
     incrementPendingRequests();

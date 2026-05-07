@@ -1,6 +1,4 @@
 import HeroSearchSection from "@/components/home/HeroSearchSection";
-import WelcomeBanner from "@/components/home/WelcomeBanner";
-import CategoriesSection from "@/components/home/CategoriesSection";
 import ProductsGridSection from "@/components/home/ProductsGridSection";
 import { redirect } from "next/navigation";
 import { getAuthUserFromRequest } from "@/lib/auth";
@@ -30,8 +28,6 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <HeroSearchSection />
-      {/* <WelcomeBanner /> */}
-      <CategoriesSection />
       <ProductsGridSection />
     </div>
   );
