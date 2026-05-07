@@ -1,7 +1,8 @@
 import React from "react";
+import { cookies } from "next/headers";
 import SellerSidebar from "@/components/seller/SellerSidebar";
-import { useI18n } from "@/components/LanguageProvider";
 import { translateDashboard } from "@/lib/dashboard-i18n";
+import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,12 +17,13 @@ export const metadata = {
   title: "Seller Dashboard",
 };
 
-export default function SellerDashboardLayout({
+export default async function SellerDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { locale } = useI18n();
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 

@@ -1,7 +1,8 @@
 import React from "react";
+import { cookies } from "next/headers";
 import BuyerSidebar from "@/components/buyer/BuyerSidebar";
-import { useI18n } from "@/components/LanguageProvider";
 import { translateDashboard } from "@/lib/dashboard-i18n";
+import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +17,9 @@ export const metadata = {
   title: "Buyer Dashboard",
 };
 
-export default function BuyerDashboardLayout({ children }: { children: React.ReactNode }) {
-  const { locale } = useI18n();
+export default async function BuyerDashboardLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 
