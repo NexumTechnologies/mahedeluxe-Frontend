@@ -318,6 +318,16 @@ export default function Header() {
     return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
   })();
 
+  const mainNavItems = [
+    { label: "Home", href: "/" },
+    { label: "Shop", href: "/browse" },
+    { label: "Become a Buyer", href: "/auth/register?role=buyer", activePath: "/auth/register" },
+    { label: "Become a Seller", href: "/auth/register?role=seller", activePath: "/auth/register" },
+    { label: "Request for Quote", href: "/rfq" },
+    { label: "About Us", href: "/about" },
+    { label: "Contact Us", href: "/contact" },
+  ];
+
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
@@ -495,6 +505,26 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Secondary Navigation Bar */}
+      <nav className="w-full border-b border-gray-100 bg-white">
+        <div className="mx-auto max-w-350 px-2 sm:px-4 lg:px-8">
+          <ul className="flex items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {mainNavItems.map(({ label, href, activePath }) => (
+              <li key={href} className="shrink-0">
+                <Link
+                  href={href}
+                  className={`inline-block px-3 py-2.5 text-[11px] font-semibold tracking-wide uppercase transition-colors hover:text-orange sm:px-4 sm:py-3 sm:text-[12px] lg:text-[13px] ${
+                    pathname === (activePath || href) ? "text-orange border-b-2 border-orange" : "text-gray-700"
+                  }`}
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
 
       <Dialog open={isSearchOpen} onOpenChange={handleSearchOpenChange}>
         <DialogContent className="max-w-[calc(100%-1.25rem)] rounded-[1.75rem] border-stone-200 bg-[#fffdfa] p-0 shadow-[0_28px_90px_rgba(15,23,42,0.18)] sm:max-w-3xl">

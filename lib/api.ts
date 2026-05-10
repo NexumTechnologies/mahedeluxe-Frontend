@@ -6,6 +6,13 @@ import { getStoredToken } from "@/lib/authStorage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api/v1";
 
+type RequestError = Error & {
+  status?: number;
+  data?: unknown;
+};
+
+type JsonPayload = Record<string, unknown>;
+
 async function request(path: string, opts: RequestInit = {}) {
   const shouldTrack = typeof window !== "undefined";
   if (shouldTrack) incrementPendingRequests();
@@ -32,16 +39,19 @@ async function request(path: string, opts: RequestInit = {}) {
   }
 
   const text = await res.text();
-  let data = null;
+  let data: unknown = null;
   try {
     data = text ? JSON.parse(text) : null;
-  } catch (e) {
+  } catch {
     data = text;
   }
 
   if (!res.ok) {
-    const message = data?.message || res.statusText || "Request failed";
-    const error: any = new Error(message);
+    const message =
+      typeof data === "object" && data !== null && "message" in data
+        ? String((data as { message?: unknown }).message || res.statusText || "Request failed")
+        : res.statusText || "Request failed";
+    const error: RequestError = new Error(message);
     error.status = res.status;
     error.data = data;
     throw error;
@@ -64,7 +74,7 @@ export async function loginUser(payload: { email: string; password: string }) {
   });
 }
 
-export async function createSellerProfile(payload: any) {
+export async function createSellerProfile(payload: JsonPayload) {
   // expects authenticated cookie to be set (credentials: include)
   return request("/seller", {
     method: "POST",
@@ -72,7 +82,7 @@ export async function createSellerProfile(payload: any) {
   });
 }
 
-export async function createBuyerProfile(payload: any) {
+export async function createBuyerProfile(payload: JsonPayload) {
   return request("/buyer", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -82,5 +92,23 @@ export async function createBuyerProfile(payload: any) {
 export async function getAdminDashboardStats() {
   return request("/users/stats/dashboard", {
     method: "GET",
+  });
+}
+
+export async function getAdminNotifications(limit = 10) {
+  return request(`/admin-notifications?limit=${limit}`, {
+    method: "GET",
+  });
+}
+
+export async function markAdminNotificationRead(id: number | string) {
+  return request(`/admin-notifications/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllAdminNotificationsRead() {
+  return request("/admin-notifications/mark-all-read", {
+    method: "PATCH",
   });
 }

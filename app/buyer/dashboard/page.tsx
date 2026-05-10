@@ -9,6 +9,7 @@ import {
   getOrderStatusLabel,
   translateDashboard,
 } from "@/lib/dashboard-i18n";
+import { formatAED } from "@/lib/utils";
 
 export default function BuyerDashboardHome() {
   const { dir, locale } = useI18n();
@@ -133,7 +134,20 @@ export default function BuyerDashboardHome() {
                     <td className="py-2">
                       {order.Product?.name || td("common.product")}
                     </td>
-                    <td className="py-2">{order.total_amount} AED</td>
+                    <td className="py-2 text-xs text-slate-600">
+                      <div className="font-semibold text-slate-900">
+                        {formatAED(order.total_amount || 0)}
+                      </div>
+                      <div>
+                        Product price: {formatAED(order.base_unit_price || order.Product?.price || 0)}
+                      </div>
+                      <div>
+                        Admin commission: {typeof order.commission_percentage === "number" ? `${order.commission_percentage}%` : "0%"}
+                      </div>
+                      <div>
+                        Admin amount: {formatAED(order.admin_earning_amount || 0)}
+                      </div>
+                    </td>
                     <td className="py-2">
                       <span
                         className={`text-sm font-medium ${

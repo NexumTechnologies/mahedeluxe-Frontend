@@ -11,6 +11,7 @@ import {
   getOrderStatusLabel,
   translateDashboard,
 } from "@/lib/dashboard-i18n";
+import { formatAED } from "@/lib/utils";
 
 function Tile({
   href,
@@ -47,7 +48,6 @@ export default function SellerDashboardPage() {
       return res.data;
     },
   });
-
   const dashboard = (data as any)?.data || data || null;
   const totalProducts = dashboard?.totalProducts ?? 0;
   const pendingOrders = dashboard?.pendingOrders ?? 0;
@@ -187,8 +187,19 @@ export default function SellerDashboardPage() {
                       <td className="py-2">
                         {order.User?.name || td("common.buyerLabel")}
                       </td>
-                      <td className="py-2">
-                        {order.total_amount} AED
+                      <td className="py-2 text-xs text-slate-600">
+                        <div className="font-semibold text-slate-900">
+                          {formatAED(order.total_amount || 0)}
+                        </div>
+                        <div>
+                          Product price: {formatAED(order.base_unit_price || order.Product?.price || 0)}
+                        </div>
+                        <div>
+                          Admin commission: {typeof order.commission_percentage === "number" ? `${order.commission_percentage}%` : "0%"}
+                        </div>
+                        <div>
+                          Admin amount: {formatAED(order.admin_earning_amount || 0)}
+                        </div>
                       </td>
                       <td className="py-2">
                         <span

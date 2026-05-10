@@ -8,6 +8,7 @@ import { useI18n } from "@/components/LanguageProvider";
 
 export interface ShippingAddressData {
   country: string;
+  email: string;
   firstName: string;
   lastName: string;
   phone: string;
@@ -37,6 +38,7 @@ export default function ShippingAddressForm({
   const { dir, t } = useI18n();
   const [formData, setFormData] = useState({
     country: t("checkout.unitedArabEmirates"),
+    email: "",
     firstName: "",
     lastName: "",
     phone: "",
@@ -137,6 +139,7 @@ export default function ShippingAddressForm({
           <p className="font-medium text-slate-950">
             {`${formData.firstName} ${formData.lastName}`.trim() || t("checkout.nameFallback")}
           </p>
+          {formData.email && <p>{formData.email}</p>}
           {formData.phone && <p>{formData.phone}</p>}
           <p>
             {[formData.apartment, formData.city, formData.state,
@@ -150,6 +153,20 @@ export default function ShippingAddressForm({
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                Email address
+              </label>
+              <Input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                className="h-10 border-slate-300 bg-white"
+                required
+              />
+            </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
                 {t("checkout.firstName")}

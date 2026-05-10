@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 12;
 
 async function fetchBrowseProducts(
   categoryId: string | null,
@@ -114,9 +114,24 @@ export default function BrowseContent() {
       fetchBrowseProducts(categoryId, minPriceParam, maxPriceParam),
   });
 
-  const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE));
+  const sortedProducts = [...products].sort((left: any, right: any) => {
+    const leftPrice = Number(left?._numericPrice) || 0;
+    const rightPrice = Number(right?._numericPrice) || 0;
+
+    if (sortBy === t("browse.priceLowToHigh")) {
+      return leftPrice - rightPrice;
+    }
+
+    if (sortBy === t("browse.priceHighToLow")) {
+      return rightPrice - leftPrice;
+    }
+
+    return 0;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentProducts = products.slice(
+  const currentProducts = sortedProducts.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE,
   );
@@ -133,6 +148,10 @@ export default function BrowseContent() {
     setSortBy(t("browse.recommended"));
   }, [locale, t]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryId, minPriceParam, maxPriceParam, sortBy]);
+
   return (
     <div className="flex-1" dir={dir}>
       {/* Top Bar */}
@@ -143,12 +162,12 @@ export default function BrowseContent() {
               t("browse.loadingProducts")
             ) : error ? (
               t("browse.failedToLoadProducts")
-            ) : products.length ? (
+            ) : sortedProducts.length ? (
               <span>
                 {t("browse.showingRange", {
                   start: startIndex + 1,
-                  end: Math.min(startIndex + ITEMS_PER_PAGE, products.length),
-                  count: products.length,
+                  end: Math.min(startIndex + ITEMS_PER_PAGE, sortedProducts.length),
+                  count: sortedProducts.length,
                 })}
               </span>
             ) : (
@@ -238,7 +257,7 @@ export default function BrowseContent() {
       </div>
 
       {/* Pagination */}
-      {products.length > 0 && totalPages > 1 && (
+      {sortedProducts.length > 0 && totalPages > 1 && (
         <div className="mt-12 flex justify-center">
           <nav className="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
             <button

@@ -3,11 +3,16 @@
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { Mail, MessageCircle } from "lucide-react";
 import api from "@/lib/axios";
 import { addGuestCartItem, hasStoredAuth } from "@/lib/cartStorage";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { useI18n } from "@/components/LanguageProvider";
+
+type ApiErrorResponse = {
+  message?: string;
+};
 
 export default function ProductDetailPage() {
   const { dir, t } = useI18n();
@@ -19,6 +24,12 @@ export default function ProductDetailPage() {
   );
   const [quantity, setQuantity] = useState(1);
   const [isSavingGuest, setIsSavingGuest] = useState(false);
+
+  const getErrorMessage = (error: unknown) =>
+    (error as AxiosError<ApiErrorResponse>)?.response?.data?.message;
+
+  const getErrorStatus = (error: unknown) =>
+    (error as AxiosError<ApiErrorResponse>)?.response?.status;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["product-detail", id],
@@ -52,15 +63,15 @@ export default function ProductDetailPage() {
       }
       setTimeout(() => setToast(null), 1000);
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       // If backend reports unauthorized, redirect to login.
-      if (err?.response?.status === 401) {
+      if (getErrorStatus(err) === 401) {
         router.push("/auth/signin");
         return;
       }
       setToast({
         show: true,
-        message: err?.response?.data?.message || t("product.failedToAddToCart"),
+        message: getErrorMessage(err) || t("product.failedToAddToCart"),
       });
       setTimeout(() => setToast(null), 1000);
     },
@@ -350,7 +361,44 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <div className="pt-2 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <a
+                    href={canWhatsapp ? whatsappHref : undefined}
+                    target={canWhatsapp ? "_blank" : undefined}
+                    rel={canWhatsapp ? "noopener noreferrer" : undefined}
+                    aria-disabled={!canWhatsapp}
+                    onClick={(event) => {
+                      if (!canWhatsapp) event.preventDefault();
+                    }}
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                      canWhatsapp
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "cursor-not-allowed bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>WhatsApp Enquiry</span>
+                  </a>
+
+                  <a
+                    href={canEmail ? emailHref : undefined}
+                    aria-disabled={!canEmail}
+                    onClick={(event) => {
+                      if (!canEmail) event.preventDefault();
+                    }}
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                      canEmail
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "cursor-not-allowed bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span>Place Order by Email</span>
+                  </a>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -381,31 +429,6 @@ export default function ProductDetailPage() {
                 >
                   {t("product.addToCart")}
                 </button>
-
-                {(canWhatsapp || canEmail) && (
-                  <div className="inline-flex items-center justify-center gap-2 sm:gap-3">
-                    {canWhatsapp && (
-                      <a
-                        href={whatsappHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="WhatsApp"
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50"
-                      >
-                        <MessageCircle className="h-5 w-5" />
-                      </a>
-                    )}
-                    {canEmail && (
-                      <a
-                        href={emailHref}
-                        aria-label="Email"
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50"
-                      >
-                        <Mail className="h-5 w-5" />
-                      </a>
-                    )}
-                  </div>
-                )}
                 <button
                   type="button"
                   disabled={product.quantity === 0}
@@ -426,15 +449,15 @@ export default function ProductDetailPage() {
                         onSuccess: () => {
                           router.push("/checkout");
                         },
-                        onError: (err: any) => {
-                          if (err?.response?.status === 401) {
+                        onError: (err: unknown) => {
+                          if (getErrorStatus(err) === 401) {
                             router.push("/auth/signin");
                             return;
                           }
                           setToast({
                             show: true,
                             message:
-                              err?.response?.data?.message ||
+                              getErrorMessage(err) ||
                               t("product.failedToPrepareCheckout"),
                           });
                           setTimeout(() => setToast(null), 1000);
@@ -446,6 +469,7 @@ export default function ProductDetailPage() {
                 >
                   {t("product.buyNow")}
                 </button>
+                </div>
               </div>
             </div>
           </div>

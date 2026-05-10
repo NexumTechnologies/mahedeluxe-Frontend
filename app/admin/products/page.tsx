@@ -26,6 +26,7 @@ type AdminProduct = {
   name: string;
   description?: string | null;
   price?: number | string;
+  commission_percentage?: number | string;
   quantity?: number | string;
   min_order_quantity?: number | string;
   category_id?: number | string;
@@ -65,6 +66,10 @@ function getCategoriesFromResponse(payload: unknown): CategoryOption[] {
 
 export default function AdminProductsPage() {
   const queryClient = useQueryClient();
+  const [productModalMode, setProductModalMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<
     "all" | "seller" | "buyer" | "admin"
   >("all");
@@ -84,6 +89,11 @@ export default function AdminProductsPage() {
   const [pendingNextIsActive, setPendingNextIsActive] = useState<
     boolean | null
   >(null);
+  const [commissionDrafts, setCommissionDrafts] = useState<
+    Record<number, string>
+  >({});
+  const [editingCommissionId, setEditingCommissionId] = useState<number | null>(null);
+  const [updatingCommissionId, setUpdatingCommissionId] = useState<number | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [form, setForm] = useState({
@@ -130,8 +140,6 @@ export default function AdminProductsPage() {
     const role = String(product.User?.role || "").toLowerCase();
     return role === activeTab;
   });
-
-  console.log("Products data:", data);
 
   const imagesForSelected = (() => {
     if (!selectedProduct) return [];
@@ -200,6 +208,50 @@ export default function AdminProductsPage() {
     String(form.category_id).trim().length > 0 &&
     uploadedUrls.length > 0;
 
+  const resetForm = () => {
+    setForm({
+      name: "",
+      description: "",
+      price: "",
+      quantity: "",
+      min_order_quantity: "1",
+      sizes: "",
+      colors: "",
+      category_id: "",
+    });
+    setUploadedUrls([]);
+    setEditingProductId(null);
+    setProductModalMode("create");
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setIsCreateModalOpen(true);
+  };
+
+  const openEditModal = (product: AdminProduct) => {
+    const imageUrls = Array.isArray(product.image_url)
+      ? product.image_url
+      : typeof product.image_url === "string" && product.image_url.trim().length > 0
+        ? [product.image_url]
+        : [];
+
+    setProductModalMode("edit");
+    setEditingProductId(product.id);
+    setForm({
+      name: product.name ?? "",
+      description: product.description ?? "",
+      price: String(product.price ?? ""),
+      quantity: String(product.quantity ?? ""),
+      min_order_quantity: String(product.min_order_quantity ?? 1),
+      sizes: Array.isArray(product.sizes) ? product.sizes.join(", ") : String(product.sizes ?? ""),
+      colors: Array.isArray(product.colors) ? product.colors.join(", ") : String(product.colors ?? ""),
+      category_id: String(product.category_id ?? ""),
+    });
+    setUploadedUrls(imageUrls);
+    setIsCreateModalOpen(true);
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem("token");
@@ -228,18 +280,9 @@ export default function AdminProductsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-own-products"] });
       setIsCreateModalOpen(false);
-      setForm({
-        name: "",
-        description: "",
-        price: "",
-        quantity: "",
-        min_order_quantity: "1",
-        sizes: "",
-        colors: "",
-        category_id: "",
-      });
-      setUploadedUrls([]);
+      resetForm();
       setToast({
         show: true,
         message: "Product created successfully",
@@ -257,6 +300,56 @@ export default function AdminProductsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingProductId) throw new Error("Missing product id");
+
+      const token = localStorage.getItem("token");
+      const payload = {
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        quantity: Number(form.quantity),
+        min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
+        sizes: form.sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        colors: form.colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
+        category_id: Number(form.category_id),
+        image_url: uploadedUrls,
+      };
+
+      const res = await api.put(`/product/${editingProductId}`, payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-own-products"] });
+      setIsCreateModalOpen(false);
+      resetForm();
+      setToast({
+        show: true,
+        message: "Product updated successfully",
+        tone: "success",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+    onError: () => {
+      setToast({
+        show: true,
+        message: "Failed to update product",
+        tone: "error",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const token = localStorage.getItem("token");
@@ -267,6 +360,7 @@ export default function AdminProductsPage() {
     },
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-own-products"] });
       if (selectedProduct?.id === id) {
         setSelectedProduct(null);
         setSelectedImageIndex(0);
@@ -286,6 +380,44 @@ export default function AdminProductsPage() {
         tone: "error",
       });
       setTimeout(() => setToast(null), 2500);
+    },
+  });
+
+  const commissionMutation = useMutation({
+    mutationFn: async ({ id, commission }: { id: number; commission: number }) => {
+      const token = localStorage.getItem("token");
+      const res = await api.patch(
+        `/product/${id}/commission`,
+        { commission_percentage: commission },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        },
+      );
+      return res.data;
+    },
+    onMutate: (variables) => {
+      setUpdatingCommissionId(variables.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      setToast({
+        show: true,
+        message: "Product commission updated",
+        tone: "success",
+      });
+      setTimeout(() => setToast(null), 2500);
+      setEditingCommissionId(null);
+    },
+    onError: () => {
+      setToast({
+        show: true,
+        message: "Failed to update product commission",
+        tone: "error",
+      });
+      setTimeout(() => setToast(null), 2500);
+    },
+    onSettled: () => {
+      setUpdatingCommissionId(null);
     },
   });
 
@@ -314,20 +446,7 @@ export default function AdminProductsPage() {
 
         <button
           type="button"
-          onClick={() => {
-            setForm({
-              name: "",
-              description: "",
-              price: "",
-              quantity: "",
-              min_order_quantity: "1",
-              sizes: "",
-              colors: "",
-              category_id: "",
-            });
-            setUploadedUrls([]);
-            setIsCreateModalOpen(true);
-          }}
+          onClick={openCreateModal}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           Add Product
@@ -408,6 +527,7 @@ export default function AdminProductsPage() {
                     <th className="py-2 pr-4">Category</th>
                     <th className="py-2 pr-4">Status</th>
                     <th className="py-2 pr-4">Base Price</th>
+                    <th className="py-2 pr-4">Commission (%)</th>
                     <th className="py-2 pr-4">Stock</th>
                     <th className="py-2 pr-0 text-right">Actions</th>
                   </tr>
@@ -433,6 +553,23 @@ export default function AdminProductsPage() {
                     const uploaderRole = product.User?.role
                       ? String(product.User.role)
                       : "";
+                    const productCommission = Number(product.commission_percentage ?? 0);
+                    const currentCommission = Number.isFinite(productCommission)
+                      ? productCommission
+                      : 0;
+                    const draftCommission =
+                      commissionDrafts[product.id] ?? String(currentCommission);
+                    const parsedDraftCommission = Number(draftCommission);
+                    const isValidDraftCommission =
+                      Number.isFinite(parsedDraftCommission) &&
+                      parsedDraftCommission >= 0 &&
+                      parsedDraftCommission <= 100;
+                    const hasCommissionChanged =
+                      isValidDraftCommission &&
+                      Math.abs(parsedDraftCommission - currentCommission) > 0.0001;
+                    const isCommissionUpdating =
+                      commissionMutation.isPending &&
+                      commissionMutation.variables?.id === product.id;
 
                     return (
                       <tr key={product.id} className="align-top">
@@ -447,7 +584,15 @@ export default function AdminProductsPage() {
                               />
                             </div>
                             <div className="min-w-0">
-                              <div className="font-semibold text-slate-900 truncate">
+                              <div
+                                className="font-semibold text-slate-900"
+                                style={{
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                }}
+                              >
                                 {product.name}
                               </div>
                               <div className="text-[11px] text-slate-500">
@@ -490,6 +635,78 @@ export default function AdminProductsPage() {
                             {product.price} AED
                           </span>
                         </td>
+                        <td className="py-2 pr-4">
+                          {editingCommissionId === product.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                step={0.01}
+                                value={draftCommission}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setCommissionDrafts((prev) => ({
+                                    ...prev,
+                                    [product.id]: value,
+                                  }));
+                                }}
+                                className="w-20 rounded-md border border-slate-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-slate-200"
+                              />
+                              <button
+                                type="button"
+                                disabled={
+                                  updatingCommissionId === product.id ||
+                                  !isValidDraftCommission ||
+                                  !hasCommissionChanged
+                                }
+                                onClick={() => {
+                                  setUpdatingCommissionId(product.id);
+                                  commissionMutation.mutate({
+                                    id: product.id,
+                                    commission: parsedDraftCommission,
+                                  });
+                                }}
+                                className="inline-flex items-center rounded-full bg-slate-900 text-white px-3 py-1 text-[11px] font-medium hover:bg-slate-800 disabled:opacity-60"
+                              >
+                                {updatingCommissionId === product.id ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCommissionDrafts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[product.id];
+                                    return next;
+                                  });
+                                  setEditingCommissionId(null);
+                                }}
+                                className="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-medium text-slate-800">
+                                {currentCommission}%
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCommissionId(product.id);
+                                  setCommissionDrafts((prev) => ({
+                                    ...prev,
+                                    [product.id]: String(currentCommission),
+                                  }));
+                                }}
+                                className="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td className="py-2 pr-4 text-xs text-slate-700">
                           {product.quantity}
                         </td>
@@ -504,6 +721,13 @@ export default function AdminProductsPage() {
                               className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-slate-300 text-slate-700 hover:bg-slate-50"
                             >
                               View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(product)}
+                              className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium border-blue-500 text-blue-600 hover:bg-blue-50"
+                            >
+                              Edit
                             </button>
                             <button
                               type="button"
@@ -719,6 +943,12 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                   <div className="p-3 border rounded-lg">
+                    <div className="text-xs text-slate-500">Commission</div>
+                    <div className="font-semibold text-slate-900">
+                      {Number(selectedProduct.commission_percentage ?? 0)}%
+                    </div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
                     <div className="text-xs text-slate-500">Category</div>
                     <div className="font-semibold text-slate-900">
                       {selectedProduct.Category?.name || "-"}
@@ -745,273 +975,292 @@ export default function AdminProductsPage() {
 
       {isCreateModalOpen && (
         <ScreenModal open={isCreateModalOpen}>
-        <div className="app-modal-overlay">
-          <div className="app-modal-panel flex max-w-lg flex-col">
-            <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
-              <div className="min-w-0">
-                <h2 className="text-xl font-semibold text-slate-900">Add Product</h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  This product will be auto-approved for marketplace.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateModalOpen(false);
-                }}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="app-modal-scroll space-y-4 px-6 py-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Name
-                </label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2 text-sm"
-                  placeholder="Product name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
-                  }
-                  className="w-full border rounded-md px-3 py-2 text-sm min-h-24"
-                  placeholder="Write product description"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Price (AED)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="0"
-                    min={1}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={form.quantity}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, quantity: e.target.value }))
-                    }
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="0"
-                    min={1}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Minimum Order Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={form.min_order_quantity}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, min_order_quantity: e.target.value }))
-                    }
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="1"
-                    min={1}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Sizes
-                  </label>
-                  <input
-                    type="text"
-                    value={form.sizes}
-                    onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="S, M, L, XL"
-                  />
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Optional. Comma separated.
+          <div className="app-modal-overlay">
+            <div className="app-modal-panel flex max-w-lg flex-col">
+              <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {productModalMode === "edit" ? "Edit Product" : "Add Product"}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {productModalMode === "edit"
+                      ? "Update product details for this listing."
+                      : "This product will be auto-approved for marketplace."}
                   </p>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Colors
-                  </label>
-                  <input
-                    type="text"
-                    value={form.colors}
-                    onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="Red, Blue, Black"
-                  />
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Optional. Comma separated.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={form.category_id}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, category_id: e.target.value }))
-                    }
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-white"
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="border-t pt-4 space-y-2">
-                <div className="text-sm font-semibold text-slate-800">
-                  Product Images
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <label
-                    htmlFor="admin-product-images"
-                    className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
-                  >
-                    Choose images
-                  </label>
-                  <span className="text-[11px] text-slate-500">
-                    JPG, PNG etc. You can select multiple files.
-                  </span>
-                </div>
-                <input
-                  id="admin-product-images"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const files = e.target.files;
-                    if (!files || files.length === 0) return;
-
-                    const formData = new FormData();
-                    Array.from(files).forEach((file) =>
-                      formData.append("images", file),
-                    );
-
-                    try {
-                      setUploading(true);
-                      const res = await api.post("/upload/multiple", formData, {
-                        headers: {
-                          "Content-Type": "multipart/form-data",
-                        },
-                      });
-                      const urls =
-                        res.data?.urls || res.data?.url || res.data || [];
-                      const newUrls = Array.isArray(urls) ? urls : [urls];
-                      setUploadedUrls((prev) => [...prev, ...newUrls]);
-                    } catch (err) {
-                      console.error("Image upload failed", err);
-                      setToast({
-                        show: true,
-                        message: "Image upload failed",
-                        tone: "error",
-                      });
-                      setTimeout(() => setToast(null), 2500);
-                    } finally {
-                      setUploading(false);
-                    }
-                  }}
-                />
-
-                {uploading && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    Uploading images...
-                  </p>
-                )}
-
-                {uploadedUrls.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    <p className="text-xs text-emerald-700 font-medium">
-                      {uploadedUrls.length} image(s) uploaded. Click × to remove.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {uploadedUrls.map((url) => (
-                        <div
-                          key={url}
-                          className="relative w-16 h-16 border rounded overflow-hidden bg-slate-50"
-                        >
-                          <button
-                            type="button"
-                            className="absolute -top-1 -right-1 bg-white text-xs rounded-full border px-1 leading-none shadow"
-                            onClick={() =>
-                              setUploadedUrls((prev) =>
-                                prev.filter((u) => u !== url),
-                              )
-                            }
-                          >
-                            ×
-                          </button>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt="Product"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t">
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreateModalOpen(false);
+                    resetForm();
                   }}
-                  className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close"
                 >
-                  Cancel
+                  ✕
                 </button>
-                <button
-                  type="button"
-                  disabled={
-                    !isCreateReady ||
-                    createMutation.isPending
-                  }
-                  onClick={() => createMutation.mutate()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {createMutation.isPending ? "Creating..." : "Create"}
-                </button>
+              </div>
+
+              <div className="app-modal-scroll space-y-4 px-6 py-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    placeholder="Product name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, description: e.target.value }))
+                    }
+                    className="w-full border rounded-md px-3 py-2 text-sm min-h-24"
+                    placeholder="Write product description"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Price (AED)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.price}
+                      onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="0"
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={form.quantity}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, quantity: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="0"
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Minimum Order Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={form.min_order_quantity}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, min_order_quantity: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="1"
+                      min={1}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Sizes
+                    </label>
+                    <input
+                      type="text"
+                      value={form.sizes}
+                      onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="S, M, L, XL"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Optional. Comma separated.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Colors
+                    </label>
+                    <input
+                      type="text"
+                      value={form.colors}
+                      onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Red, Blue, Black"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Optional. Comma separated.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={form.category_id}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, category_id: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-2">
+                  <div className="text-sm font-semibold text-slate-800">
+                    Product Images
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="admin-product-images"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Choose images
+                    </label>
+                    <span className="text-[11px] text-slate-500">
+                      JPG, PNG etc. You can select multiple files.
+                    </span>
+                  </div>
+                  <input
+                    id="admin-product-images"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+
+                      const formData = new FormData();
+                      Array.from(files).forEach((file) =>
+                        formData.append("images", file),
+                      );
+
+                      try {
+                        setUploading(true);
+                        const res = await api.post("/upload/multiple", formData, {
+                          headers: {
+                            "Content-Type": "multipart/form-data",
+                          },
+                        });
+                        const urls =
+                          res.data?.urls || res.data?.url || res.data || [];
+                        const newUrls = Array.isArray(urls) ? urls : [urls];
+                        setUploadedUrls((prev) => [...prev, ...newUrls]);
+                      } catch (err) {
+                        console.error("Image upload failed", err);
+                        setToast({
+                          show: true,
+                          message: "Image upload failed",
+                          tone: "error",
+                        });
+                        setTimeout(() => setToast(null), 2500);
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                  />
+
+                  {uploading && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Uploading images...
+                    </p>
+                  )}
+
+                  {uploadedUrls.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-emerald-700 font-medium">
+                        {uploadedUrls.length} image(s) uploaded. Click × to remove.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {uploadedUrls.map((url) => (
+                          <div
+                            key={url}
+                            className="relative w-16 h-16 border rounded overflow-hidden bg-slate-50"
+                          >
+                            <button
+                              type="button"
+                              className="absolute -top-1 -right-1 bg-white text-xs rounded-full border px-1 leading-none shadow"
+                              onClick={() =>
+                                setUploadedUrls((prev) =>
+                                  prev.filter((u) => u !== url),
+                                )
+                              }
+                            >
+                              ×
+                            </button>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt="Product"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateModalOpen(false);
+                      resetForm();
+                    }}
+                    className="px-4 py-2 border rounded-md text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      !isCreateReady ||
+                      createMutation.isPending ||
+                      updateMutation.isPending ||
+                      uploading
+                    }
+                    onClick={() => {
+                      if (productModalMode === "edit") {
+                        updateMutation.mutate();
+                        return;
+                      }
+                      createMutation.mutate();
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {createMutation.isPending || updateMutation.isPending
+                      ? "Saving..."
+                      : productModalMode === "edit"
+                        ? "Update Product"
+                        : "Save Product"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </ScreenModal>
       )}
 

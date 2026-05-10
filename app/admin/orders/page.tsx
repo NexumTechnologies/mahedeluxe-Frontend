@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { formatAED } from "@/lib/utils";
 import type { AdminOrder } from "./types";
 
 type AdminOrderStatus = "pending" | "delivered" | "cancelled" | "all";
@@ -13,15 +14,16 @@ const STATUS_BADGE: Record<Exclude<AdminOrderStatus, "all">, string> = {
   cancelled: "bg-rose-50 text-rose-700 ring-rose-100",
 };
 
-function useAdminOrders(status: AdminOrderStatus, page: number, size: number) {
+function useAdminOrders(status: AdminOrderStatus, page: number, size: number, period: string) {
   return useQuery({
-    queryKey: ["admin-orders", status, page, size],
+    queryKey: ["admin-orders", status, page, size, period],
     queryFn: async () => {
-      const params: { page: number; size: number; status?: Exclude<AdminOrderStatus, "all"> } = {
+      const params: { page: number; size: number; status?: Exclude<AdminOrderStatus, "all">; period?: string } = {
         page,
         size,
       };
       if (status !== "all") params.status = status;
+      if (period && period !== "all") params.period = period;
       const res = await api.get("/order/admin", { params });
       return res.data as {
         data: {
@@ -48,7 +50,7 @@ function formatDate(date: string) {
 }
 
 function formatAmount(amount: number) {
-  return amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatAED(amount);
 }
 
 function OrderDetailModal({ order, onClose }: { order: AdminOrder | null; onClose: () => void }) {
@@ -74,26 +76,26 @@ function OrderDetailModal({ order, onClose }: { order: AdminOrder | null; onClos
         </div>
         <div className="p-5 space-y-4">
           <div className="flex gap-4">
-            <div className="w-20 h-20 rounded-xl bg-linear-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-xs font-semibold text-indigo-700 overflow-hidden shrink-0">
-              {product?.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover rounded-xl"
-                />
-              ) : (
-                <span className="px-2 text-center line-clamp-3 text-[11px]">
-                  {product?.name ?? "Product"}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 space-y-1">
+                          <div className="w-20 h-20 rounded-xl bg-linear-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-xs font-semibold text-indigo-700 overflow-hidden shrink-0">
+                            {product?.image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                className="w-full h-full object-cover rounded-xl"
+                              />
+                            ) : (
+                              <span className="px-2 text-center line-clamp-3 text-[11px]">
+                                {product?.name ?? "Product"}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-1">
               <div className="text-sm font-semibold text-gray-900">
                 {product?.name ?? "Product details not available"}
               </div>
               <div className="text-xs text-gray-500">
-                Amount: <span className="font-semibold text-gray-900">${formatAmount(order.total_amount)}</span>
+                Amount: <span className="font-semibold text-gray-900">{formatAmount(order.total_amount)}</span>
               </div>
               <div className="text-xs text-gray-500">
                 Status: <span className="font-medium text-gray-800">{order.status}</span>
@@ -133,9 +135,10 @@ export default function AdminAllOrdersPage() {
   const [page, setPage] = useState(1);
   const size = 10;
   const [statusFilter] = useState<AdminOrderStatus>("all");
+  const [periodFilter, setPeriodFilter] = useState<"all" | "week" | "month">("all");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
 
-  const { data, isLoading, error } = useAdminOrders(statusFilter, page, size);
+  const { data, isLoading, error } = useAdminOrders(statusFilter, page, size, periodFilter);
 
   const orders = data?.data?.items ?? [];
   const pagination = data?.data?.pagination;
@@ -173,15 +176,31 @@ export default function AdminAllOrdersPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="text-xs text-gray-500">Total Revenue</div>
           <div className="mt-1 text-2xl font-semibold text-gray-900">
-            ${formatAmount(totals?.totalRevenue ?? 0)}
-          </div>
+              {formatAmount(totals?.totalRevenue ?? 0)}
+            </div>
         </div>
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="text-xs text-gray-500">Admin Earnings</div>
           <div className="mt-1 text-2xl font-semibold text-gray-900">
-            ${formatAmount(totals?.adminEarnings ?? 0)}
+              {formatAmount(totals?.adminEarnings ?? 0)}
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="text-sm text-gray-600">Show:</div>
+        <button
+          onClick={() => { setPeriodFilter("all"); setPage(1); }}
+          className={`px-3 py-1 rounded ${periodFilter === "all" ? "bg-slate-900 text-white" : "bg-white text-gray-700 border"}`}
+        >All time</button>
+        <button
+          onClick={() => { setPeriodFilter("week"); setPage(1); }}
+          className={`px-3 py-1 rounded ${periodFilter === "week" ? "bg-slate-900 text-white" : "bg-white text-gray-700 border"}`}
+        >This week</button>
+        <button
+          onClick={() => { setPeriodFilter("month"); setPage(1); }}
+          className={`px-3 py-1 rounded ${periodFilter === "month" ? "bg-slate-900 text-white" : "bg-white text-gray-700 border"}`}
+        >This month</button>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
@@ -265,7 +284,7 @@ export default function AdminAllOrdersPage() {
                               </span>
                               <span className="inline-block h-1 w-1 rounded-full bg-gray-300" />
                               <span>
-                                Amount: <span className="font-semibold text-gray-900">${formatAmount(order.total_amount)}</span>
+                                Amount: <span className="font-semibold text-gray-900">{formatAmount(order.total_amount)}</span>
                               </span>
                             </div>
                             <div className="mt-1 text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
@@ -290,13 +309,20 @@ export default function AdminAllOrdersPage() {
                             )}
                           </div>
                         </div>
-                        <div className="mt-2 sm:mt-0 flex items-center justify-end sm:justify-start sm:ml-4">
-                          <button
-                            onClick={() => setSelectedOrder(order)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            View
-                          </button>
+                        <div className="mt-2 sm:mt-0 flex items-center justify-end sm:justify-start sm:ml-4 gap-4">
+                          <div className="text-right text-xs text-gray-600">
+                            <div>Total: <span className="font-semibold text-gray-900">{formatAmount(order.total_amount)}</span></div>
+                            <div>Admin: <span className="font-semibold text-gray-900">{formatAmount(order.admin_earning_amount ?? order.admin_earning ?? 0)}</span></div>
+                            <div>Seller: <span className="font-semibold text-gray-900">{formatAmount((order.total_amount || 0) - (order.admin_earning_amount ?? order.admin_earning ?? 0))}</span></div>
+                          </div>
+                          <div>
+                            <button
+                              onClick={() => setSelectedOrder(order)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                              View
+                            </button>
+                          </div>
                         </div>
                       </li>
                     );

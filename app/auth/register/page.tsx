@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import SellerRegisterStep1 from "@/components/auth/SellerRegisterStep1";
 import SignInPromo from "@/components/auth/SignInPromo";
 
@@ -33,7 +34,15 @@ function RoleTab({
 }
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
   const [role, setRole] = useState<RegisterRole>("seller");
+
+  useEffect(() => {
+    const roleParam = (searchParams.get("role") || "").toLowerCase();
+    if (roleParam === "buyer" || roleParam === "seller" || roleParam === "customer") {
+      setRole(roleParam as RegisterRole);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-white">

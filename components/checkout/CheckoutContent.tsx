@@ -12,9 +12,45 @@ import {
   getGuestCart,
   hasStoredAuth,
   removeGuestCartItem,
+  type GuestCart,
+  type GuestCartItem,
 } from "@/lib/cartStorage";
 import { getStoredUser } from "@/lib/authStorage";
 import { useI18n } from "@/components/LanguageProvider";
+
+const ORDER_SUCCESS_STORAGE_KEY = "checkout:last-order";
+
+type CheckoutListing = {
+  display_price?: number;
+  is_listed?: boolean;
+};
+
+type CheckoutProduct = {
+  name?: string;
+  listing?: CheckoutListing;
+};
+
+type CheckoutItem = {
+  id?: number | string;
+  product_id: number;
+  quantity: number;
+  total_price?: number;
+  unit_price?: number;
+  Product?: CheckoutProduct;
+};
+
+type CheckoutCart = {
+  items: CheckoutItem[];
+  totalItems: number;
+  totalPrice: number;
+};
+
+type CheckoutCartState = CheckoutCart | GuestCart;
+
+type PlaceOrderResponse = {
+  message?: string;
+  data?: unknown[];
+};
 
 export default function CheckoutContent() {
   const { dir, t } = useI18n();
@@ -27,12 +63,7 @@ export default function CheckoutContent() {
   const [isGuestChoiceModalOpen, setIsGuestChoiceModalOpen] = useState(false);
   const [guestCart, setGuestCart] = useState(() => getGuestCart());
 
-  const [isClient, setIsClient] = useState(false);
-  const isAuthenticated = isClient && hasStoredAuth();
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isAuthenticated = typeof window !== "undefined" && hasStoredAuth();
 
   useEffect(() => {
     const syncGuestCart = () => setGuestCart(getGuestCart());
@@ -50,17 +81,20 @@ export default function CheckoutContent() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-cart"],
-    enabled: isClient && isAuthenticated,
+    enabled: isAuthenticated,
     queryFn: async () => {
       const res = await api.get("/addToCart");
       return res.data;
     },
   });
 
-  const serverCart = (data as any)?.data || data || {};
+  const serverCart =
+    ((data as { data?: CheckoutCart } | undefined)?.data ??
+      (data as CheckoutCart | undefined)) ||
+    ({ items: [], totalItems: 0, totalPrice: 0 } as CheckoutCart);
 
   const syncGuestCartMutation = useMutation({
-    mutationFn: async (itemsToSync: any[]) => {
+    mutationFn: async (itemsToSync: GuestCartItem[]) => {
       for (const item of itemsToSync) {
         await api.post("/addToCart", {
           product_id: item.product_id,
@@ -81,9 +115,9 @@ export default function CheckoutContent() {
     if (syncGuestCartMutation.isPending) return;
 
     syncGuestCartMutation.mutate(guestCart.items);
-  }, [guestCart.items.length, isAuthenticated]);
+  }, [guestCart.items, isAuthenticated, syncGuestCartMutation]);
 
-  const cart = isAuthenticated
+  const cart: CheckoutCartState = isAuthenticated
     ? ((serverCart.items?.length || 0) > 0 ? serverCart : guestCart)
     : guestCart;
   const items = cart.items || [];
@@ -100,6 +134,7 @@ export default function CheckoutContent() {
       const res = await api.post(
         "/order",
         {
+          email: shippingAddress.email,
           firstName: shippingAddress.firstName,
           lastName: shippingAddress.lastName,
           phone: shippingAddress.phone,
@@ -115,7 +150,7 @@ export default function CheckoutContent() {
       );
       return res.data;
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res: PlaceOrderResponse) => {
       queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       setIsConfirmModalOpen(false);
 
@@ -125,26 +160,26 @@ export default function CheckoutContent() {
       });
       setTimeout(() => setToast(null), 1500);
 
-      let redirectTo = "/";
-
       try {
-        const storedUser =
-          typeof window !== "undefined" ? localStorage.getItem("user") : null;
-        const parsed = storedUser ? JSON.parse(storedUser) : null;
-        const role = parsed?.role;
-
-        if (role === "buyer") {
-          redirectTo = "/buyer/dashboard";
-        } else if (role === "user") {
-          redirectTo = "/";
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            ORDER_SUCCESS_STORAGE_KEY,
+            JSON.stringify({
+              customerEmail: shippingAddress?.email || getStoredUser()?.email || "",
+              customerName: `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
+              orders: res?.data || [],
+              shippingAddress: shippingAddress?.summary || "",
+              totalAmount: itemSubtotal,
+              placedAt: new Date().toISOString(),
+            }),
+          );
         }
       } catch {
-        // Fallback to home if parsing fails
-        redirectTo = "/";
+        // ignore session storage issues
       }
 
       setTimeout(() => {
-        router.push(redirectTo);
+        router.push("/checkout/success");
       }, 700);
     },
   });
@@ -156,10 +191,11 @@ export default function CheckoutContent() {
       }
 
       const res = await api.post("/order/guest", {
-        items: items.map((item: any) => ({
+        items: items.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
         })),
+        email: shippingAddress.email,
         firstName: shippingAddress.firstName,
         lastName: shippingAddress.lastName,
         phone: shippingAddress.phone,
@@ -171,7 +207,7 @@ export default function CheckoutContent() {
       });
       return res.data;
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res: PlaceOrderResponse) => {
       clearGuestCart();
       setGuestCart(getGuestCart());
       setIsGuestChoiceModalOpen(false);
@@ -182,13 +218,31 @@ export default function CheckoutContent() {
       });
       setTimeout(() => setToast(null), 1500);
 
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            ORDER_SUCCESS_STORAGE_KEY,
+            JSON.stringify({
+              customerEmail: shippingAddress?.email || "",
+              customerName: `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
+              orders: res?.data || [],
+              shippingAddress: shippingAddress?.summary || "",
+              totalAmount: itemSubtotal,
+              placedAt: new Date().toISOString(),
+            }),
+          );
+        }
+      } catch {
+        // ignore session storage issues
+      }
+
       setTimeout(() => {
-        router.push("/");
+        router.push("/checkout/success");
       }, 700);
     },
   });
 
-  const removeCheckoutItem = async (item: any) => {
+  const removeCheckoutItem = async (item: CheckoutItem) => {
     if (isAuthenticated) {
       await api.delete(`/addToCart/${item.id}`);
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
@@ -369,12 +423,12 @@ export default function CheckoutContent() {
                   {t("checkout.items")}
                 </h3>
                 <ul className="space-y-1">
-                  {items.map((item: any) => (
+                  {items.map((item) => (
                     <li key={item.id} className="flex justify-between text-xs">
                       {(() => {
                         const quantity = Number(item.quantity ?? 1) || 1;
                         const product = item.Product || {};
-                        const listing = (product as any).listing;
+                        const listing = product.listing;
                         const listingPrice =
                           listing &&
                           listing.is_listed &&
