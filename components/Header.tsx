@@ -323,7 +323,6 @@ export default function Header() {
     { label: "Shop", href: "/browse" },
     { label: "Become a Buyer", href: "/auth/register?role=buyer", activePath: "/auth/register" },
     { label: "Become a Seller", href: "/auth/register?role=seller", activePath: "/auth/register" },
-    { label: "Request for Quote", href: "/rfq" },
     { label: "About Us", href: "/about" },
     { label: "Contact Us", href: "/contact" },
   ];

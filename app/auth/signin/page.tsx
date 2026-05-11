@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import LoginForm from "@/components/auth/LoginForm";
 import SignUpPromo from "@/components/auth/SignUpPromo";
 import { useIsMutating } from "@tanstack/react-query";
@@ -29,6 +30,11 @@ export default function SignInPage() {
         {/* Right Column - Sign In Form (60%) */}
         <div className="w-[60%] flex items-center justify-center bg-white px-8">
           <div className="w-full max-w-md">
+            <div className="mb-6 text-left">
+              <Link href="/" className="inline-block">
+                <Image src="/logo.png" alt="MaheDeluxe" width={140} height={36} className="object-contain" />
+              </Link>
+            </div>
             <React.Suspense fallback={<div>Loading form...</div>}>
               <LoginForm />
             </React.Suspense>
@@ -47,6 +53,11 @@ export default function SignInPage() {
           </p>
         </div>
         <div className="px-4 py-8 bg-white">
+          <div className="mb-6 text-left">
+            <Link href="/" className="inline-block">
+              <Image src="/logo.png" alt="MaheDeluxe" width={140} height={36} className="object-contain" />
+            </Link>
+          </div>
           <React.Suspense fallback={<div>Loading form...</div>}>
             <LoginForm />
           </React.Suspense>

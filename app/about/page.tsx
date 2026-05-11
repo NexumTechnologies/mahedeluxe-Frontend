@@ -10,6 +10,8 @@ import {
   MessageSquareQuote,
   ShieldCheck,
   Truck,
+  Mail,
+  Phone,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -270,14 +272,20 @@ export default function AboutPage() {
                 href="mailto:info@mahedeluxe.ae"
                 className="flex items-center justify-between rounded-2xl border border-orange-200 bg-white px-5 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-300"
               >
-                info@mahedeluxe.ae
+                <span className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-slate-500" />
+                  info@mahedeluxe.ae
+                </span>
                 <ArrowRight className="h-4 w-4 text-orange-600" />
               </a>
               <a
                 href="tel:+971503298799"
                 className="flex items-center justify-between rounded-2xl border border-orange-200 bg-white px-5 py-4 text-sm font-semibold text-slate-900 transition hover:border-orange-300"
               >
-                +971 50 329 8799
+                <span className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-slate-500" />
+                  +971 50 329 8799
+                </span>
                 <ArrowRight className="h-4 w-4 text-orange-600" />
               </a>
             </div>

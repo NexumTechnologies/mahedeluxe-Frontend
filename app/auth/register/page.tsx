@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SellerRegisterStep1 from "@/components/auth/SellerRegisterStep1";
 import SignInPromo from "@/components/auth/SignInPromo";
@@ -35,14 +36,12 @@ function RoleTab({
 
 export default function RegisterPage() {
   const searchParams = useSearchParams();
-  const [role, setRole] = useState<RegisterRole>("seller");
-
-  useEffect(() => {
+  const [role, setRole] = useState<RegisterRole>(() => {
     const roleParam = (searchParams.get("role") || "").toLowerCase();
-    if (roleParam === "buyer" || roleParam === "seller" || roleParam === "customer") {
-      setRole(roleParam as RegisterRole);
-    }
-  }, [searchParams]);
+    return roleParam === "buyer" || roleParam === "seller" || roleParam === "customer"
+      ? (roleParam as RegisterRole)
+      : "seller";
+  });
 
   return (
     <div className="min-h-screen bg-white">
@@ -51,6 +50,11 @@ export default function RegisterPage() {
         {/* Left Column - Sign Up Form (60%) */}
         <div className="w-[60%] flex items-center justify-center bg-white px-8">
           <div className="w-full max-w-md">
+            <div className="mb-6 text-left">
+              <Link href="/" className="inline-block">
+                <Image src="/logo.png" alt="MaheDeluxe" width={140} height={36} className="object-contain" />
+              </Link>
+            </div>
             <div className="mb-6">
               <div className="flex gap-2">
                 <RoleTab id="seller" label="Seller" active={role === "seller"} onSelect={setRole} />
@@ -79,6 +83,11 @@ export default function RegisterPage() {
           </p>
         </div>
         <div className="px-4 py-8 bg-white">
+          <div className="mb-6 text-left">
+            <Link href="/" className="inline-block">
+              <Image src="/logo.png" alt="MaheDeluxe" width={140} height={36} className="object-contain" />
+            </Link>
+          </div>
           <div className="mb-6 flex gap-2 justify-center">
             <RoleTab id="seller" label="Seller" active={role === "seller"} onSelect={setRole} />
             <RoleTab id="buyer" label="Buyer" active={role === "buyer"} onSelect={setRole} />

@@ -12,7 +12,7 @@ export default function Footer() {
   return (
     <footer className="bg-white border-t mt-12" dir={dir}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           <div className="max-w-sm">
             <Link href="/" className="inline-block">
               <Image src="/logo.png" alt="MaheDeluxe" width={140} height={40} className="object-contain" />
@@ -31,6 +31,18 @@ export default function Footer() {
               <a href="https://www.facebook.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-8 h-8 rounded-md flex items-center justify-center bg-blue-600 text-white shadow-sm hover:opacity-90 transition">
                 <Image src="/facebook.png" alt="Facebook" width={38} height={24} />
               </a>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-start justify-center">
+            <h4 className="text-lg font-semibold text-slate-900">Quick Links</h4>
+            <div className="mt-4 flex flex-col gap-2 text-sm">
+              <Link href="/" className="hover:text-slate-900">Home</Link>
+              <Link href="/browse" className="hover:text-slate-900">Shop</Link>
+              <Link href="/auth/seller/register" className="hover:text-slate-900">Become a seller</Link>
+              <Link href="/auth/buyer/register" className="hover:text-slate-900">Become a buyer</Link>
+              <Link href="/about" className="hover:text-slate-900">About us</Link>
+              <Link href="/contact" className="hover:text-slate-900">Contact us</Link>
             </div>
           </div>
 
