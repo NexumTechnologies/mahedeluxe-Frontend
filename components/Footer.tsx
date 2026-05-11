@@ -29,8 +29,8 @@ export default function Footer() {
             </Link>
             <p className="mt-3 text-sm text-slate-600">{t("footer.description")}</p>
             <div className="mt-4 flex items-center gap-3">
-              <Link href="/about" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.about")}</Link>
-              <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.careers")}</Link>
+              <Link href="/about" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.about us")}</Link>
+              <Link href="/contact" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.contact")}</Link>
             </div>
           </div>
 
