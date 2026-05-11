@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useI18n } from "@/components/LanguageProvider";
 
 export default function Footer() {
@@ -23,10 +24,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">MaheDeluxe</h3>
+            <Link href="/" className="inline-block">
+              <Image src="/logo.png" alt="MaheDeluxe" width={140} height={40} className="object-contain" />
+            </Link>
             <p className="mt-3 text-sm text-slate-600">{t("footer.description")}</p>
             <div className="mt-4 flex items-center gap-3">
-              <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.about")}</Link>
+              <Link href="/about" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.about")}</Link>
               <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.careers")}</Link>
             </div>
           </div>
@@ -78,7 +81,7 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <Link href="/privacy-policy" className="hover:text-slate-900">{t("footer.privacy")}</Link>
             <Link href="/terms" className="hover:text-slate-900">{t("footer.terms")}</Link>
-            <Link href="#" className="hover:text-slate-900">{t("footer.help")}</Link>
+            <Link href="/contact" className="hover:text-slate-900">{t("footer.help")}</Link>
           </div>
         </div>
       </div>

@@ -11,7 +11,7 @@ import {
   Filter,
   ChevronRight,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
@@ -32,11 +32,13 @@ async function fetchBrowseCategories(): Promise<Category[]> {
   const raw =
     data?.data?.items || data?.categories || (Array.isArray(data) ? data : []);
 
-  return raw.map((cat: any, index: number) => {
+  return raw.map((cat: Record<string, unknown>, index: number) => {
     const IconComp = CATEGORY_ICONS[index % CATEGORY_ICONS.length];
+    const idVal = (cat as Record<string, unknown>)['id'] ?? (cat as Record<string, unknown>)['_id'] ?? index;
+    const nameVal = (cat as Record<string, unknown>)['name'] ?? "Category";
     return {
-      id: String(cat.id ?? cat._id ?? index),
-      name: cat.name ?? "Category",
+      id: String(idVal),
+      name: String(nameVal),
       icon: <IconComp className="h-5 w-5" />,
     };
   });
@@ -50,7 +52,7 @@ export default function BrowseSidebar() {
   const minPriceParam = searchParams.get("minPrice");
   const maxPriceParam = searchParams.get("maxPrice");
   
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
+  const selectedCategory = categoryParam;
   const [minPrice, setMinPrice] = useState<string>(minPriceParam || "");
   const [maxPrice, setMaxPrice] = useState<string>(maxPriceParam || "");
 
@@ -60,23 +62,21 @@ export default function BrowseSidebar() {
     queryFn: fetchBrowseCategories,
   });
 
-  useEffect(() => {
-    setSelectedCategory(categoryParam);
-    setMinPrice(minPriceParam || "");
-    setMaxPrice(maxPriceParam || "");
-  }, [categoryParam, minPriceParam, maxPriceParam]);
+  // Initialize price inputs from query params; updates to params
+  // via navigation will remount this component under current routing.
 
   const handleCategoryClick = (id: string) => {
-    const newId = selectedCategory === id ? null : id;
-    setSelectedCategory(newId);
-    
-    // Update URL query params
+    // Update URL query params to either set or remove category
     const params = new URLSearchParams(searchParams.toString());
-    if (newId) {
-      params.set("category", newId);
-    } else {
+    if (!id) {
       params.delete("category");
+    } else {
+      const current = searchParams.get("category");
+      if (current === id) params.delete("category");
+      else params.set("category", id);
     }
+    // Reset page when filters change
+    params.delete("page");
     router.push(`/browse?${params.toString()}`);
   };
 
@@ -105,6 +105,21 @@ export default function BrowseSidebar() {
         </div>
 
         <nav className="space-y-1">
+          {/* All products option */}
+          <button
+            onClick={() => handleCategoryClick("")}
+            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
+              !selectedCategory ? "bg-blue text-white shadow-lg shadow-blue/20" : "text-gray-600 hover:bg-gray-50 hover:text-blue"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className={!selectedCategory ? "text-white" : "text-gray-400 group-hover:text-blue"}>
+                <Home className="h-5 w-5" />
+              </span>
+              <span className="text-sm font-medium">{t("All Product") || "All products"}</span>
+            </div>
+            <ChevronRight className={`h-4 w-4 transition-transform ${!selectedCategory ? "rotate-90" : "group-hover:translate-x-1"}`} />
+          </button>
           {isLoading && !categories.length && (
             <div className="text-sm text-gray-500">{t("browse.loadingCategories")}</div>
           )}

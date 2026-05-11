@@ -153,14 +153,19 @@ export default function ProductDetailPage() {
     }
   };
 
-  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";
-  const whatsappNumberRaw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
+  const supportEmail =
+    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "info@mahedeluxe.ae";
+  const whatsappNumberRaw =
+    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "+971 50 329 8799";
   const whatsappNumber = whatsappNumberRaw.replace(/[^\d]/g, "");
   const canWhatsapp = Boolean(whatsappNumber);
   const canEmail = Boolean(supportEmail);
 
   const productName = product?.name ? String(product.name) : "";
-  const productUrl = typeof window !== "undefined" ? window.location.href : "";
+  const productUrl =
+    typeof window !== "undefined"
+      ? window.location.href
+      : `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001"}/products/${id}`;
   const whatsappText = [
     "Hello, I have a question about this product:",
     productName,
@@ -394,7 +399,7 @@ export default function ProductDetailPage() {
                     }`}
                   >
                     <Mail className="h-4 w-4" />
-                    <span>Place Order by Email</span>
+                    <span>Email Inquiry</span>
                   </a>
                 </div>
 

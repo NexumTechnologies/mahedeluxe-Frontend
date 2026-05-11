@@ -112,3 +112,14 @@ export async function markAllAdminNotificationsRead() {
     method: "PATCH",
   });
 }
+
+export async function submitContactMessage(payload: {
+  name: string;
+  email: string;
+  message: string;
+}) {
+  return request("/contact", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
