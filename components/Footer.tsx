@@ -1,77 +1,68 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Clock3, Mail, MapPin, Phone } from "lucide-react";
 import { useI18n } from "@/components/LanguageProvider";
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
   const { dir, t } = useI18n();
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    // placeholder: integration point for newsletter API
-    setSent(true);
-    setTimeout(() => setSent(false), 3000);
-    setEmail("");
-  };
 
   return (
     <footer className="bg-white border-t mt-12" dir={dir}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div>
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="max-w-sm">
             <Link href="/" className="inline-block">
               <Image src="/logo.png" alt="MaheDeluxe" width={140} height={40} className="object-contain" />
             </Link>
             <p className="mt-3 text-sm text-slate-600">{t("footer.description")}</p>
-            <div className="mt-4 flex items-center gap-3">
-              <Link href="/about" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.about us")}</Link>
-              <Link href="/contact" className="text-sm text-gray-500 hover:text-gray-900">{t("footer.contact")}</Link>
+            <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
+              <span className="sr-only">{t("footer.followUs")}</span>
+              <a href="https://www.instagram.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br from-pink-500 to-pink-400 text-white shadow-sm hover:opacity-90 transition">
+                <Image src="/insta.png" alt="Instagram" width={38} height={16} />
+              </a>
+
+              <a href="https://www.tiktok.com/@mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="w-8 h-8 rounded-md flex items-center justify-center bg-black text-white shadow-sm hover:opacity-90 transition">
+                <Image src="/tiktok.png" alt="TikTok" width={34} height={24} />
+              </a>
+
+              <a href="https://www.facebook.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-8 h-8 rounded-md flex items-center justify-center bg-blue-600 text-white shadow-sm hover:opacity-90 transition">
+                <Image src="/facebook.png" alt="Facebook" width={38} height={24} />
+              </a>
             </div>
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900">{t("footer.forBuyers")}</h4>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li><Link href="/browse" className="hover:text-slate-900">{t("footer.browseProducts")}</Link></li>
-              <li><Link href="/rfq" className="hover:text-slate-900">{t("footer.requestQuote")}</Link></li>
-              <li><Link href="/checkout" className="hover:text-slate-900">{t("footer.checkout")}</Link></li>
-            </ul>
-          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+            <h4 className="text-lg font-semibold text-slate-900">Contact Information</h4>
+            <div className="mt-6 space-y-5 text-sm text-slate-600">
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-900" />
+                <div>
+                  <p>Gulf Tower B-10-902, B1 BLOCK</p>
+                  <p className="mt-1">Umm Hurrair Second, Oud Metha - Dubai</p>
+                </div>
+              </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900">{t("footer.forSellers")}</h4>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li><Link href="/seller/register" className="hover:text-slate-900">{t("footer.sellOnMaheDeluxe")}</Link></li>
-              <li><Link href="/seller/dashboard" className="hover:text-slate-900">{t("footer.sellerDashboard")}</Link></li>
-              <li><Link href="/seller/dashboard/documents" className="hover:text-slate-900">{t("footer.documents")}</Link></li>
-            </ul>
-          </div>
+              <div className="flex items-center gap-3">
+                <Phone className="h-5 w-5 shrink-0 text-slate-900" />
+                <a href="tel:+971503298799" className="hover:text-slate-900">
+                  +971 50 329 8799
+                </a>
+              </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900">{t("footer.newsletter")}</h4>
-            <p className="mt-3 text-sm text-slate-600">{t("footer.newsletterDescription")}</p>
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 shrink-0 text-slate-900" />
+                <a href="mailto:info@mahedeluxe.ae" className="hover:text-slate-900">
+                  info@mahedeluxe.ae
+                </a>
+              </div>
 
-            <form onSubmit={handleSubscribe} className="mt-4 flex gap-2">
-              <input
-                type="email"
-                placeholder={t("footer.emailAddress")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue/30"
-              />
-              <button type="submit" className="px-3 py-2 bg-blue text-white rounded-md text-sm">{sent ? t("footer.subscribed") : t("footer.subscribe")}</button>
-            </form>
-
-            <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
-              <span>{t("footer.followUs")}</span>
-              <a href="https://www.tiktok.com/@mahedeluxe.b2b.ma?_r=1&_t=ZS-95lDApOOjb6" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">TikTok</a>
-              <a href="https://www.instagram.com/mahedeluxe?igsh=MWVtdDZjbzM2OXNuOQ==" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Instagram</a>
-              <a href="https://www.facebook.com/share/18QbuvMfRY/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Facebook</a>
+              <div className="flex items-start gap-3">
+                <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-slate-900" />
+                <p>Our office timing : Monday to Saturday 9.00 AM to 5.30 PM</p>
+              </div>
             </div>
           </div>
         </div>

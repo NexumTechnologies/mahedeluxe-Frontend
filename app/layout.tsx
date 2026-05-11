@@ -7,6 +7,7 @@ import ReactQueryProvider from "@/components/ReactQueryProvider";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import DeploymentVersionWatcher from "@/components/DeploymentVersionWatcher";
 import LanguageProvider from "@/components/LanguageProvider";
+import SocialSticky from "@/components/SocialSticky";
 import { getDirection, LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n";
 
 const manrope = Manrope({
@@ -50,6 +51,7 @@ export default async function RootLayout({
             <DeploymentVersionWatcher />
             <ConditionalHeader />
             {children}
+            <SocialSticky />
             <ConditionalFooter />
           </LanguageProvider>
         </ReactQueryProvider>
