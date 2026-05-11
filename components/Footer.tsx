@@ -66,9 +66,9 @@ export default function Footer() {
 
             <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
               <span>{t("footer.followUs")}</span>
-              <Link href="#" className="hover:text-slate-900">Twitter</Link>
-              <Link href="#" className="hover:text-slate-900">LinkedIn</Link>
-              <Link href="#" className="hover:text-slate-900">Facebook</Link>
+              <a href="https://www.tiktok.com/@mahedeluxe.b2b.ma?_r=1&_t=ZS-95lDApOOjb6" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">TikTok</a>
+              <a href="https://www.instagram.com/mahedeluxe?igsh=MWVtdDZjbzM2OXNuOQ==" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Instagram</a>
+              <a href="https://www.facebook.com/share/18QbuvMfRY/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Facebook</a>
             </div>
           </div>
         </div>
