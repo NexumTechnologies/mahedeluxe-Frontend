@@ -20,16 +20,16 @@ export default function Footer() {
             <p className="mt-3 text-sm text-slate-600">{t("footer.description")}</p>
             <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
               <span className="sr-only">{t("footer.followUs")}</span>
-              <a href="https://www.instagram.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br from-pink-500 to-pink-400 text-white shadow-sm hover:opacity-90 transition">
-                <Image src="/insta.png" alt="Instagram" width={38} height={16} />
+              <a href="https://www.instagram.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition">
+                <Image src="/insta.png" alt="Instagram" width={50} height={24} />
               </a>
 
-              <a href="https://www.tiktok.com/@mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="w-8 h-8 rounded-md flex items-center justify-center bg-black text-white shadow-sm hover:opacity-90 transition">
+              <a href="https://www.tiktok.com/@mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition">
                 <Image src="/tiktok.png" alt="TikTok" width={34} height={24} />
               </a>
 
-              <a href="https://www.facebook.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-8 h-8 rounded-md flex items-center justify-center bg-blue-600 text-white shadow-sm hover:opacity-90 transition">
-                <Image src="/facebook.png" alt="Facebook" width={38} height={24} />
+              <a href="https://www.facebook.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition">
+                <Image src="/facebook.png" alt="Facebook" width={50} height={28} />
               </a>
             </div>
           </div>

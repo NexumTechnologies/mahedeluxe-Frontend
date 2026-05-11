@@ -11,9 +11,9 @@ export default function SocialSticky() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Instagram"
-        className="flex h-14 w-14 items-center justify-center bg-[#e64379] text-white transition hover:brightness-95"
+        className="flex h-16 w-16 items-center justify-center transition hover:opacity-90"
       >
-        <Image src="/insta.png" alt="Instagram" width={44} height={24} />
+        <Image src="/insta.png" alt="Instagram" width={44} height={32} />
       </a>
 
       <a
@@ -21,9 +21,9 @@ export default function SocialSticky() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="TikTok"
-        className="flex h-14 w-14 items-center justify-center bg-[#111111] text-white transition hover:brightness-95"
+        className="flex h-16 w-16 items-center justify-center transition hover:opacity-90"
       >
-        <Image src="/tiktok.png" alt="TikTok" width={34} height={24} />
+        <Image src="/tiktok.png" alt="TikTok" width={32} height={32} />
       </a>
 
       <a
@@ -31,9 +31,9 @@ export default function SocialSticky() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Facebook"
-        className="flex h-14 w-14 items-center justify-center bg-[#1c417c] text-white transition hover:brightness-95"
+        className="flex h-16 w-16 items-center justify-center transition hover:opacity-90"
       >
-        <Image src="/facebook.png" alt="Facebook" width={38} height={24} />
+        <Image src="/facebook.png" alt="Facebook" width={44} height={32} />
       </a>
     </div>
   );
