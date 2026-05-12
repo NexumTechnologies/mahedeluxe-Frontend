@@ -197,6 +197,8 @@ const dictionary = {
         "By placing your order, you confirm your delivery details and selected items.",
       checkoutPreparationFailed:
         "Something went wrong while preparing checkout. Refresh and try again.",
+      paymentInitFailed:
+        "Unable to start payment right now. Please try again.",
       updatingSummary: "Updating summary...",
     },
     product: {
@@ -460,6 +462,7 @@ const dictionary = {
       placingOrderAgreement: "بإتمام طلبك، فإنك تؤكد تفاصيل التسليم والعناصر المحددة.",
       checkoutPreparationFailed:
         "حدث خطأ أثناء تجهيز الدفع. حدّث الصفحة وحاول مرة أخرى.",
+      paymentInitFailed: "تعذر بدء الدفع الآن. يرجى المحاولة مرة أخرى.",
       updatingSummary: "جارٍ تحديث الملخص...",
     },
     product: {

@@ -52,6 +52,16 @@ type PlaceOrderResponse = {
   data?: unknown[];
 };
 
+type HostedOrderResponse = {
+  success?: boolean;
+  data?: {
+    paymentUrl?: string;
+    orderReference?: string;
+    orderId?: string;
+  };
+  message?: string;
+};
+
 export default function CheckoutContent() {
   const { dir, t } = useI18n();
   const queryClient = useQueryClient();
@@ -242,6 +252,45 @@ export default function CheckoutContent() {
     },
   });
 
+  const createHostedPaymentMutation = useMutation({
+    mutationFn: async () => {
+      if (!shippingAddress) {
+        throw new Error("Shipping address is required");
+      }
+
+      const res = await api.post<HostedOrderResponse>("/payment/ngenius/hosted-order", {
+        amount: itemSubtotal,
+        currency: "AED",
+        email: shippingAddress.email,
+        firstName: shippingAddress.firstName,
+        lastName: shippingAddress.lastName,
+        shippingAddress: shippingAddress.summary,
+      });
+
+      return res.data;
+    },
+    onSuccess: (res) => {
+      const paymentUrl = res?.data?.paymentUrl;
+      if (!paymentUrl) {
+        setToast({
+          show: true,
+          message: t("checkout.paymentInitFailed"),
+        });
+        setTimeout(() => setToast(null), 2000);
+        return;
+      }
+
+      window.location.href = paymentUrl;
+    },
+    onError: () => {
+      setToast({
+        show: true,
+        message: t("checkout.paymentInitFailed"),
+      });
+      setTimeout(() => setToast(null), 2000);
+    },
+  });
+
   const removeCheckoutItem = async (item: CheckoutItem) => {
     if (isAuthenticated) {
       await api.delete(`/addToCart/${item.id}`);
@@ -256,10 +305,15 @@ export default function CheckoutContent() {
   const isBusy =
     placeOrderMutation.isPending ||
     placeGuestOrderMutation.isPending ||
-    syncGuestCartMutation.isPending;
+    syncGuestCartMutation.isPending ||
+    createHostedPaymentMutation.isPending;
 
   const checkoutError =
-    syncGuestCartMutation.error || placeOrderMutation.error || placeGuestOrderMutation.error || error;
+    syncGuestCartMutation.error ||
+    placeOrderMutation.error ||
+    placeGuestOrderMutation.error ||
+    createHostedPaymentMutation.error ||
+    error;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-8" dir={dir}>
@@ -319,7 +373,7 @@ export default function CheckoutContent() {
             canPay={shippingComplete && !!shippingAddress && !syncGuestCartMutation.isPending}
             onPayNow={() => {
               if (isAuthenticated) {
-                setIsConfirmModalOpen(true);
+                createHostedPaymentMutation.mutate();
                 return;
               }
 
@@ -328,6 +382,22 @@ export default function CheckoutContent() {
           />
         </div>
       </div>
+
+      {createHostedPaymentMutation.isPending && (
+        <div className="app-modal-overlay z-50">
+          <div className="app-modal-panel max-w-sm overflow-hidden rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 h-10 w-10 animate-pulse rounded-full bg-amber-100" />
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">Redirecting to secure payment</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Please wait while we prepare your payment with N-Genius.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isGuestChoiceModalOpen && (
         <div className="app-modal-overlay">
@@ -376,11 +446,11 @@ export default function CheckoutContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => placeGuestOrderMutation.mutate()}
+                  onClick={() => createHostedPaymentMutation.mutate()}
                   className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isBusy}
                 >
-                  {placeGuestOrderMutation.isPending ? t("checkout.placingOrder") : t("checkout.orderDirectly")}
+                  {createHostedPaymentMutation.isPending ? t("checkout.placingOrder") : t("checkout.orderDirectly")}
                 </button>
               </div>
 

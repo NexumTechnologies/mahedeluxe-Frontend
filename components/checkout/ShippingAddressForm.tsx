@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,13 @@ export default function ShippingAddressForm({
     summary: buildAddressSummary(data),
   });
 
+  useEffect(() => {
+    if (onAddressChange) {
+      onAddressChange(buildAddressData(formData));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, onAddressChange]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onAddressChange) {
@@ -83,17 +90,11 @@ export default function ShippingAddressForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => {
-      const next = {
-        ...prev,
-        [name]:
-          type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-      };
-      if (onAddressChange) {
-        onAddressChange(buildAddressData(next));
-      }
-      return next;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+    }));
   };
 
   return (
