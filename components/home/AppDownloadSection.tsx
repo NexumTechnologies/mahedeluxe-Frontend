@@ -5,9 +5,9 @@ export default function AppDownloadSection() {
   return (
     <section className="pb-14 sm:pb-18 lg:pb-24">
       <div className="mx-auto w-full max-w-350 px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#e1deda] px-6 py-8 text-slate-900 shadow-[0_24px_80px_rgba(225,222,218,0.22)] sm:px-10 sm:py-12 lg:px-12 lg:py-14">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12)_1px,transparent_1.5px)] [background-size:28px_28px] opacity-40" />
-          <div className="absolute right-[-8rem] top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#e1deda]/35 blur-[2px]" />
+        <div className="relative overflow-hidden rounded-4xl bg-[#e1deda] px-6 py-8 text-slate-900 shadow-[0_24px_80px_rgba(225,222,218,0.22)] sm:px-10 sm:py-12 lg:px-12 lg:py-14">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12)_1px,transparent_1.5px)] bg-size-[28px_28px] opacity-40" />
+          <div className="absolute -right-32 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#e1deda]/35 blur-[2px]" />
 
           <div className="relative grid items-center gap-10 lg:grid-cols-[1.25fr_0.8fr_0.8fr]">
             <div className="max-w-xl space-y-5">
@@ -31,7 +31,7 @@ export default function AppDownloadSection() {
 
               <Link
                 href="#"
-                className="inline-flex min-w-[270px] items-center gap-4 rounded-2xl  px-6 py-4 shadow-[0_12px_32px_rgba(0,0,0,0.16)] transition "
+                className="inline-flex min-w-67.5 items-center gap-4 rounded-2xl px-6 py-4 shadow-[0_12px_32px_rgba(0,0,0,0.16)] transition"
               >
                 <Image src="/apple.svg" alt="App Store" width={38} height={46} className="h-11 w-11" />
                 <span className="text-left">
@@ -47,15 +47,15 @@ export default function AppDownloadSection() {
                 <br />
                 to download the app.
               </p>
-              <div className="mx-auto flex h-[270px] w-[270px] items-center justify-center rounded-[1.6rem] bg-[#e9ebc8] p-6 shadow-[0_16px_40px_rgba(0,0,0,0.15)]">
+              <div className="mx-auto flex h-55 w-55 items-center justify-center rounded-3xl bg-[#e9ebc8] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.15)]">
                 <div className="flex h-full w-full items-center justify-center rounded-2xl bg-white text-center text-sm font-medium text-slate-500">
-                  <Image src="/qrcode.jpeg" alt="QR Code" width={240} height={240} className="object-contain" />
+                  <Image src="/qrcode.jpeg" alt="QR Code" width={180} height={180} className="object-contain" />
                 </div>
               </div>
             </div>
 
             <div className="hidden lg:flex lg:justify-end">
-              <div className="relative h-[360px] w-[210px] rounded-[2.2rem] border-[14px] border-[#1b2f1f] bg-[#f7f6f0] shadow-[0_28px_60px_rgba(0,0,0,0.22)]">
+              <div className="relative h-90 w-52.5 rounded-[2.2rem] border-14 border-[#1b2f1f] bg-[#f7f6f0] shadow-[0_28px_60px_rgba(0,0,0,0.22)]">
                 <div className="absolute left-1/2 top-0 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-[#1b2f1f]" />
                 <div className="grid h-full grid-cols-2 gap-4 p-4 pt-8">
                   <div className="rounded-2xl bg-[#e6f4eb] p-3">
