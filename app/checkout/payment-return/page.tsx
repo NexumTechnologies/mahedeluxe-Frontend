@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { clearGuestCart, hasStoredAuth } from "@/lib/cartStorage";
 
-const HOME_URL = "https://mahedeluxe.ae/";
+const SUCCESS_URL = "/checkout/success";
 const PAYMENT_SUCCESS_KEY = "checkout:last-payment-success";
 const REDIRECT_TIMEOUT_MS = 1200;
 const CART_CLEAR_TIMEOUT_MS = 800;
@@ -21,7 +21,7 @@ export default function PaymentReturnPage() {
     const redirectToHome = () => {
       if (redirected) return;
       redirected = true;
-      window.location.replace(HOME_URL);
+      window.location.replace(SUCCESS_URL);
     };
 
     if (!ref) {
@@ -72,8 +72,8 @@ export default function PaymentReturnPage() {
         <h1 className="mt-3 text-2xl font-semibold text-slate-950">Finalizing your order</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           {status === "missing-ref"
-            ? "Return information is missing. Redirecting you to the homepage."
-            : "Your cart is being cleared and you will be redirected to the homepage."}
+            ? "Return information is missing. Redirecting you to the checkout success screen."
+            : "Your cart is being cleared and you will be redirected to the checkout success screen."}
         </p>
       </div>
     </div>

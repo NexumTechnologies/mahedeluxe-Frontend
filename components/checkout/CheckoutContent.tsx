@@ -58,8 +58,19 @@ type HostedOrderResponse = {
     paymentUrl?: string;
     orderReference?: string;
     orderId?: string;
+    redirectUrl?: string;
   };
   message?: string;
+};
+
+const isLocalOrigin = (origin: string) => {
+  try {
+    const parsed = new URL(origin);
+    const host = parsed.hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return false;
+  }
 };
 
 export default function CheckoutContent() {
@@ -258,6 +269,12 @@ export default function CheckoutContent() {
         throw new Error("Shipping address is required");
       }
 
+      const configuredRedirectUrl = String(process.env.NEXT_PUBLIC_NGENIUS_REDIRECT_URL || "").trim();
+      const fallbackRedirectUrl = isLocalOrigin(window.location.origin)
+        ? ""
+        : `${window.location.origin}/checkout/payment-return`;
+      const redirectUrl = configuredRedirectUrl || fallbackRedirectUrl;
+
       const res = await api.post<HostedOrderResponse>("/payment/ngenius/hosted-order", {
         amount: itemSubtotal,
         currency: "AED",
@@ -265,6 +282,7 @@ export default function CheckoutContent() {
         firstName: shippingAddress.firstName,
         lastName: shippingAddress.lastName,
         shippingAddress: shippingAddress.summary,
+        ...(redirectUrl ? { redirectUrl } : {}),
       });
 
       return res.data;
