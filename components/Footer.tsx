@@ -15,39 +15,97 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           <div className="max-w-sm">
             <Link href="/" className="inline-block">
-              <Image src="/logo.png" alt="MaheDeluxe" width={140} height={40} className="object-contain" />
+              <Image
+                src="/logo.png"
+                alt="MaheDeluxe"
+                width={140}
+                height={40}
+                className="object-contain"
+              />
             </Link>
-            <p className="mt-3 text-sm text-slate-600">{t("footer.description")}</p>
+            <p className="mt-3 text-sm text-slate-600">
+              {t("footer.description")}
+            </p>
             <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
               <span className="sr-only">{t("footer.followUs")}</span>
-              <a href="https://www.instagram.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition">
-                <Image src="/insta.png" alt="Instagram" width={50} height={24} />
+              <a
+                href="https://www.instagram.com/mahedeluxe"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition"
+              >
+                <Image
+                  src="/insta.png"
+                  alt="Instagram"
+                  width={50}
+                  height={24}
+                />
               </a>
 
-              <a href="https://www.tiktok.com/@mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition">
+              <a
+                href="https://www.tiktok.com/@mahedeluxe"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+                className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition"
+              >
                 <Image src="/tiktok.png" alt="TikTok" width={34} height={24} />
               </a>
 
-              <a href="https://www.facebook.com/mahedeluxe" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition">
-                <Image src="/facebook.png" alt="Facebook" width={50} height={28} />
+              <a
+                href="https://www.facebook.com/mahedeluxe"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="w-10 h-10 flex items-center justify-center hover:opacity-90 transition"
+              >
+                <Image
+                  src="/facebook.png"
+                  alt="Facebook"
+                  width={50}
+                  height={28}
+                />
               </a>
             </div>
           </div>
 
           <div className="flex flex-col items-start justify-center">
-            <h4 className="text-lg font-semibold text-slate-900">Quick Links</h4>
+            <h4 className="text-lg font-semibold text-slate-900">
+              Quick Links
+            </h4>
             <div className="mt-4 flex flex-col gap-2 text-sm">
-              <Link href="/" className="hover:text-slate-900">Home</Link>
-              <Link href="/browse" className="hover:text-slate-900">Shop</Link>
-              <Link href="/auth/seller/register" className="hover:text-slate-900">Become a seller</Link>
-              <Link href="/auth/buyer/register" className="hover:text-slate-900">Become a buyer</Link>
-              <Link href="/about" className="hover:text-slate-900">About us</Link>
-              <Link href="/contact" className="hover:text-slate-900">Contact us</Link>
+              <Link href="/" className="hover:text-slate-900">
+                Home
+              </Link>
+              <Link href="/browse" className="hover:text-slate-900">
+                Shop
+              </Link>
+              <Link
+                href="/auth/seller/register"
+                className="hover:text-slate-900"
+              >
+                Become a seller
+              </Link>
+              <Link
+                href="/auth/buyer/register"
+                className="hover:text-slate-900"
+              >
+                Become a buyer
+              </Link>
+              <Link href="/about" className="hover:text-slate-900">
+                About us
+              </Link>
+              <Link href="/contact" className="hover:text-slate-900">
+                Contact us
+              </Link>
             </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
-            <h4 className="text-lg font-semibold text-slate-900">Contact Information</h4>
+            <h4 className="text-lg font-semibold text-slate-900">
+              Contact Information
+            </h4>
             <div className="mt-6 space-y-5 text-sm text-slate-600">
               <div className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-900" />
@@ -66,7 +124,10 @@ export default function Footer() {
 
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 shrink-0 text-slate-900" />
-                <a href="mailto:info@mahedeluxe.ae" className="hover:text-slate-900">
+                <a
+                  href="mailto:info@mahedeluxe.ae"
+                  className="hover:text-slate-900"
+                >
                   info@mahedeluxe.ae
                 </a>
               </div>
@@ -80,11 +141,58 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t pt-6 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>© {new Date().getFullYear()} MaheDeluxe. {t("footer.rightsReserved")}</div>
+          <div>
+            © {new Date().getFullYear()} MaheDeluxe.{" "}
+            {t("footer.rightsReserved")}
+          </div>
+
           <div className="flex items-center gap-4">
-            <Link href="/privacy-policy" className="hover:text-slate-900">{t("footer.privacy")}</Link>
-            <Link href="/terms" className="hover:text-slate-900">{t("footer.terms")}</Link>
-            <Link href="/contact" className="hover:text-slate-900">{t("footer.help")}</Link>
+            <Link href="/privacy-policy" className="hover:text-slate-900">
+              {t("footer.privacy")}
+            </Link>
+            <Link href="/terms" className="hover:text-slate-900">
+              {t("footer.terms")}
+            </Link>
+            <Link href="/contact" className="hover:text-slate-900">
+              {t("footer.help")}
+            </Link>
+          </div>
+          <div className="mt-3 sm:mt-0 flex items-center gap-3">
+            <Image
+              src="/cards/visaa.png"
+              alt="Visa"
+              width={48}
+              height={20}
+              className="object-contain"
+            />
+            <Image
+              src="/cards/mastercard.jpg"
+              alt="Mastercard"
+              width={48}
+              height={20}
+              className="object-contain"
+            />
+            <Image
+              src="/cards/paypal.jpg"
+              alt="PayPal"
+              width={58}
+              height={20}
+              className="object-contain"
+            />
+            <Image
+              src="/cards/unionpay.png"
+              alt="UnionPay"
+              width={58}
+              height={20}
+              className="object-contain"
+            />
+            <Image
+              src="/cards/mestro.png"
+              alt="American Express"
+              width={58}
+              height={20}
+              className="object-contain"
+            />
           </div>
         </div>
       </div>
