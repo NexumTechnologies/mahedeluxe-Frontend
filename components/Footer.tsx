@@ -140,13 +140,13 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t pt-6 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-8 border-t pt-6 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3 min-w-0">
           <div>
             © {new Date().getFullYear()} MaheDeluxe.{" "}
             {t("footer.rightsReserved")}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <Link href="/privacy-policy" className="hover:text-slate-900">
               {t("footer.privacy")}
             </Link>
@@ -157,41 +157,41 @@ export default function Footer() {
               {t("footer.help")}
             </Link>
           </div>
-          <div className="mt-3 sm:mt-0 flex items-center gap-3">
+          <div className="mt-3 px-4 sm:mt-0 flex flex-wrap items-center justify-center sm:justify-end gap-3 min-w-0">
             <Image
               src="/cards/visaa.png"
               alt="Visa"
               width={48}
               height={20}
-              className="object-contain"
+              className="object-contain max-w-full block h-auto"
             />
             <Image
               src="/cards/mastercard.jpg"
               alt="Mastercard"
               width={48}
               height={20}
-              className="object-contain"
+              className="object-contain max-w-full block h-auto"
             />
             <Image
               src="/cards/paypal.jpg"
               alt="PayPal"
               width={58}
               height={20}
-              className="object-contain"
+              className="object-contain max-w-full block h-auto"
             />
             <Image
               src="/cards/unionpay.png"
               alt="UnionPay"
               width={58}
               height={20}
-              className="object-contain"
+              className="object-contain max-w-full block h-auto"
             />
             <Image
               src="/cards/mestro.png"
               alt="American Express"
               width={58}
               height={20}
-              className="object-contain"
+              className="object-contain max-w-full block h-auto"
             />
           </div>
         </div>
