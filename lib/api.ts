@@ -12,7 +12,7 @@ type RequestError = Error & {
 };
 
 type JsonPayload = Record<string, unknown>;
-
+ 
 async function request(path: string, opts: RequestInit = {}) {
   const shouldTrack = typeof window !== "undefined";
   if (shouldTrack) incrementPendingRequests();
