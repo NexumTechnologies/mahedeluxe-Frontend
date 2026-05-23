@@ -44,7 +44,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://www.tiktok.com/@mahedeluxe"
+                href="https://www.tiktok.com/@mahedeluxe.b2b.ma?_r=1&_t=ZS-95lDApOOjb6"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="TikTok"
@@ -54,7 +54,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://www.facebook.com/mahedeluxe"
+                href="https://www.facebook.com/profile.php?id=61587335373214"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
