@@ -229,14 +229,42 @@ export default function RegisterPage() {
             </Link>
           </div>
           <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-slate-600">Selected role:</span>
+            <div className="mb-2 text-xs font-medium text-slate-600">Account type:</div>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setIsRoleModalOpen(true)}
-                className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                onClick={() => setRole("buyer")}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  role === "buyer"
+                    ? "bg-emerald-600 text-white shadow"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                }`}
               >
-                {role.charAt(0).toUpperCase() + role.slice(1)}
+                Buyer
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole("seller")}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  role === "seller"
+                    ? "bg-sky-600 text-white shadow"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                Seller
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole("customer")}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  role === "customer"
+                    ? "bg-amber-600 text-white shadow"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                Customer
               </button>
             </div>
           </div>
