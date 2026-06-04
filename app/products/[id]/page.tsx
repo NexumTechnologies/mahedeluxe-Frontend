@@ -105,6 +105,10 @@ export default function ProductDetailPage() {
   );
 
   const basePrice = product ? Number(product.price) || 0 : 0;
+  const basePriceRaw =
+    product && (product.base_price != null || product.base_price === 0)
+      ? Number(product.base_price)
+      : basePrice;
   const customerPriceRaw =
     product && product.customer_price != null
       ? Number(product.customer_price)
@@ -135,7 +139,20 @@ export default function ProductDetailPage() {
     const productSnapshot = {
       id: Number(product.id),
       name: product.name,
-      price: listingPrice,
+      price: basePriceRaw,
+      base_price: basePriceRaw,
+      customer_price:
+        customerPriceRaw != null && !Number.isNaN(customerPriceRaw)
+          ? customerPriceRaw
+          : listingPrice,
+      admin_margin_amount:
+        product && product.admin_margin_amount != null
+          ? Number(product.admin_margin_amount)
+          : undefined,
+      admin_margin_percentage:
+        product && product.admin_margin_percentage != null
+          ? Number(product.admin_margin_percentage)
+          : undefined,
       quantity: effectiveQuantity,
       min_order_quantity: product.min_order_quantity,
       image_url: product.image_url,

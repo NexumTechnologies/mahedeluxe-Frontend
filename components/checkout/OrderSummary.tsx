@@ -24,7 +24,34 @@ export default function OrderSummary({
   onPayNow,
 }: OrderSummaryProps) {
   const itemCount = totalItems ?? items.length ?? 0;
-  const subtotal = itemSubtotal ?? 0;
+  const normalizeNumber = (value: unknown, fallback = 0) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+
+  const computedCustomerSubtotal = Array.isArray(items)
+    ? items.reduce((sum, item) => sum + normalizeNumber(item?.total_price, 0), 0)
+    : 0;
+
+  const customerSubtotal =
+    itemSubtotal != null ? normalizeNumber(itemSubtotal, 0) : computedCustomerSubtotal;
+
+  const baseProductsTotal = Array.isArray(items)
+    ? items.reduce((sum, item) => {
+        const quantity = Math.max(1, Math.floor(normalizeNumber(item?.quantity, 1)));
+        const baseUnitPrice = normalizeNumber(
+          item?.base_unit_price ??
+            item?.baseUnitPrice ??
+            item?.Product?.base_price ??
+            item?.Product?.price ??
+            item?.unit_price,
+          0,
+        );
+        return sum + baseUnitPrice * quantity;
+      }, 0)
+    : 0;
+
+  const serviceFee = Math.max(0, customerSubtotal - baseProductsTotal);
   const { dir, t } = useI18n();
 
   return (
@@ -34,17 +61,21 @@ export default function OrderSummary({
       <div className="mt-5 space-y-3 border-b border-slate-200 pb-4 text-sm">
         <div className="flex items-center justify-between text-slate-600">
           <span>{t("checkout.items")} ({itemCount})</span>
-          <span className="font-medium text-slate-900">{formatAED(subtotal)}</span>
+          <span className="font-medium text-slate-900">{formatAED(customerSubtotal)}</span>
         </div>
         <div className="flex items-center justify-between text-slate-600">
-          <span>{t("checkout.shipping")}</span>
-          <span className="font-medium text-slate-900">{t("checkout.calculatedLater")}</span>
+          <span>{t("checkout.productsBaseTotal")}</span>
+          <span className="font-medium text-slate-900">{formatAED(baseProductsTotal)}</span>
+        </div>
+        <div className="flex items-center justify-between text-slate-600">
+          <span>{t("checkout.serviceFee")}</span>
+          <span className="font-medium text-slate-900">{formatAED(serviceFee)}</span>
         </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-base sm:text-lg font-semibold text-slate-950">{t("checkout.orderTotal")}</span>
-        <span className="text-xl sm:text-2xl font-semibold text-slate-950">{formatAED(subtotal)}</span>
+        <span className="text-xl sm:text-2xl font-semibold text-slate-950">{formatAED(customerSubtotal)}</span>
       </div>
 
       <button

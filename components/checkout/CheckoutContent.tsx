@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
-import ShippingAddressForm, { type ShippingAddressData } from "./ShippingAddressForm";
+import ShippingAddressForm, {
+  type ShippingAddressData,
+} from "./ShippingAddressForm";
 import ItemsAndDeliverySection from "./ItemsAndDeliverySection";
 import OrderSummary from "./OrderSummary";
 import {
@@ -12,6 +14,7 @@ import {
   getGuestCart,
   hasStoredAuth,
   removeGuestCartItem,
+  setGuestCart as setStoredGuestCart,
   type GuestCart,
   type GuestCartItem,
 } from "@/lib/cartStorage";
@@ -19,6 +22,7 @@ import { getStoredUser } from "@/lib/authStorage";
 import { useI18n } from "@/components/LanguageProvider";
 
 const ORDER_SUCCESS_STORAGE_KEY = "checkout:last-order";
+const NGENIUS_PENDING_CHECKOUT_KEY = "checkout:pending-ngenius";
 
 type CheckoutListing = {
   display_price?: number;
@@ -77,9 +81,12 @@ export default function CheckoutContent() {
   const { dir, t } = useI18n();
   const queryClient = useQueryClient();
   const router = useRouter();
-  const [toast, setToast] = useState<{ show: boolean; message: string } | null>(null);
+  const [toast, setToast] = useState<{ show: boolean; message: string } | null>(
+    null,
+  );
   const [shippingComplete, setShippingComplete] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddressData | null>(null);
+  const [shippingAddress, setShippingAddress] =
+    useState<ShippingAddressData | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isGuestChoiceModalOpen, setIsGuestChoiceModalOpen] = useState(false);
   const [guestCart, setGuestCart] = useState(() => getGuestCart());
@@ -99,6 +106,88 @@ export default function CheckoutContent() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+    if (!guestCart.items || guestCart.items.length === 0) return;
+
+    const needsPricingHydration = guestCart.items.some((item) => {
+      const p = (item as any)?.Product;
+      return p?.base_price == null || p?.customer_price == null;
+    });
+
+    if (!needsPricingHydration) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const uniqueIds = Array.from(
+          new Set(
+            guestCart.items
+              .map((it) => Number(it.product_id))
+              .filter((id) => Number.isFinite(id) && id > 0),
+          ),
+        );
+
+        if (uniqueIds.length === 0) return;
+
+        const results = await Promise.all(
+          uniqueIds.map(async (id) => {
+            const res = await api.get(`/product/${id}`);
+            const product = (res as any)?.data?.data || (res as any)?.data?.product || (res as any)?.data;
+            return { id, product };
+          }),
+        );
+
+        if (cancelled) return;
+
+        const byId = new Map<number, any>(results.map((r) => [Number(r.id), r.product]));
+
+        const nextItems = guestCart.items.map((item) => {
+          const productId = Number(item.product_id);
+          const fresh = byId.get(productId);
+          if (!fresh) return item;
+
+          const quantity = Math.max(1, Math.floor(Number(item.quantity) || 1));
+          const basePrice = Number(fresh.base_price ?? fresh.price ?? 0) || 0;
+          const customerPrice = Number(fresh.customer_price ?? 0) || 0;
+          const unitPrice = customerPrice > 0 ? customerPrice : Number(item.unit_price) || 0;
+
+          return {
+            ...item,
+            unit_price: unitPrice,
+            total_price: unitPrice * quantity,
+            Product: {
+              ...(item as any).Product,
+              id: Number(fresh.id ?? productId),
+              name: fresh.name ?? (item as any).Product?.name,
+              price: basePrice,
+              base_price: basePrice,
+              customer_price: customerPrice > 0 ? customerPrice : undefined,
+              admin_margin_amount:
+                fresh.admin_margin_amount != null ? Number(fresh.admin_margin_amount) : undefined,
+              admin_margin_percentage:
+                fresh.admin_margin_percentage != null ? Number(fresh.admin_margin_percentage) : undefined,
+              min_order_quantity:
+                fresh.min_order_quantity ?? (item as any).Product?.min_order_quantity,
+              image_url: fresh.image_url ?? (item as any).Product?.image_url,
+              listing: fresh.listing ?? (item as any).Product?.listing,
+            },
+          };
+        });
+
+        const nextCart = setStoredGuestCart(nextItems as any);
+        setGuestCart(nextCart);
+      } catch {
+        // ignore hydration failures
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [guestCart.items, isAuthenticated]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-cart"],
@@ -139,7 +228,9 @@ export default function CheckoutContent() {
   }, [guestCart.items, isAuthenticated, syncGuestCartMutation]);
 
   const cart: CheckoutCartState = isAuthenticated
-    ? ((serverCart.items?.length || 0) > 0 ? serverCart : guestCart)
+    ? (serverCart.items?.length || 0) > 0
+      ? serverCart
+      : guestCart
     : guestCart;
   const items = cart.items || [];
   const totalItems = cart.totalItems || items.length || 0;
@@ -186,8 +277,10 @@ export default function CheckoutContent() {
           window.sessionStorage.setItem(
             ORDER_SUCCESS_STORAGE_KEY,
             JSON.stringify({
-              customerEmail: shippingAddress?.email || getStoredUser()?.email || "",
-              customerName: `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
+              customerEmail:
+                shippingAddress?.email || getStoredUser()?.email || "",
+              customerName:
+                `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
               orders: res?.data || [],
               shippingAddress: shippingAddress?.summary || "",
               totalAmount: itemSubtotal,
@@ -245,7 +338,8 @@ export default function CheckoutContent() {
             ORDER_SUCCESS_STORAGE_KEY,
             JSON.stringify({
               customerEmail: shippingAddress?.email || "",
-              customerName: `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
+              customerName:
+                `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
               orders: res?.data || [],
               shippingAddress: shippingAddress?.summary || "",
               totalAmount: itemSubtotal,
@@ -269,21 +363,26 @@ export default function CheckoutContent() {
         throw new Error("Shipping address is required");
       }
 
-      const configuredRedirectUrl = String(process.env.NEXT_PUBLIC_NGENIUS_REDIRECT_URL || "").trim();
+      const configuredRedirectUrl = String(
+        process.env.NEXT_PUBLIC_NGENIUS_REDIRECT_URL || "",
+      ).trim();
       const fallbackRedirectUrl = isLocalOrigin(window.location.origin)
         ? ""
         : `${window.location.origin}/checkout/payment-return`;
       const redirectUrl = configuredRedirectUrl || fallbackRedirectUrl;
 
-      const res = await api.post<HostedOrderResponse>("/payment/ngenius/hosted-order", {
-        amount: itemSubtotal,
-        currency: "AED",
-        email: shippingAddress.email,
-        firstName: shippingAddress.firstName,
-        lastName: shippingAddress.lastName,
-        shippingAddress: shippingAddress.summary,
-        ...(redirectUrl ? { redirectUrl } : {}),
-      });
+      const res = await api.post<HostedOrderResponse>(
+        "/payment/ngenius/hosted-order",
+        {
+          amount: itemSubtotal,
+          currency: "AED",
+          email: shippingAddress.email,
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          shippingAddress: shippingAddress.summary,
+          ...(redirectUrl ? { redirectUrl } : {}),
+        },
+      );
 
       return res.data;
     },
@@ -296,6 +395,40 @@ export default function CheckoutContent() {
         });
         setTimeout(() => setToast(null), 2000);
         return;
+      }
+
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            NGENIUS_PENDING_CHECKOUT_KEY,
+            JSON.stringify({
+              provider: "ngenius",
+              orderReference: res?.data?.orderReference || null,
+              orderId: res?.data?.orderId || null,
+              totalAmount: itemSubtotal,
+              customerEmail: shippingAddress?.email || getStoredUser()?.email || "",
+              customerName:
+                `${shippingAddress?.firstName || ""} ${shippingAddress?.lastName || ""}`.trim(),
+              shippingAddress: shippingAddress?.summary || "",
+              shipping: shippingAddress
+                ? {
+                    email: shippingAddress.email,
+                    firstName: shippingAddress.firstName,
+                    lastName: shippingAddress.lastName,
+                    phone: shippingAddress.phone,
+                    apartment: shippingAddress.apartment,
+                    state: shippingAddress.state,
+                    city: shippingAddress.city,
+                    postalCode: shippingAddress.postalCode,
+                    country: shippingAddress.country,
+                  }
+                : null,
+              createdAt: new Date().toISOString(),
+            }),
+          );
+        }
+      } catch {
+        // ignore session storage issues
       }
 
       window.location.href = paymentUrl;
@@ -334,7 +467,10 @@ export default function CheckoutContent() {
     error;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-8" dir={dir}>
+    <div
+      className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-8"
+      dir={dir}
+    >
       {toast?.show && (
         <div className="fixed top-6 right-6 z-50">
           <div className="flex items-center gap-3 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
@@ -350,14 +486,23 @@ export default function CheckoutContent() {
 
       <div className="mb-4 flex flex-col gap-2 border-b border-slate-200 pb-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-950">{t("checkout.title")}</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-950">
+            {t("checkout.title")}
+          </h1>
           <p className="mt-1 text-sm text-slate-600">
             {t("checkout.subtitle")}
           </p>
         </div>
         <div className="text-sm text-slate-600 sm:text-right">
-          <div className="text-sm">{totalItems} {totalItems === 1 ? t("checkout.itemSingle") : t("checkout.itemPlural")}</div>
-          <div className="mt-1 text-base sm:text-lg font-semibold text-slate-950">{itemSubtotal} AED</div>
+          <div className="text-sm">
+            {totalItems}{" "}
+            {totalItems === 1
+              ? t("checkout.itemSingle")
+              : t("checkout.itemPlural")}
+          </div>
+          <div className="mt-1 text-base sm:text-lg font-semibold text-slate-950">
+            {itemSubtotal} AED
+          </div>
         </div>
       </div>
 
@@ -388,7 +533,11 @@ export default function CheckoutContent() {
             itemSubtotal={itemSubtotal}
             isLoading={isLoading || syncGuestCartMutation.isPending}
             hasError={!!checkoutError}
-            canPay={shippingComplete && !!shippingAddress && !syncGuestCartMutation.isPending}
+            canPay={
+              shippingComplete &&
+              !!shippingAddress &&
+              !syncGuestCartMutation.isPending
+            }
             onPayNow={() => {
               if (isAuthenticated) {
                 createHostedPaymentMutation.mutate();
@@ -407,7 +556,9 @@ export default function CheckoutContent() {
             <div className="flex items-start gap-4">
               <div className="mt-1 h-10 w-10 animate-pulse rounded-full bg-amber-100" />
               <div>
-                <h2 className="text-lg font-semibold text-slate-950">Redirecting to secure payment</h2>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Redirecting to secure payment
+                </h2>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
                   Please wait while we prepare your payment with N-Genius.
                 </p>
@@ -436,14 +587,20 @@ export default function CheckoutContent() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <div className="flex items-center justify-between">
                   <span>{t("checkout.items")}</span>
-                  <span className="font-medium text-slate-900">{totalItems}</span>
+                  <span className="font-medium text-slate-900">
+                    {totalItems}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span>{t("checkout.total")}</span>
-                  <span className="font-medium text-slate-900">{itemSubtotal} AED</span>
+                  <span className="font-medium text-slate-900">
+                    {itemSubtotal} AED
+                  </span>
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
-                  {t("checkout.shippingTo")} {shippingAddress?.summary || t("checkout.completeShippingFirst")}
+                  {t("checkout.shippingTo")}{" "}
+                  {shippingAddress?.summary ||
+                    t("checkout.completeShippingFirst")}
                 </div>
               </div>
 
@@ -468,7 +625,9 @@ export default function CheckoutContent() {
                   className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isBusy}
                 >
-                  {createHostedPaymentMutation.isPending ? t("checkout.placingOrder") : t("checkout.orderDirectly")}
+                  {createHostedPaymentMutation.isPending
+                    ? t("checkout.placingOrder")
+                    : t("checkout.orderDirectly")}
                 </button>
               </div>
 
@@ -542,7 +701,9 @@ export default function CheckoutContent() {
                         return (
                           <>
                             <span className="truncate mr-2">
-                              {item.Product?.name || t("checkout.productFallback")} x{quantity}
+                              {item.Product?.name ||
+                                t("checkout.productFallback")}{" "}
+                              x{quantity}
                             </span>
                             <span className="font-medium">{lineTotal} AED</span>
                           </>
@@ -553,7 +714,9 @@ export default function CheckoutContent() {
                 </ul>
               </div>
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-900">{t("checkout.total")}</span>
+                <span className="font-medium text-slate-900">
+                  {t("checkout.total")}
+                </span>
                 <span className="font-semibold text-slate-900">
                   {itemSubtotal} AED
                 </span>

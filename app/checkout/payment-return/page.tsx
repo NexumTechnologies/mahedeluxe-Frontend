@@ -7,6 +7,8 @@ import { clearGuestCart, hasStoredAuth } from "@/lib/cartStorage";
 
 const SUCCESS_URL = "/checkout/success";
 const PAYMENT_SUCCESS_KEY = "checkout:last-payment-success";
+const ORDER_SUCCESS_KEY = "checkout:last-order";
+const NGENIUS_PENDING_CHECKOUT_KEY = "checkout:pending-ngenius";
 const REDIRECT_TIMEOUT_MS = 1200;
 const CART_CLEAR_TIMEOUT_MS = 800;
 
@@ -21,14 +23,11 @@ export default function PaymentReturnPage() {
     const redirectToHome = () => {
       if (redirected) return;
       redirected = true;
-      window.location.replace(SUCCESS_URL);
+      const target = ref
+        ? `${SUCCESS_URL}?ref=${encodeURIComponent(ref)}`
+        : SUCCESS_URL;
+      window.location.replace(target);
     };
-
-    if (!ref) {
-      setStatus("missing-ref");
-      redirectToHome();
-      return;
-    }
 
     const fallbackTimer = window.setTimeout(() => {
       redirectToHome();
@@ -38,18 +37,72 @@ export default function PaymentReturnPage() {
       try {
         clearGuestCart();
 
-        if (hasStoredAuth()) {
+        const isAuthenticated = hasStoredAuth();
+
+        const pendingRaw = window.sessionStorage.getItem(
+          NGENIUS_PENDING_CHECKOUT_KEY,
+        );
+        const pending = pendingRaw ? (JSON.parse(pendingRaw) as any) : null;
+
+        if (isAuthenticated) {
+          // If we have a shipping snapshot, place the order from the server cart now.
+          const shipping = pending?.shipping;
+          if (shipping) {
+            try {
+              const orderRes = await api.post("/order", {
+                email: shipping.email,
+                firstName: shipping.firstName,
+                lastName: shipping.lastName,
+                phone: shipping.phone,
+                apartment: shipping.apartment,
+                state: shipping.state,
+                city: shipping.city,
+                postalCode: shipping.postalCode,
+                country: shipping.country,
+              });
+
+              const createdOrders =
+                (orderRes as any)?.data?.data || (orderRes as any)?.data || [];
+
+              window.sessionStorage.setItem(
+                ORDER_SUCCESS_KEY,
+                JSON.stringify({
+                  customerEmail:
+                    pending?.customerEmail || shipping.email || "",
+                  customerName:
+                    pending?.customerName ||
+                    `${shipping.firstName || ""} ${shipping.lastName || ""}`.trim(),
+                  orders: Array.isArray(createdOrders) ? createdOrders : [],
+                  shippingAddress: pending?.shippingAddress || "",
+                  totalAmount: pending?.totalAmount || 0,
+                  placedAt: new Date().toISOString(),
+                }),
+              );
+            } catch {
+              // If placing order fails (e.g., cart already emptied), keep going.
+            }
+          }
+
+          // Clear any remaining active cart items quickly (best-effort).
           await Promise.race([
             api.delete("/addToCart"),
-            new Promise((resolve) => window.setTimeout(resolve, CART_CLEAR_TIMEOUT_MS)),
+            new Promise((resolve) =>
+              window.setTimeout(resolve, CART_CLEAR_TIMEOUT_MS),
+            ),
           ]);
         }
 
-        window.sessionStorage.removeItem("checkout:last-order");
+        try {
+          window.sessionStorage.removeItem(NGENIUS_PENDING_CHECKOUT_KEY);
+        } catch {
+          // ignore
+        }
+
         window.sessionStorage.setItem(
           PAYMENT_SUCCESS_KEY,
           JSON.stringify({
             message: "Payment completed successfully.",
+            ref: ref || pending?.orderReference || null,
             placedAt: new Date().toISOString(),
           }),
         );
@@ -61,6 +114,10 @@ export default function PaymentReturnPage() {
         redirectToHome();
       }
     };
+
+    if (!ref) {
+      setStatus("missing-ref");
+    }
 
     clearAndRedirect();
   }, [searchParams]);

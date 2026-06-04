@@ -72,10 +72,10 @@ export default function ItemsAndDeliverySection({
                   : undefined;
               const fallbackUnit = (Number(item.total_price ?? 0) / safeQuantity) || 0;
               const unitPrice =
-                typeof listingPrice === "number" && !Number.isNaN(listingPrice)
-                  ? listingPrice
-                  : typeof baseUnit === "number"
-                    ? baseUnit
+                typeof baseUnit === "number"
+                  ? baseUnit
+                  : typeof listingPrice === "number" && !Number.isNaN(listingPrice)
+                    ? listingPrice
                     : fallbackUnit;
 
               return (

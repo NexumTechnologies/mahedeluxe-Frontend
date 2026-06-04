@@ -2,6 +2,10 @@ export type GuestCartProduct = {
   id: number;
   name: string;
   price?: number;
+  base_price?: number;
+  customer_price?: number;
+  admin_margin_amount?: number;
+  admin_margin_percentage?: number;
   quantity?: number;
   min_order_quantity?: number;
   image_url?: string | string[] | null;
@@ -38,6 +42,11 @@ function normalizeNumber(value: unknown, fallback = 0) {
 }
 
 function getUnitPrice(product: GuestCartProduct) {
+  const customerPrice = normalizeNumber(product.customer_price, NaN);
+  if (Number.isFinite(customerPrice) && customerPrice > 0) {
+    return customerPrice;
+  }
+
   const listingPrice = normalizeNumber(product.listing?.display_price, NaN);
   if (product.listing?.is_listed && Number.isFinite(listingPrice) && listingPrice > 0) {
     return listingPrice;
@@ -133,6 +142,10 @@ export function addGuestCartItem(product: GuestCartProduct, quantity: number) {
         id: product.id,
         name: product.name,
         price: product.price,
+        base_price: product.base_price,
+        customer_price: product.customer_price,
+        admin_margin_amount: product.admin_margin_amount,
+        admin_margin_percentage: product.admin_margin_percentage,
         quantity: product.quantity,
         min_order_quantity: product.min_order_quantity,
         image_url: product.image_url,

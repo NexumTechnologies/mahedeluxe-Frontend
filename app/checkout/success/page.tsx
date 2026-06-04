@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   Mail,
@@ -9,6 +10,8 @@ import {
   ReceiptText,
   ShoppingBag,
 } from "lucide-react";
+import api from "@/lib/axios";
+import { hasStoredAuth } from "@/lib/cartStorage";
 
 type OrderSuccessItem = {
   id: number;
@@ -32,11 +35,14 @@ type OrderSuccessPayload = {
 };
 
 const STORAGE_KEY = "checkout:last-order";
+const NGENIUS_PENDING_CHECKOUT_KEY = "checkout:pending-ngenius";
+const NGENIUS_PLACED_PREFIX = "checkout:ngenius-order-placed:";
 
 const formatAED = (value: number) => `${Number(value || 0).toFixed(2)} AED`;
 
 export default function CheckoutSuccessPage() {
-  const [payload] = useState<OrderSuccessPayload | null>(() => {
+  const searchParams = useSearchParams();
+  const [payload, setPayload] = useState<OrderSuccessPayload | null>(() => {
     if (typeof window === "undefined") return null;
 
     try {
@@ -47,6 +53,159 @@ export default function CheckoutSuccessPage() {
       return null;
     }
   });
+
+  useEffect(() => {
+    if (payload?.orders?.length) return;
+    if (typeof window === "undefined") return;
+    if (!hasStoredAuth()) return;
+
+    const ref = searchParams.get("ref") || "";
+
+    let pending: any = null;
+    try {
+      const raw = window.sessionStorage.getItem(NGENIUS_PENDING_CHECKOUT_KEY);
+      pending = raw ? (JSON.parse(raw) as any) : null;
+    } catch {
+      pending = null;
+    }
+
+    const orderReference = String(
+      pending?.orderReference || ref || pending?.orderId || "",
+    ).trim();
+
+    if (!pending?.shipping) return;
+    if (orderReference) {
+      try {
+        if (window.sessionStorage.getItem(NGENIUS_PLACED_PREFIX + orderReference)) {
+          return;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const shipping = pending.shipping;
+        const orderRes = await api.post("/order", {
+          email: shipping.email,
+          firstName: shipping.firstName,
+          lastName: shipping.lastName,
+          phone: shipping.phone,
+          apartment: shipping.apartment,
+          state: shipping.state,
+          city: shipping.city,
+          postalCode: shipping.postalCode,
+          country: shipping.country,
+        });
+
+        const createdOrders =
+          (orderRes as any)?.data?.data || (orderRes as any)?.data || [];
+
+        const nextPayload: OrderSuccessPayload = {
+          customerEmail: pending?.customerEmail || shipping.email || "",
+          customerName:
+            pending?.customerName ||
+            `${shipping.firstName || ""} ${shipping.lastName || ""}`.trim(),
+          orders: Array.isArray(createdOrders) ? createdOrders : [],
+          shippingAddress: pending?.shippingAddress || "",
+          totalAmount: pending?.totalAmount || 0,
+          placedAt: new Date().toISOString(),
+        };
+
+        if (cancelled) return;
+
+        setPayload(nextPayload);
+
+        try {
+          window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(nextPayload));
+        } catch {
+          // ignore
+        }
+
+        try {
+          if (orderReference) {
+            window.sessionStorage.setItem(
+              NGENIUS_PLACED_PREFIX + orderReference,
+              new Date().toISOString(),
+            );
+          }
+          window.sessionStorage.removeItem(NGENIUS_PENDING_CHECKOUT_KEY);
+        } catch {
+          // ignore
+        }
+      } catch {
+        // If placing order fails, we'll fall back to fetching latest orders below.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payload?.orders?.length, searchParams]);
+
+  useEffect(() => {
+    if (payload?.orders?.length) return;
+    if (typeof window === "undefined") return;
+    if (!hasStoredAuth()) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await api.get("/order");
+        const orders =
+          (res as any)?.data?.data || (res as any)?.data || ([] as any[]);
+
+        if (!Array.isArray(orders) || orders.length === 0) return;
+
+        const sorted = [...orders].sort((a, b) => {
+          const aTs = new Date(a?.createdAt || 0).getTime();
+          const bTs = new Date(b?.createdAt || 0).getTime();
+          return bTs - aTs;
+        });
+
+        const latestTs = new Date(sorted[0]?.createdAt || 0).getTime();
+        const windowMs = 2 * 60 * 1000;
+        const latestGroup = sorted.filter((order) => {
+          const ts = new Date(order?.createdAt || 0).getTime();
+          return Math.abs(ts - latestTs) <= windowMs;
+        });
+
+        const totalAmount = latestGroup.reduce(
+          (sum, order) => sum + Number(order?.total_amount || 0),
+          0,
+        );
+
+        const nextPayload: OrderSuccessPayload = {
+          customerEmail: latestGroup[0]?.User?.email,
+          customerName: latestGroup[0]?.User?.name,
+          orders: latestGroup,
+          shippingAddress: latestGroup[0]?.address,
+          totalAmount,
+          placedAt: latestGroup[0]?.createdAt,
+        };
+
+        if (cancelled) return;
+        setPayload(nextPayload);
+
+        try {
+          window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(nextPayload));
+        } catch {
+          // ignore session storage failures
+        }
+      } catch {
+        // ignore fetch failures
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // include searchParams so a new ref triggers a retry
+  }, [payload?.orders?.length, searchParams]);
 
   const items = useMemo(() => payload?.orders ?? [], [payload]);
   const orderNumbers = useMemo(
