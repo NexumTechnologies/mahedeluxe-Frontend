@@ -1,6 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const ANDROID_APP_URL =
+  "https://play.google.com/store/apps/details?id=com.mahedeluxe.marketplace";
+const IOS_APP_URL =
+  "https://apps.apple.com/us/app/mahedeluxe-b2b-marketplace/id6762006562";
+
+const ANDROID_QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(ANDROID_APP_URL)}`;
+const IOS_QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(IOS_APP_URL)}`;
+
 export default function AppDownloadSection() {
   return (
     <section className="pb-14 sm:pb-18 lg:pb-24">
@@ -30,26 +38,67 @@ export default function AppDownloadSection() {
               </div>
 
               <Link
-                href="#"
+                href={IOS_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex min-w-67.5 items-center gap-4 rounded-2xl px-6 py-4 shadow-[0_12px_32px_rgba(0,0,0,0.16)] transition"
               >
-                <Image src="/apple.svg" alt="App Store" width={38} height={46} className="h-11 w-11" />
+                <Image src="/apple.svg" alt="App Store" width={50} height={50} className="h-11 w-11" />
                 <span className="text-left">
                   <span className="block text-xs font-medium text-black/75">Download on the</span>
                   <span className="block text-3xl font-extrabold leading-none">App Store</span>
+                </span>
+              </Link>
+
+              <Link
+                href={ANDROID_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex min-w-67.5 items-center gap-4 rounded-2xl border border-slate-300 bg-white/80 px-6 py-4 shadow-[0_10px_28px_rgba(0,0,0,0.08)] transition hover:bg-white"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-xl font-black text-emerald-700">
+                  A
+                </span>
+                <span className="text-left">
+                  <span className="block text-xs font-medium text-black/75">Get it on</span>
+                  <span className="block text-3xl font-extrabold leading-none">Google Play</span>
                 </span>
               </Link>
             </div>
 
             <div className="space-y-4 text-center lg:justify-self-center">
               <p className="text-lg font-semibold text-slate-700">
-                Scan me
+                Scan to download
                 <br />
-                to download the app.
+                Android or iOS.
               </p>
-              <div className="mx-auto flex h-55 w-55 items-center justify-center rounded-3xl bg-[#e9ebc8] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.15)]">
-                <div className="flex h-full w-full items-center justify-center rounded-2xl bg-white text-center text-sm font-medium text-slate-500">
-                  <Image src="/qrcode.jpeg" alt="QR Code" width={180} height={180} className="object-contain" />
+              <div className="mx-auto grid w-full max-w-120 grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-3xl bg-[#e9ebc8] p-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
+                  <p className="mb-2 text-sm font-semibold text-slate-700">Android</p>
+                  <div className="flex items-center justify-center rounded-2xl bg-white p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ANDROID_QR_URL}
+                      alt="Android app QR code"
+                      width={180}
+                      height={180}
+                      className="h-40 w-40 object-contain"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-3xl bg-[#dfe8f8] p-4 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
+                  <p className="mb-2 text-sm font-semibold text-slate-700">iOS</p>
+                  <div className="flex items-center justify-center rounded-2xl bg-white p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={IOS_QR_URL}
+                      alt="iOS app QR code"
+                      width={180}
+                      height={180}
+                      className="h-40 w-40 object-contain"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
