@@ -94,6 +94,12 @@ export default function BuyerDetailPage() {
     typeof value === "string" &&
     /\.(png|jpe?g|webp|gif|bmp|svg)(\?.*)?$/i.test(value);
 
+  const isPdfUrl = (value?: string) =>
+    typeof value === "string" && /\.pdf(\?.*)?$/i.test(value);
+
+  const getDocumentHref = (value: string) =>
+    isPdfUrl(value) ? `/api/document?url=${encodeURIComponent(value)}` : value;
+
   return (
     <div className="space-y-6">
       {/* Toast */}
@@ -227,7 +233,7 @@ export default function BuyerDetailPage() {
                       <div className="mt-2">
                         {d.url ? (
                           <a
-                            href={d.url}
+                            href={getDocumentHref(d.url)}
                             target="_blank"
                             rel="noreferrer"
                             className="text-sm text-indigo-600 hover:text-indigo-800"

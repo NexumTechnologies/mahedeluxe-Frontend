@@ -47,6 +47,9 @@ export default function SellerRegisterStep3({
   const [loading, setLoading] = useState(false);
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const router = useRouter();
+  const hasAllDocumentsSelected = Boolean(
+    businessLicense && taxCertificate && factoryPhoto,
+  );
 
   useEffect(() => {
     // Load step 1 and 2 data from sessionStorage
@@ -537,8 +540,8 @@ export default function SellerRegisterStep3({
         {/* Submit Application Button */}
         <Button
           type="submit"
-          disabled={loading || uploadingDocs}
-          className="w-full h-12 bg-linear-to-br from-blue to-blue-300 text-white text-[16px] font-medium rounded-lg"
+          disabled={loading || uploadingDocs || !hasAllDocumentsSelected}
+          className="w-full h-12 bg-linear-to-br from-blue to-blue-300 text-white text-[16px] font-medium rounded-lg disabled:cursor-not-allowed disabled:opacity-60"
         >
           {uploadingDocs ? "Uploading documents..." : loading ? "Submitting..." : "Submit Application"}
         </Button>

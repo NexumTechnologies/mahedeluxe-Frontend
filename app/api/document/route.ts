@@ -3,6 +3,15 @@ import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 
 const ALLOWED_HOSTS = new Set(["res.cloudinary.com"]);
+const DEFAULT_BACKEND_API_BASE = "http://localhost:5000/api/v1";
+
+function getBackendApiBase() {
+  const value =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.API_BASE_URL ||
+    DEFAULT_BACKEND_API_BASE;
+  return value.replace(/\/$/, "");
+}
 
 function escapeHtml(value: string) {
   return value
@@ -49,6 +58,47 @@ export async function GET(request: NextRequest) {
   }
 
   const range = request.headers.get("range");
+  const backendApiBase = getBackendApiBase();
+
+  let backendProxy: Response | null = null;
+  try {
+    backendProxy = await fetch(
+      `${backendApiBase}/upload/document-proxy?url=${encodeURIComponent(parsed.toString())}`,
+      {
+        headers: {
+          ...(range ? { range } : null),
+          accept: "application/pdf,*/*",
+        },
+        cache: "no-store",
+      },
+    );
+  } catch {
+    backendProxy = null;
+  }
+
+  const backendType = (backendProxy?.headers.get("content-type") || "").toLowerCase();
+  if (backendProxy && backendProxy.ok && backendType.includes("application/pdf")) {
+    const headers = new Headers();
+    for (const key of [
+      "accept-ranges",
+      "content-length",
+      "content-range",
+      "etag",
+      "last-modified",
+    ]) {
+      const value = backendProxy.headers.get(key);
+      if (value) headers.set(key, value);
+    }
+
+    headers.set("content-type", backendProxy.headers.get("content-type") || "application/pdf");
+    headers.set("content-disposition", "inline");
+    headers.set("cache-control", "no-store");
+
+    return new Response(backendProxy.body, {
+      status: backendProxy.status,
+      headers,
+    });
+  }
 
   let upstream: Response;
   try {

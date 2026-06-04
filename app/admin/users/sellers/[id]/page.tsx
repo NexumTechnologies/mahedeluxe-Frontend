@@ -171,6 +171,9 @@ export default function SellerDetailPage() {
   const getPdfPreviewSrc = (value: string) =>
     `/api/document?url=${encodeURIComponent(value)}`;
 
+  const getDocumentHref = (value: string) =>
+    isPdfUrl(value) ? getPdfPreviewSrc(value) : value;
+
   const openPreview = (index: number) => {
     setPreviewSelected(index);
     setPreviewOpen(true);
@@ -520,7 +523,7 @@ export default function SellerDetailPage() {
               <div className="flex items-center gap-3">
                 {selectedPreviewDoc?.url ? (
                   <a
-                    href={selectedPreviewDoc.url}
+                    href={getDocumentHref(selectedPreviewDoc.url)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sm text-indigo-600 hover:text-indigo-800"
@@ -573,7 +576,7 @@ export default function SellerDetailPage() {
                 ) : (
                   <div className="rounded-md border p-6 text-sm">
                     <a
-                      href={selectedPreviewDoc.url}
+                      href={getDocumentHref(selectedPreviewDoc.url)}
                       target="_blank"
                       rel="noreferrer"
                       className="text-indigo-600"
