@@ -9,6 +9,7 @@ import { translateDashboard } from "@/lib/dashboard-i18n";
 
 type BuyerProfile = {
   profile_image?: string | null;
+  verification_status?: string | null;
 };
 
 type BuyerRow = {
@@ -43,6 +44,7 @@ export default function AdminBuyersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending" | "rejected">("all");
   const size = 10;
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
@@ -63,9 +65,18 @@ export default function AdminBuyersPage() {
   });
 
   const payload = data as UsersResponse | undefined;
-  const users = payload?.data?.items ?? [];
+  const rawUsers = payload?.data?.items ?? [];
   const pagination = payload?.data?.pagination;
-  const total = pagination?.totalItems ?? 0;
+  const users = rawUsers.filter((b) => {
+    const verificationStatus = b.Buyer?.verification_status;
+    if (statusFilter === "approved") return b.is_varified === true;
+    if (statusFilter === "rejected") return verificationStatus === "rejected";
+    if (statusFilter === "pending") {
+      return b.is_varified !== true && verificationStatus !== "rejected";
+    }
+    return true;
+  });
+  const total = users.length;
   const start = total === 0 ? 0 : (page - 1) * size + 1;
   const end = Math.min(page * size, total || 0);
 
@@ -109,6 +120,31 @@ export default function AdminBuyersPage() {
           </div>
         </div>
       </header>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { value: "all", label: td("common.all") },
+          { value: "approved", label: td("common.verified") },
+          { value: "pending", label: td("common.notVerified") },
+          { value: "rejected", label: td("common.rejected") },
+        ].map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => {
+              setStatusFilter(item.value as typeof statusFilter);
+              setPage(1);
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              statusFilter === item.value
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
         {isLoading ? (
@@ -165,7 +201,12 @@ export default function AdminBuyersPage() {
 
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div>
-                          {b.is_varified ? (
+                          {b.Buyer?.verification_status === "rejected" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-red-100">
+                              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                              {td("common.rejected")}
+                            </span>
+                          ) : b.is_varified ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                               {td("common.verified")}

@@ -26,6 +26,9 @@ export default function BuyerApprovalsPage() {
   const [previewDocs, setPreviewDocs] = useState<Array<{ label: string; url?: string }>>([]);
   const [previewSelected, setPreviewSelected] = useState(0);
   const [fullOpen, setFullOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<any | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
   const size = 10;
   const queryClient = useQueryClient();
   const td = (key: string, vars?: Record<string, string | number>) =>
@@ -54,13 +57,34 @@ export default function BuyerApprovalsPage() {
 
   const approveMutation = useMutation({
     mutationFn: async (userId: number) => {
-      await api.patch(`/users/${userId}/toggle-status`);
+      await api.patch(`/users/${userId}/review`, { status: "approved" });
     },
     onMutate: (userId) => {
       setPendingUserId(userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-approvals", "buyer"] });
+    },
+    onSettled: () => {
+      setPendingUserId(null);
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async ({ userId, note }: { userId: number; note: string }) => {
+      await api.patch(`/users/${userId}/review`, {
+        status: "rejected",
+        note,
+      });
+    },
+    onMutate: ({ userId }) => {
+      setPendingUserId(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-approvals", "buyer"] });
+      setRejectModalOpen(false);
+      setRejectTarget(null);
+      setRejectNote("");
     },
     onSettled: () => {
       setPendingUserId(null);
@@ -181,13 +205,25 @@ export default function BuyerApprovalsPage() {
 
                         <button
                           onClick={() => approveMutation.mutate(b.id)}
-                          disabled={approveMutation.isPending}
+                          disabled={approveMutation.isPending || rejectMutation.isPending}
                           className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                         >
                           {approveMutation.isPending && pendingUserId === b.id ? (
                             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/60 border-t-white" aria-hidden="true" />
                           ) : null}
                           {approveMutation.isPending && pendingUserId === b.id ? td("common.approving") : td("common.approve")}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setRejectTarget(b);
+                            setRejectNote("");
+                            setRejectModalOpen(true);
+                          }}
+                          disabled={approveMutation.isPending || rejectMutation.isPending}
+                          className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-rose-700 disabled:opacity-60"
+                        >
+                          Reject
                         </button>
                       </div>
                     </li>
@@ -322,6 +358,57 @@ export default function BuyerApprovalsPage() {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectModalOpen && rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              if (rejectMutation.isPending) return;
+              setRejectModalOpen(false);
+            }}
+          />
+          <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="border-b px-6 py-4">
+              <h2 className="text-lg font-semibold text-slate-900">Reject Buyer</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Write a rejection note. This will be emailed to {rejectTarget.name}.
+              </p>
+            </div>
+            <div className="space-y-4 px-6 py-4">
+              <textarea
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
+                className="min-h-32 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Write rejection reason"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setRejectModalOpen(false)}
+                disabled={rejectMutation.isPending}
+                className="rounded-lg border px-4 py-2 text-sm text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  rejectMutation.mutate({
+                    userId: rejectTarget.id,
+                    note: rejectNote.trim(),
+                  })
+                }
+                disabled={rejectMutation.isPending || rejectNote.trim().length === 0}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {rejectMutation.isPending ? "Rejecting..." : "Send Rejection"}
+              </button>
             </div>
           </div>
         </div>

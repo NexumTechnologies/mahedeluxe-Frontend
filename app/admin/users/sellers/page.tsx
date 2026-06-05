@@ -45,6 +45,7 @@ export default function AdminSellersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending" | "rejected">("all");
   const size = 10;
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
@@ -64,9 +65,18 @@ export default function AdminSellersPage() {
     },
   });
   const payload = data as UsersResponse | undefined;
-  const users = payload?.data?.items ?? [];
+  const rawUsers = payload?.data?.items ?? [];
   const pagination = payload?.data?.pagination;
-  const total = pagination?.totalItems ?? 0;
+  const users = rawUsers.filter((b) => {
+    const verificationStatus = b.Seller?.verification_status;
+    if (statusFilter === "approved") return verificationStatus === "approved" || b.is_varified === true;
+    if (statusFilter === "rejected") return verificationStatus === "rejected";
+    if (statusFilter === "pending") {
+      return verificationStatus === "pending" || (b.is_varified !== true && verificationStatus !== "rejected");
+    }
+    return true;
+  });
+  const total = users.length;
   const start = total === 0 ? 0 : (page - 1) * size + 1;
   const end = Math.min(page * size, total || 0);
 
@@ -112,6 +122,31 @@ export default function AdminSellersPage() {
           </div>
         </div>
       </header>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { value: "all", label: td("common.all") },
+          { value: "approved", label: td("common.verified") },
+          { value: "pending", label: td("common.notVerified") },
+          { value: "rejected", label: td("common.rejected") },
+        ].map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => {
+              setStatusFilter(item.value as typeof statusFilter);
+              setPage(1);
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              statusFilter === item.value
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
         {isLoading ? (
