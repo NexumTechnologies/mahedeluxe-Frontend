@@ -15,6 +15,11 @@ type AdminProductCategory = {
   name?: string;
 };
 
+type AdminProductSubCategory = {
+  id?: number;
+  name?: string;
+};
+
 type AdminOwnProduct = {
   id: number;
   user_id?: number;
@@ -24,11 +29,13 @@ type AdminOwnProduct = {
   quantity?: number | string;
   min_order_quantity?: number | string;
   category_id?: number | string;
+  sub_category_id?: number | string | null;
   is_active?: boolean;
   image_url?: string | string[] | null;
   sizes?: string[] | string | null;
   colors?: string[] | string | null;
   Category?: AdminProductCategory;
+  SubCategory?: AdminProductSubCategory;
 };
 
 type ProductsResponse =
@@ -86,6 +93,7 @@ export default function AdminOwnProductsPage() {
     sizes: "",
     colors: "",
     category_id: "",
+    sub_category_id: "",
   });
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
@@ -117,6 +125,24 @@ export default function AdminOwnProductsPage() {
   });
 
   const categories = getCategoriesFromResponse(categoriesData);
+  const selectedCategoryId = String(form.category_id || "").trim();
+  const { data: subCategoriesData } = useQuery({
+    queryKey: ["admin-own-subcategories-options", selectedCategoryId],
+    enabled: selectedCategoryId.length > 0,
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await api.get("/subcategory", {
+        params: { category_id: selectedCategoryId, is_active: true },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+  });
+
+  const subCategories =
+    (Array.isArray(subCategoriesData?.data?.items) && subCategoriesData.data.items) ||
+    (Array.isArray(subCategoriesData?.subcategories) && subCategoriesData.subcategories) ||
+    (Array.isArray(subCategoriesData) ? subCategoriesData : []);
   const ownProducts = getProductsFromResponse(ownProductsData);
 
   const imagesForSelected = (() => {
@@ -127,7 +153,8 @@ export default function AdminOwnProductsPage() {
     return [];
   })();
 
-  const isSaveReady =
+  const requiresSubCategory = selectedCategoryId.length > 0 && subCategories.length > 0;
+  const isFormReady =
     form.name.trim().length > 0 &&
     form.description.trim().length > 0 &&
     String(form.price).trim().length > 0 &&
@@ -138,6 +165,7 @@ export default function AdminOwnProductsPage() {
     Number(form.min_order_quantity) >= 1 &&
     Number(form.quantity) >= Number(form.min_order_quantity) &&
     String(form.category_id).trim().length > 0 &&
+    (!requiresSubCategory || String(form.sub_category_id).trim().length > 0) &&
     uploadedUrls.length > 0;
 
   const createMutation = useMutation({
@@ -158,6 +186,7 @@ export default function AdminOwnProductsPage() {
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
+        sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
         image_url: uploadedUrls,
       };
 
@@ -207,6 +236,7 @@ export default function AdminOwnProductsPage() {
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
+        sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
         image_url: uploadedUrls,
       };
 
@@ -279,6 +309,7 @@ export default function AdminOwnProductsPage() {
       sizes: "",
       colors: "",
       category_id: "",
+      sub_category_id: "",
     });
     setUploadedUrls([]);
     setSelectedProduct(null);
@@ -308,6 +339,7 @@ export default function AdminOwnProductsPage() {
         ? product.colors.join(", ")
         : String(product.colors ?? ""),
       category_id: String(product.category_id || product.Category?.id || ""),
+      sub_category_id: String(product.sub_category_id ?? product.SubCategory?.id ?? ""),
     });
     setUploadedUrls(imgs);
     setSelectedProduct(null);
@@ -407,7 +439,12 @@ export default function AdminOwnProductsPage() {
                         </div>
                       </td>
                       <td className="py-2 pr-4 text-xs text-slate-700">
-                        {product.Category?.name || "-"}
+                        <div>{product.Category?.name || "-"}</div>
+                        {product.SubCategory?.name && (
+                          <div className="text-[11px] text-slate-500">
+                            {product.SubCategory.name}
+                          </div>
+                        )}
                       </td>
                       <td className="py-2 pr-4">
                         {product.is_active ? (
@@ -643,6 +680,11 @@ export default function AdminOwnProductsPage() {
                       <div className="font-semibold text-slate-900">
                         {selectedProduct.Category?.name || "-"}
                       </div>
+                      {selectedProduct.SubCategory?.name && (
+                        <div className="mt-0.5 text-[11px] text-slate-500">
+                          {selectedProduct.SubCategory.name}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -800,7 +842,11 @@ export default function AdminOwnProductsPage() {
                     <select
                       value={form.category_id}
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, category_id: e.target.value }))
+                        setForm((f) => ({
+                          ...f,
+                          category_id: e.target.value,
+                          sub_category_id: "",
+                        }))
                       }
                       className="w-full border rounded-md px-3 py-2 text-sm bg-white"
                     >
@@ -808,6 +854,32 @@ export default function AdminOwnProductsPage() {
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Subcategory
+                    </label>
+                    <select
+                      value={form.sub_category_id}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sub_category_id: e.target.value }))
+                      }
+                      disabled={!selectedCategoryId || subCategories.length === 0}
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">
+                        {!selectedCategoryId
+                          ? "Select category first"
+                          : subCategories.length === 0
+                            ? "No subcategories"
+                            : "Select subcategory"}
+                      </option>
+                      {subCategories.map((sub: AdminProductSubCategory & { id: number }) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.name}
                         </option>
                       ))}
                     </select>
@@ -926,9 +998,10 @@ export default function AdminOwnProductsPage() {
                   <button
                     type="button"
                     disabled={
-                      !isSaveReady ||
+                      !isFormReady ||
                       createMutation.isPending ||
-                      updateMutation.isPending
+                      updateMutation.isPending ||
+                      uploading
                     }
                     onClick={() => {
                       if (productModalMode === "edit") {

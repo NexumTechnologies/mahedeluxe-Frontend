@@ -14,6 +14,11 @@ type ProductCategory = {
   name?: string;
 };
 
+type ProductSubCategory = {
+  id?: number;
+  name?: string;
+};
+
 type Product = {
   id: number;
   name: string;
@@ -21,9 +26,11 @@ type Product = {
   price?: number | string;
   quantity?: number | string;
   category_id?: number;
+  sub_category_id?: number | null;
   is_active?: boolean;
   image_url?: string | string[] | null;
   Category?: ProductCategory;
+  SubCategory?: ProductSubCategory;
   min_order_quantity?: number | string;
   sizes?: string[] | string | null;
   colors?: string[] | string | null;
@@ -72,23 +79,11 @@ export default function BuyerProductsPage() {
     sizes: "",
     colors: "",
     category_id: "",
+    sub_category_id: "",
     image_urls: "",
   });
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
-
-  const isCreateReady =
-    form.name.trim().length > 0 &&
-    form.description.trim().length > 0 &&
-    String(form.price).trim().length > 0 &&
-    Number(form.price) > 0 &&
-    String(form.quantity).trim().length > 0 &&
-    Number(form.quantity) > 0 &&
-    String(form.min_order_quantity).trim().length > 0 &&
-    Number(form.min_order_quantity) >= 1 &&
-    Number(form.quantity) >= Number(form.min_order_quantity) &&
-    String(form.category_id).trim().length > 0 &&
-    uploadedUrls.length > 0;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-products"],
@@ -115,6 +110,38 @@ export default function BuyerProductsPage() {
   });
 
   const categories = getCategories(categoriesData);
+
+  const selectedCategoryId = String(form.category_id || "").trim();
+  const { data: subCategoriesData } = useQuery({
+    queryKey: ["buyer-subcategories-options", selectedCategoryId],
+    enabled: selectedCategoryId.length > 0,
+    queryFn: async () => {
+      const res = await api.get("/subcategory", {
+        params: { category_id: selectedCategoryId, is_active: true },
+      });
+      return res.data;
+    },
+  });
+
+  const subCategories =
+    (Array.isArray(subCategoriesData?.data?.items) && subCategoriesData.data.items) ||
+    (Array.isArray(subCategoriesData?.subcategories) && subCategoriesData.subcategories) ||
+    (Array.isArray(subCategoriesData) ? subCategoriesData : []);
+
+  const requiresSubCategory = selectedCategoryId.length > 0 && subCategories.length > 0;
+  const isFormReady =
+    form.name.trim().length > 0 &&
+    form.description.trim().length > 0 &&
+    String(form.price).trim().length > 0 &&
+    Number(form.price) > 0 &&
+    String(form.quantity).trim().length > 0 &&
+    Number(form.quantity) > 0 &&
+    String(form.min_order_quantity).trim().length > 0 &&
+    Number(form.min_order_quantity) >= 1 &&
+    Number(form.quantity) >= Number(form.min_order_quantity) &&
+    String(form.category_id).trim().length > 0 &&
+    (!requiresSubCategory || String(form.sub_category_id).trim().length > 0) &&
+    uploadedUrls.length > 0;
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -150,6 +177,7 @@ export default function BuyerProductsPage() {
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
+        sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
         image_url:
           uploadedUrls.length > 0
             ? uploadedUrls
@@ -175,6 +203,7 @@ export default function BuyerProductsPage() {
         sizes: "",
         colors: "",
         category_id: "",
+        sub_category_id: "",
         image_urls: "",
       });
       setUploadedUrls([]);
@@ -200,6 +229,7 @@ export default function BuyerProductsPage() {
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
+        sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
       };
 
       const urls =
@@ -231,6 +261,7 @@ export default function BuyerProductsPage() {
         sizes: "",
         colors: "",
         category_id: "",
+        sub_category_id: "",
         image_urls: "",
       });
       setUploadedUrls([]);
@@ -250,6 +281,7 @@ export default function BuyerProductsPage() {
       sizes: "",
       colors: "",
       category_id: "",
+      sub_category_id: "",
       image_urls: "",
     });
     setUploadedUrls([]);
@@ -277,6 +309,7 @@ export default function BuyerProductsPage() {
         ? product.colors.join(", ")
         : String(product.colors ?? ""),
       category_id: String(product.category_id ?? ""),
+      sub_category_id: String(product.sub_category_id ?? product.SubCategory?.id ?? ""),
       image_urls: existingImages.join(", "),
     });
     setUploadedUrls(existingImages);
@@ -376,6 +409,7 @@ export default function BuyerProductsPage() {
                           </h3>
                           <p className="mt-0.5 text-[11px] text-slate-500 truncate">
                             {product.Category?.name || "Uncategorized"}
+                            {product.SubCategory?.name ? ` / ${product.SubCategory.name}` : ""}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
@@ -575,6 +609,17 @@ export default function BuyerProductsPage() {
                       {selectedProduct.quantity}
                     </div>
                   </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="text-xs text-slate-500">Category</div>
+                    <div className="font-semibold text-slate-900">
+                      {selectedProduct.Category?.name || "-"}
+                    </div>
+                    {selectedProduct.SubCategory?.name && (
+                      <div className="mt-0.5 text-[11px] text-slate-500">
+                        {selectedProduct.SubCategory.name}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -628,7 +673,11 @@ export default function BuyerProductsPage() {
                 <select
                   value={form.category_id}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, category_id: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      category_id: e.target.value,
+                      sub_category_id: "",
+                    }))
                   }
                   className="mt-1 w-full border rounded px-3 py-2"
                 >
@@ -636,6 +685,32 @@ export default function BuyerProductsPage() {
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600">
+                  Subcategory
+                </label>
+                <select
+                  value={form.sub_category_id}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sub_category_id: e.target.value }))
+                  }
+                  disabled={!selectedCategoryId || subCategories.length === 0}
+                  className="mt-1 w-full border rounded px-3 py-2"
+                >
+                  <option value="">
+                    {!selectedCategoryId
+                      ? "Select category first"
+                      : subCategories.length === 0
+                        ? "No subcategories"
+                        : "Select subcategory"}
+                  </option>
+                  {subCategories.map((sub: ProductSubCategory & { id: number }) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
                     </option>
                   ))}
                 </select>
@@ -894,7 +969,7 @@ export default function BuyerProductsPage() {
                   uploading ||
                   createMutation.isPending ||
                   updateMutation.isPending ||
-                  (formMode === "create" && !isCreateReady)
+                  !isFormReady
                 }
                 onClick={() => {
                   if (formMode === "create") createMutation.mutate();

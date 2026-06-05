@@ -27,7 +27,7 @@ interface DashboardStats {
 
 interface AdminNotificationItem {
   id: number;
-  category: "registration" | "order";
+  category: "registration" | "order" | "product";
   title: string;
   message: string;
   target_path?: string | null;
@@ -287,7 +287,9 @@ export default function AdminDashboardClient() {
                         className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
                           notification.category === "registration"
                             ? "bg-violet-100 text-violet-700"
-                            : "bg-emerald-100 text-emerald-700"
+                            : notification.category === "order"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-sky-100 text-sky-700"
                         }`}
                       >
                         {notification.category}

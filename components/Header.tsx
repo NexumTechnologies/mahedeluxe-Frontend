@@ -22,13 +22,6 @@ import { getSafeImageFromValue } from "@/lib/utils";
 import { clearAllClientAuthState, getStoredUser } from "@/lib/authStorage";
 import { getGuestCart } from "@/lib/cartStorage";
 import { useI18n } from "@/components/LanguageProvider";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type HeaderUser = {
   id?: string;
@@ -65,7 +58,13 @@ async function searchProductsByName(search: string): Promise<SearchProduct[]> {
   });
 
   const data = response.data;
-  const items = data?.data?.items || data?.data || data?.products || data?.items || data || [];
+  const items =
+    data?.data?.items ||
+    data?.data ||
+    data?.products ||
+    data?.items ||
+    data ||
+    [];
 
   return (Array.isArray(items) ? items : []).map((item: SearchApiItem) => {
     const displayPrice =
@@ -94,6 +93,7 @@ export default function Header() {
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [cartCount, setCartCount] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -272,35 +272,45 @@ export default function Header() {
   useEffect(() => {
     const handleOpen = () => setIsSearchOpen(true);
     if (typeof window !== "undefined") {
-      window.addEventListener("open-global-search", handleOpen as EventListener);
+      window.addEventListener(
+        "open-global-search",
+        handleOpen as EventListener,
+      );
     }
     return () => {
       if (typeof window !== "undefined") {
-        window.removeEventListener("open-global-search", handleOpen as EventListener);
+        window.removeEventListener(
+          "open-global-search",
+          handleOpen as EventListener,
+        );
       }
     };
   }, []);
 
-  const {
-    data: searchResults = [],
-    isFetching: isSearching,
-  } = useQuery<SearchProduct[]>({
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!searchContainerRef.current?.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const { data: searchResults = [], isFetching: isSearching } = useQuery<
+    SearchProduct[]
+  >({
     queryKey: ["header-product-search", debouncedSearchTerm],
     queryFn: () => searchProductsByName(debouncedSearchTerm),
-    enabled: isSearchOpen && debouncedSearchTerm.length > 0,
+    enabled: debouncedSearchTerm.length > 0,
   });
 
   const handleSearchResultClick = (productId: string) => {
     setIsSearchOpen(false);
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
     router.push(`/products/${productId}`);
-  };
-
-  const handleSearchOpenChange = (open: boolean) => {
-    setIsSearchOpen(open);
-    if (!open) {
-      setSearchTerm("");
-      setDebouncedSearchTerm("");
-    }
   };
 
   const profileHref = (() => {
@@ -321,8 +331,16 @@ export default function Header() {
   const mainNavItems = [
     { label: "Home", href: "/" },
     { label: "Shop", href: "/browse" },
-    { label: "Become a Buyer", href: "/auth/register?role=buyer", activePath: "/auth/register" },
-    { label: "Become a Seller", href: "/auth/register?role=seller", activePath: "/auth/register" },
+    {
+      label: "Become a Buyer",
+      href: "/auth/register?role=buyer",
+      activePath: "/auth/register",
+    },
+    {
+      label: "Become a Seller",
+      href: "/auth/register?role=seller",
+      activePath: "/auth/register",
+    },
     { label: "About Us", href: "/about" },
     { label: "Contact Us", href: "/contact" },
   ];
@@ -339,13 +357,6 @@ export default function Header() {
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Left: Logo */}
             <div className="flex items-center gap-4 lg:gap-8">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden text-gray-700 hover:text-orange transition-colors"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
-
               <Link href="/" className="flex items-center">
                 <Image
                   src="/logo.png"
@@ -358,39 +369,99 @@ export default function Header() {
             </div>
 
             {/* Center: Search Bar (Desktop Only) */}
-            <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(true)}
-                className="relative w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-left shadow-sm transition-colors duration-300 hover:border-[#efc9b4] hover:bg-white"
+            <div
+              ref={searchContainerRef}
+              className="relative hidden lg:flex flex-1 max-w-2xl mx-8"
+            >
+              <div
+                className={`relative w-full rounded-2xl border bg-stone-50 shadow-sm transition-colors duration-300 ${
+                  isSearchOpen
+                    ? "border-[#efc9b4] bg-white"
+                    : "border-stone-200 hover:border-[#efc9b4] hover:bg-white"
+                }`}
               >
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Search className="h-5 w-5 text-slate-400" />
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onFocus={() => setIsSearchOpen(true)}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setIsSearchOpen(true);
+                  }}
+                  placeholder={t("header.searchPlaceholder")}
+                  className="h-[58px] w-full rounded-2xl bg-transparent pl-12 pr-12 text-sm text-slate-900 outline-hidden placeholder:text-slate-400"
+                />
+                {isSearching ? (
+                  <LoaderCircle className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-slate-400" />
+                ) : (
+                  <span className="absolute right-3 top-1/2 inline-flex h-9 -translate-y-1/2 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white">
+                    {t("header.openSearch")}
+                  </span>
+                )}
+              </div>
+
+              {isSearchOpen && (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-50 max-h-[60vh] overflow-y-auto rounded-3xl border border-stone-200/80 bg-white p-2 shadow-[0_28px_90px_rgba(15,23,42,0.18)] sm:p-3">
+                  {!debouncedSearchTerm && (
+                    <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-8 text-center text-sm text-slate-500">
+                      {t("header.searchStartTyping")}
+                    </div>
+                  )}
+
+                  {debouncedSearchTerm &&
+                    !isSearching &&
+                    searchResults.length === 0 && (
+                      <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-8 text-center text-sm text-slate-500">
+                        {t("header.searchNoResults", { term: debouncedSearchTerm })}
+                      </div>
+                    )}
+
+                  {searchResults.length > 0 && (
+                    <div className="space-y-2">
+                      {searchResults.map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => handleSearchResultClick(product.id)}
+                          className="flex w-full items-center gap-4 rounded-[1.15rem] border border-transparent bg-white px-4 py-3 text-left transition-all duration-200 hover:border-[#efc9b4] hover:bg-[#fff7f1]"
+                        >
+                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#fff7f1_0%,#f7f7f5_52%,#eef3f8_100%)]">
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              className="object-contain p-3"
+                            />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              {t("header.matchingProduct")}
+                            </div>
+                            <div className="mt-1 line-clamp-2 text-base font-semibold leading-6 text-slate-900">
+                              {product.name}
+                            </div>
+                            <div className="mt-1 text-sm font-medium text-[#8d4d2b]">
+                              {product.price}
+                            </div>
+                          </div>
+
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+                            {t("header.open")}
+                            <ArrowUpRight className="h-4 w-4" />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="pr-28 pl-8">
-                  <div className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {t("header.searchProducts")}
-                  </div>
-                  {/* <div className="mt-1 text-sm text-slate-600">
-                    Find a product by name and jump straight to its detail page.
-                  </div> */}
-                </div>
-                <span className="absolute right-3 top-1/2 inline-flex h-9 -translate-y-1/2 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white">
-                  {t("header.openSearch")}
-                </span>
-              </button>
+              )}
             </div>
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3 lg:gap-6">
-              {/* Mobile Search */}
-              <button
-                onClick={() => setIsSearchOpen(true)}
-                className="lg:hidden text-gray-700 hover:text-orange transition-colors"
-              >
-                <Search className="h-6 w-6" />
-              </button>
-
               {/* Language (Desktop) - dropdown for English / Arabic */}
               <div ref={langMenuRef} className="relative hidden lg:flex">
                 <button
@@ -460,7 +531,9 @@ export default function Header() {
                       )}
                     </div>
                     <div className="hidden max-w-30 flex-col items-start leading-tight xl:flex">
-                      <span className="text-[11px] text-gray-500">{t("header.hi")}</span>
+                      <span className="text-[11px] text-gray-500">
+                        {t("header.hi")}
+                      </span>
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {user.name || user.email}
                       </span>
@@ -472,7 +545,9 @@ export default function Header() {
                     className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-orange transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
-                    <span className="hidden xl:inline">{t("header.logout")}</span>
+                    <span className="hidden xl:inline">
+                      {t("header.logout")}
+                    </span>
                   </button>
                 </div>
               ) : (
@@ -505,39 +580,10 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Secondary Navigation Bar */}
-      <nav className="w-full border-b border-gray-100 bg-white">
-        <div className="mx-auto max-w-350 px-2 sm:px-4 lg:px-8">
-          <ul className="flex items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {mainNavItems.map(({ label, href, activePath }) => (
-              <li key={href} className="shrink-0">
-                <Link
-                  href={href}
-                  className={`inline-block px-3 py-2.5 text-[11px] font-semibold tracking-wide uppercase transition-colors hover:text-orange sm:px-4 sm:py-3 sm:text-[12px] lg:text-[13px] ${
-                    pathname === (activePath || href) ? "text-orange border-b-2 border-orange" : "text-gray-700"
-                  }`}
-                >
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </nav>
-
-      <Dialog open={isSearchOpen} onOpenChange={handleSearchOpenChange}>
-        <DialogContent className="max-w-[calc(100%-1.25rem)] rounded-[1.75rem] border-stone-200 bg-[#fffdfa] p-0 shadow-[0_28px_90px_rgba(15,23,42,0.18)] sm:max-w-3xl">
-          <DialogHeader className="border-b border-stone-200/80 px-5 py-5 sm:px-7 sm:py-6">
-            <DialogTitle className="text-2xl text-slate-900 sm:text-3xl">
-              {t("header.searchDialogTitle")}
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-6 text-slate-500">
-              {t("header.searchDialogDescription")}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-5 pb-5 pt-4 sm:px-7 sm:pb-7">
-            <div className="relative rounded-[1.4rem] border border-stone-200 bg-white shadow-sm">
+      {isSearchOpen && (
+        <div className="border-b border-gray-100 bg-white px-4 py-3 lg:hidden">
+          <div ref={searchContainerRef} className="mx-auto max-w-350">
+            <div className="relative rounded-2xl border border-stone-200 bg-stone-50 shadow-sm">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
                 ref={searchInputRef}
@@ -545,25 +591,27 @@ export default function Header() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder={t("header.searchPlaceholder")}
-                className="h-14 w-full rounded-[1.4rem] bg-transparent pl-12 pr-12 text-sm text-slate-900 outline-hidden placeholder:text-slate-400 sm:h-16 sm:text-base"
+                className="h-12 w-full rounded-2xl bg-transparent pl-12 pr-10 text-sm text-slate-900 outline-hidden placeholder:text-slate-400"
               />
               {isSearching && (
                 <LoaderCircle className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-slate-400" />
               )}
             </div>
 
-            <div className="mt-5 max-h-[60vh] overflow-y-auto rounded-3xl border border-stone-200/80 bg-white/90 p-2 sm:p-3">
+            <div className="mt-3 max-h-[50vh] overflow-y-auto rounded-3xl border border-stone-200/80 bg-white p-2 shadow-lg">
               {!debouncedSearchTerm && (
-                <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-8 text-center text-sm text-slate-500">
+                <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-6 text-center text-sm text-slate-500">
                   {t("header.searchStartTyping")}
                 </div>
               )}
 
-              {debouncedSearchTerm && !isSearching && searchResults.length === 0 && (
-                <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-8 text-center text-sm text-slate-500">
-                  {t("header.searchNoResults", { term: debouncedSearchTerm })}
-                </div>
-              )}
+              {debouncedSearchTerm &&
+                !isSearching &&
+                searchResults.length === 0 && (
+                  <div className="rounded-[1.15rem] border border-dashed border-stone-200 bg-stone-50/80 px-4 py-6 text-center text-sm text-slate-500">
+                    {t("header.searchNoResults", { term: debouncedSearchTerm })}
+                  </div>
+                )}
 
               {searchResults.length > 0 && (
                 <div className="space-y-2">
@@ -572,9 +620,9 @@ export default function Header() {
                       key={product.id}
                       type="button"
                       onClick={() => handleSearchResultClick(product.id)}
-                      className="flex w-full items-center gap-3 rounded-[1.15rem] border border-transparent bg-white px-3 py-3 text-left transition-all duration-200 hover:border-[#efc9b4] hover:bg-[#fff7f1] sm:gap-4 sm:px-4"
+                      className="flex w-full items-center gap-3 rounded-[1.15rem] border border-transparent bg-white px-3 py-3 text-left transition-all duration-200 hover:border-[#efc9b4] hover:bg-[#fff7f1]"
                     >
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#fff7f1_0%,#f7f7f5_52%,#eef3f8_100%)] sm:h-20 sm:w-20">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#fff7f1_0%,#f7f7f5_52%,#eef3f8_100%)]">
                         <Image
                           src={product.image}
                           alt={product.name}
@@ -587,26 +635,43 @@ export default function Header() {
                         <div className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
                           {t("header.matchingProduct")}
                         </div>
-                        <div className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-900 sm:text-base">
+                        <div className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-900">
                           {product.name}
                         </div>
                         <div className="mt-1 text-sm font-medium text-[#8d4d2b]">
                           {product.price}
                         </div>
                       </div>
-
-                      <span className="hidden items-center gap-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white sm:inline-flex">
-                        {t("header.open")}
-                        <ArrowUpRight className="h-4 w-4" />
-                      </span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
+
+      {/* Secondary Navigation Bar */}
+      <nav className="w-full border-b border-gray-100 bg-white">
+        <div className="mx-auto max-w-350 px-2 sm:px-4 lg:px-8">
+          <ul className="flex items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {mainNavItems.map(({ label, href, activePath }) => (
+              <li key={href} className="shrink-0">
+                <Link
+                  href={href}
+                  className={`inline-block px-3 py-2.5 text-[11px] font-semibold tracking-wide uppercase transition-colors hover:text-orange sm:px-4 sm:py-3 sm:text-[12px] lg:text-[13px] ${
+                    pathname === (activePath || href)
+                      ? "text-orange border-b-2 border-orange"
+                      : "text-gray-700"
+                  }`}
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
 
       {/* Navigation Bar (Desktop Only) - hidden on seller/buyer dashboards */}
       {/* {!isDashboard && (

@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { Bell } from "lucide-react";
 import api from "@/lib/axios";
 import { clearAllClientAuthState } from "@/lib/authStorage";
 import { cn } from "@/lib/utils";
@@ -11,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import DashboardLanguageSwitcher from "@/components/DashboardLanguageSwitcher";
 import { translateDashboard } from "@/lib/dashboard-i18n";
+import { getAdminNotifications } from "@/lib/api";
 import {
   Sheet,
   SheetClose,
@@ -41,7 +44,10 @@ const ADMIN_NAV: AdminNavSection[] = [
   },
   {
     titleKey: "adminLayout.categoryManagement",
-    items: [{ href: "/admin/categories", labelKey: "adminLayout.categories" }],
+    items: [
+      { href: "/admin/categories", labelKey: "adminLayout.categories" },
+      { href: "/admin/subcategories", labelKey: "adminLayout.subcategories" },
+    ],
   },
   {
     titleKey: "adminLayout.approvals",
@@ -55,6 +61,7 @@ const ADMIN_NAV: AdminNavSection[] = [
     items: [
       { href: "/admin/products", labelKey: "adminLayout.allProducts" },
       { href: "/admin/products/own", labelKey: "adminLayout.ownProducts" },
+      { href: "/admin/notifications", labelKey: "adminLayout.notifications" },
     ],
   },
   {
@@ -110,6 +117,22 @@ export default function AdminLayout({
   const [loggingOut, setLoggingOut] = useState(false);
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
+  const { data: notificationsData } = useQuery<{
+    unreadCount: number;
+    items: unknown[];
+  }>({
+    queryKey: ["admin-notifications-bell"],
+    queryFn: async () => {
+      const res = await getAdminNotifications(5);
+      const payload = res as { data?: { unreadCount?: number; items?: unknown[] } } | null;
+      return {
+        unreadCount: payload?.data?.unreadCount ?? 0,
+        items: payload?.data?.items ?? [],
+      };
+    },
+    refetchInterval: 30000,
+  });
+  const unreadNotifications = notificationsData?.unreadCount ?? 0;
 
   const activeHref = React.useMemo(() => {
     if (!pathname) return null;
@@ -267,6 +290,17 @@ export default function AdminLayout({
               <div className="hidden sm:block md:hidden">
                 <DashboardLanguageSwitcher />
               </div>
+
+              <Link
+                href="/admin/notifications"
+                aria-label={td("adminLayout.notifications")}
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+                )}
+              </Link>
 
               <div className="hidden md:block">
                 <DashboardLanguageSwitcher />

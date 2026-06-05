@@ -23,6 +23,7 @@ export default function SellerProductsPage() {
     sizes: "",
     colors: "",
     category_id: "",
+    sub_category_id: "",
     image_urls: "",
   });
   const [uploading, setUploading] = useState(false);
@@ -50,6 +51,7 @@ export default function SellerProductsPage() {
         ? product.colors.join(", ")
         : String(product?.colors ?? ""),
       category_id: String(product?.category_id || product?.Category?.id || ""),
+      sub_category_id: String(product?.sub_category_id || product?.SubCategory?.id || ""),
       image_urls: "",
     });
     setUploadedUrls(imgs);
@@ -88,6 +90,36 @@ export default function SellerProductsPage() {
 
   const categories =
     categoriesData?.data?.items || categoriesData?.categories || categoriesData || [];
+
+  const selectedCategoryId = String(form.category_id || "").trim();
+  const { data: subCategoriesData } = useQuery({
+    queryKey: ["seller-subcategories-options", selectedCategoryId],
+    enabled: selectedCategoryId.length > 0,
+    queryFn: async () => {
+      const res = await api.get("/subcategory", {
+        params: { category_id: selectedCategoryId, is_active: true },
+      });
+      return res.data;
+    },
+  });
+
+  const subCategories =
+    subCategoriesData?.data?.items || subCategoriesData?.subcategories || subCategoriesData || [];
+
+  const requiresSubCategory = selectedCategoryId.length > 0 && subCategories.length > 0;
+  const isFormReady =
+    form.name.trim().length > 0 &&
+    form.description.trim().length > 0 &&
+    String(form.price).trim().length > 0 &&
+    Number(form.price) > 0 &&
+    String(form.quantity).trim().length > 0 &&
+    Number(form.quantity) > 0 &&
+    String(form.min_order_quantity).trim().length > 0 &&
+    Number(form.min_order_quantity) >= 1 &&
+    Number(form.quantity) >= Number(form.min_order_quantity) &&
+    String(form.category_id).trim().length > 0 &&
+    (!requiresSubCategory || String(form.sub_category_id).trim().length > 0) &&
+    uploadedUrls.length > 0;
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: number; is_active: boolean }) => {
@@ -140,6 +172,7 @@ export default function SellerProductsPage() {
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
+        sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
         // Prefer uploaded URLs; fall back to manual comma-separated input
         image_url:
           uploadedUrls.length > 0
@@ -166,6 +199,7 @@ export default function SellerProductsPage() {
         sizes: "",
         colors: "",
         category_id: "",
+        sub_category_id: "",
         image_urls: "",
       });
       setUploadedUrls([]);
@@ -192,6 +226,7 @@ export default function SellerProductsPage() {
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
+        sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
         image_url:
           uploadedUrls.length > 0
             ? uploadedUrls
@@ -219,6 +254,7 @@ export default function SellerProductsPage() {
         sizes: "",
         colors: "",
         category_id: "",
+        sub_category_id: "",
         image_urls: "",
       });
       setUploadedUrls([]);
@@ -251,6 +287,7 @@ export default function SellerProductsPage() {
               sizes: "",
               colors: "",
               category_id: "",
+              sub_category_id: "",
               image_urls: "",
             });
             setUploadedUrls([]);
@@ -522,7 +559,7 @@ export default function SellerProductsPage() {
                   className="w-full border rounded px-3 py-2 text-sm"
                   value={form.category_id}
                   onChange={(e) =>
-                    setForm({ ...form, category_id: e.target.value })
+                    setForm({ ...form, category_id: e.target.value, sub_category_id: "" })
                   }
                   required
                 >
@@ -530,6 +567,31 @@ export default function SellerProductsPage() {
                   {categories.map((cat: any) => (
                     <option key={cat.id || cat._id} value={cat.id || cat._id}>
                       {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Subcategory
+                </label>
+                <select
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  value={form.sub_category_id}
+                  onChange={(e) => setForm({ ...form, sub_category_id: e.target.value })}
+                  disabled={!selectedCategoryId || subCategories.length === 0}
+                >
+                  <option value="">
+                    {!selectedCategoryId
+                      ? "Select a category first"
+                      : subCategories.length === 0
+                        ? "No subcategories"
+                        : "Select a subcategory"}
+                  </option>
+                  {subCategories.map((sub: any) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
                     </option>
                   ))}
                 </select>
@@ -673,7 +735,12 @@ export default function SellerProductsPage() {
                 <button
                   type="submit"
                   className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={
+                    createMutation.isPending ||
+                    updateMutation.isPending ||
+                    uploading ||
+                    !isFormReady
+                  }
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? "Saving..."
@@ -771,6 +838,9 @@ export default function SellerProductsPage() {
                 {selectedProduct.Category?.name && (
                   <p className="text-xs text-slate-500">
                     Category: {selectedProduct.Category.name}
+                    {selectedProduct.SubCategory?.name
+                      ? ` / ${selectedProduct.SubCategory.name}`
+                      : ""}
                   </p>
                 )}
                 {selectedProduct.description && (
