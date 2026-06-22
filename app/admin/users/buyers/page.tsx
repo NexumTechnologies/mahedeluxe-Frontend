@@ -10,12 +10,15 @@ import { translateDashboard } from "@/lib/dashboard-i18n";
 type BuyerProfile = {
   profile_image?: string | null;
   verification_status?: string | null;
+  approved_at?: string | null;
+  created_at?: string | null;
 };
 
 type BuyerRow = {
   id: number;
   name: string;
   email: string;
+  created_at?: string | null;
   is_varified?: boolean;
   ordersCount?: number;
   Buyer?: BuyerProfile;
@@ -37,6 +40,15 @@ function initials(name?: string) {
     .map((s) => s.charAt(0).toUpperCase())
     .slice(0, 2)
     .join("");
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  try {
+    return new Date(value).toLocaleDateString();
+  } catch {
+    return value;
+  }
 }
 
 export default function AdminBuyersPage() {
@@ -64,6 +76,7 @@ export default function AdminBuyersPage() {
     },
   });
 
+
   const payload = data as UsersResponse | undefined;
   const rawUsers = payload?.data?.items ?? [];
   const pagination = payload?.data?.pagination;
@@ -76,6 +89,9 @@ export default function AdminBuyersPage() {
     }
     return true;
   });
+
+  console.log("here is the user data to be shown", users);
+
   const total = users.length;
   const start = total === 0 ? 0 : (page - 1) * size + 1;
   const end = Math.min(page * size, total || 0);
@@ -196,6 +212,12 @@ export default function AdminBuyersPage() {
                               {b.ordersCount ?? 0}
                             </span>
                           </div>
+                            <div className="mt-1 text-xs text-gray-500">
+                              Approval request Date:
+                              <span className="ml-1 font-medium text-gray-900">
+                              {formatDate(b.Buyer?.created_at ?? b.created_at)}
+                              </span>
+                            </div>
                         </div>
                       </div>
 

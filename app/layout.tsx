@@ -7,6 +7,7 @@ import ReactQueryProvider from "@/components/ReactQueryProvider";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import DeploymentVersionWatcher from "@/components/DeploymentVersionWatcher";
 import LanguageProvider from "@/components/LanguageProvider";
+import CurrencyProvider from "@/components/CurrencyProvider";
 import SocialSticky from "@/components/SocialSticky";
 import { getDirection, LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n";
 
@@ -48,11 +49,13 @@ export default async function RootLayout({
       <body className={`${manrope.variable} ${cormorant.variable} ${manrope.className} antialiased`}>
         <ReactQueryProvider>
           <LanguageProvider initialLocale={locale}>
-            <DeploymentVersionWatcher />
-            <ConditionalHeader />
-            {children}
-            <SocialSticky />
-            <ConditionalFooter />
+            <CurrencyProvider>
+              <DeploymentVersionWatcher />
+              <ConditionalHeader />
+              {children}
+              <SocialSticky />
+              <ConditionalFooter />
+            </CurrencyProvider>
           </LanguageProvider>
         </ReactQueryProvider>
       </body>

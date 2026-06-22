@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Star, Shield, Truck, CreditCard, FileText, Award } from "lucide-react";
+import { ChevronRight, Star, Shield, Truck, CreditCard, FileText, Share2 } from "lucide-react";
 import PurchaseTabs from "./PurchaseTabs";
 import WholesalePanel from "./WholesalePanel";
 import CustomizationPanel from "./CustomizationPanel";
@@ -16,6 +16,7 @@ export default function ProductDetailRightSection() {
   const [activeTab, setActiveTab] = useState<TabType>("wholesale");
   const [isDesktop, setIsDesktop] = useState(false);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const customizationEnabled = true;
   const productName =
@@ -85,6 +86,18 @@ export default function ProductDetailRightSection() {
     console.log("Inquiry submitted:", data);
   };
 
+  const handleCopyLink = async () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1800);
+    } catch (error) {
+      console.error("Failed to copy product link", error);
+    }
+  };
+
   return (
     <>
       <div className="w-full bg-white lg:p-6 lg:rounded-2xl shadow-xl border border-purple-100/50">
@@ -94,6 +107,21 @@ export default function ProductDetailRightSection() {
           <p className="text-white text-sm font-semibold">
             Lower priced than similar products
           </p>
+        </div>
+
+        <div className="mb-6 flex justify-end">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+              shareCopied
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 bg-white text-slate-700 hover:border-orange hover:text-orange"
+            }`}
+          >
+            <Share2 className="h-4 w-4" />
+            {shareCopied ? "Link copied" : "Copy link"}
+          </button>
         </div>
 
         {/* Tab Switcher */}

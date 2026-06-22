@@ -6,6 +6,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 import {
   ChevronRight,
   ChevronLeft,
@@ -17,8 +19,8 @@ import {
 interface Product {
   id: string;
   image: string;
-  salePrice: string;
-  cutPrice: string;
+  salePrice: number;
+  cutPrice: number;
   moq: string;
   discount?: number;
 }
@@ -41,7 +43,7 @@ async function fetchTopDeals(): Promise<Product[]> {
         ? customerPriceRaw
         : basePrice;
 
-    const salePrice = `${saleNumeric} AED`;
+    const salePrice = saleNumeric;
     const cutPrice = salePrice; // avoid showing a fake discount for now
 
     return {
@@ -58,6 +60,7 @@ export default function TopDealsSection() {
   const [isHovered, setIsHovered] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  const { currency, rates } = useCurrency();
 
   const {
     data: products = [],
@@ -193,11 +196,11 @@ export default function TopDealsSection() {
                           <div className="space-y-1">
                             <div className="flex items-baseline gap-2">
                               <span className="text-xl sm:text-2xl font-bold text-blue">
-                                {product.salePrice}
+                                {formatPriceFromAED(product.salePrice, currency, rates)}
                               </span>
                               {product.cutPrice !== product.salePrice && (
                                 <span className="text-sm text-gray-400 line-through">
-                                  {product.cutPrice}
+                                  {formatPriceFromAED(product.cutPrice, currency, rates)}
                                 </span>
                               )}
                             </div>

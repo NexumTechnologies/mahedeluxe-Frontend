@@ -11,7 +11,7 @@ import {
   Filter,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
@@ -21,6 +21,18 @@ interface Category {
   id: string;
   name: string;
   icon: React.ReactNode;
+}
+
+interface SubCategory {
+  id: string;
+  name: string;
+  category_id?: string | number | null;
+}
+
+interface SubSubCategory {
+  id: string;
+  name: string;
+  sub_category_id?: string | number | null;
 }
 
 const CATEGORY_ICONS = [Shirt, Monitor, Shield, Sparkles, Gem, Home, Footprints];
@@ -44,15 +56,53 @@ async function fetchBrowseCategories(): Promise<Category[]> {
   });
 }
 
+async function fetchSubCategories(categoryId: string): Promise<SubCategory[]> {
+  const res = await api.get("/subcategory", {
+    params: { category_id: categoryId, is_active: true },
+  });
+  const raw =
+    res.data?.data?.items || res.data?.subcategories || (Array.isArray(res.data) ? res.data : []);
+
+  return raw.map((item: Record<string, unknown>) => ({
+    id: String(item.id ?? item._id ?? ""),
+    name: String(item.name ?? "Subcategory"),
+    category_id:
+      item.category_id ??
+      ((item.Category as Record<string, unknown> | undefined)?.id ?? null),
+  }));
+}
+
+async function fetchSubSubCategories(subCategoryId: string): Promise<SubSubCategory[]> {
+  const res = await api.get("/sub-subcategory", {
+    params: { sub_category_id: subCategoryId, is_active: true },
+  });
+  const raw =
+    res.data?.data?.items ||
+    res.data?.subSubCategories ||
+    (Array.isArray(res.data) ? res.data : []);
+
+  return raw.map((item: Record<string, unknown>) => ({
+    id: String(item.id ?? item._id ?? ""),
+    name: String(item.name ?? "Sub-subcategory"),
+    sub_category_id:
+      item.sub_category_id ??
+      ((item.SubCategory as Record<string, unknown> | undefined)?.id ?? null),
+  }));
+}
+
 export default function BrowseSidebar() {
   const { dir, t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const categoryParam = searchParams.get("category");
+  const subCategoryParam = searchParams.get("subcategory");
+  const subSubCategoryParam = searchParams.get("subsubcategory");
   const minPriceParam = searchParams.get("minPrice");
   const maxPriceParam = searchParams.get("maxPrice");
   
   const selectedCategory = categoryParam;
+  const selectedSubCategory = subCategoryParam;
+  const selectedSubSubCategory = subSubCategoryParam;
   const [minPrice, setMinPrice] = useState<string>(minPriceParam || "");
   const [maxPrice, setMaxPrice] = useState<string>(maxPriceParam || "");
 
@@ -62,20 +112,68 @@ export default function BrowseSidebar() {
     queryFn: fetchBrowseCategories,
   });
 
-  // Initialize price inputs from query params; updates to params
-  // via navigation will remount this component under current routing.
+  const { data: subCategories = [], isLoading: subCategoriesLoading } = useQuery({
+    queryKey: ["browse-subcategories", selectedCategory],
+    queryFn: () => fetchSubCategories(selectedCategory || ""),
+    enabled: Boolean(selectedCategory),
+  });
+
+  const { data: subSubCategories = [], isLoading: subSubCategoriesLoading } = useQuery({
+    queryKey: ["browse-subsubcategories", selectedSubCategory],
+    queryFn: () => fetchSubSubCategories(selectedSubCategory || ""),
+    enabled: Boolean(selectedSubCategory),
+  });
+
+  useEffect(() => {
+    setMinPrice(minPriceParam || "");
+    setMaxPrice(maxPriceParam || "");
+  }, [minPriceParam, maxPriceParam]);
 
   const handleCategoryClick = (id: string) => {
-    // Update URL query params to either set or remove category
     const params = new URLSearchParams(searchParams.toString());
     if (!id) {
       params.delete("category");
+      params.delete("subcategory");
+      params.delete("subsubcategory");
     } else {
       const current = searchParams.get("category");
-      if (current === id) params.delete("category");
-      else params.set("category", id);
+      if (current === id) {
+        params.delete("category");
+        params.delete("subcategory");
+        params.delete("subsubcategory");
+      } else {
+        params.set("category", id);
+        params.delete("subcategory");
+        params.delete("subsubcategory");
+      }
     }
-    // Reset page when filters change
+    params.delete("page");
+    router.push(`/browse?${params.toString()}`);
+  };
+
+  const handleSubCategoryClick = (id: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const current = searchParams.get("subcategory");
+
+    if (!id || current === id) {
+      params.delete("subcategory");
+      params.delete("subsubcategory");
+    } else {
+      params.set("subcategory", id);
+      params.delete("subsubcategory");
+    }
+
+    params.delete("page");
+    router.push(`/browse?${params.toString()}`);
+  };
+
+  const handleSubSubCategoryClick = (id: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const current = searchParams.get("subsubcategory");
+
+    if (!id || current === id) params.delete("subsubcategory");
+    else params.set("subsubcategory", id);
+
     params.delete("page");
     router.push(`/browse?${params.toString()}`);
   };
@@ -149,6 +247,118 @@ export default function BrowseSidebar() {
           ))}
         </nav>
       </div>
+
+      {selectedCategory && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-6">
+            <ChevronRight className="h-5 w-5 text-orange" />
+            <h2 className="font-bold text-gray-900">Subcategories</h2>
+          </div>
+
+          <nav className="space-y-1">
+            <button
+              onClick={() => handleSubCategoryClick("")}
+              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
+                !selectedSubCategory
+                  ? "bg-blue text-white shadow-lg shadow-blue/20"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-blue"
+              }`}
+            >
+              <span className="text-sm font-medium">All in this category</span>
+              <ChevronRight
+                className={`h-4 w-4 transition-transform ${
+                  !selectedSubCategory ? "rotate-90" : "group-hover:translate-x-1"
+                }`}
+              />
+            </button>
+
+            {subCategoriesLoading && (
+              <div className="text-sm text-gray-500">Loading subcategories...</div>
+            )}
+
+            {!subCategoriesLoading && !subCategories.length && (
+              <div className="text-sm text-gray-500">No subcategories found.</div>
+            )}
+
+            {subCategories.map((subCategory) => (
+              <button
+                key={subCategory.id}
+                onClick={() => handleSubCategoryClick(subCategory.id)}
+                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
+                  selectedSubCategory === subCategory.id
+                    ? "bg-blue text-white shadow-lg shadow-blue/20"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-blue"
+                }`}
+              >
+                <span className="text-sm font-medium">{subCategory.name}</span>
+                <ChevronRight
+                  className={`h-4 w-4 transition-transform ${
+                    selectedSubCategory === subCategory.id
+                      ? "rotate-90"
+                      : "group-hover:translate-x-1"
+                  }`}
+                />
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {selectedSubCategory && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-6">
+            <ChevronRight className="h-5 w-5 text-orange" />
+            <h2 className="font-bold text-gray-900">Sub-subcategories</h2>
+          </div>
+
+          <nav className="space-y-1">
+            <button
+              onClick={() => handleSubSubCategoryClick("")}
+              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
+                !selectedSubSubCategory
+                  ? "bg-blue text-white shadow-lg shadow-blue/20"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-blue"
+              }`}
+            >
+              <span className="text-sm font-medium">All in this subcategory</span>
+              <ChevronRight
+                className={`h-4 w-4 transition-transform ${
+                  !selectedSubSubCategory ? "rotate-90" : "group-hover:translate-x-1"
+                }`}
+              />
+            </button>
+
+            {subSubCategoriesLoading && (
+              <div className="text-sm text-gray-500">Loading sub-subcategories...</div>
+            )}
+
+            {!subSubCategoriesLoading && !subSubCategories.length && (
+              <div className="text-sm text-gray-500">No sub-subcategories found.</div>
+            )}
+
+            {subSubCategories.map((subSubCategory) => (
+              <button
+                key={subSubCategory.id}
+                onClick={() => handleSubSubCategoryClick(subSubCategory.id)}
+                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
+                  selectedSubSubCategory === subSubCategory.id
+                    ? "bg-blue text-white shadow-lg shadow-blue/20"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-blue"
+                }`}
+              >
+                <span className="text-sm font-medium">{subSubCategory.name}</span>
+                <ChevronRight
+                  className={`h-4 w-4 transition-transform ${
+                    selectedSubSubCategory === subSubCategory.id
+                      ? "rotate-90"
+                      : "group-hover:translate-x-1"
+                  }`}
+                />
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
 
       {/* Price Range */}

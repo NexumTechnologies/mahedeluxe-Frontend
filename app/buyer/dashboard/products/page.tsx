@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import ScreenModal from "@/components/ui/ScreenModal";
+import SizeVariantsEditor from "@/components/product-forms/SizeVariantsEditor";
+import { getVariantTypeMeta } from "@/lib/productVariantType";
 
 type CategoryOption = {
   id: number;
@@ -19,6 +21,11 @@ type ProductSubCategory = {
   name?: string;
 };
 
+type ProductSubSubCategory = {
+  id?: number;
+  name?: string;
+};
+
 type Product = {
   id: number;
   name: string;
@@ -27,14 +34,65 @@ type Product = {
   quantity?: number | string;
   category_id?: number;
   sub_category_id?: number | null;
+  sub_sub_category_id?: number | null;
   is_active?: boolean;
   image_url?: string | string[] | null;
   Category?: ProductCategory;
   SubCategory?: ProductSubCategory;
+  SubSubCategory?: ProductSubSubCategory;
   min_order_quantity?: number | string;
   sizes?: string[] | string | null;
   colors?: string[] | string | null;
+  size_variants?: Array<{
+    size?: string;
+    price?: number | string;
+    image_url?: string[] | string | null;
+  }> | null;
 };
+
+type SizeVariantForm = {
+  size: string;
+  price: string;
+  image_url: string[];
+};
+
+const emptyVariant = (): SizeVariantForm => ({
+  size: "",
+  price: "",
+  image_url: [],
+});
+
+function normalizeVariantsForForm(product: Product): SizeVariantForm[] {
+  if (!Array.isArray(product?.size_variants) || product.size_variants.length === 0) {
+    return [emptyVariant()];
+  }
+
+  return product.size_variants.map((variant) => ({
+    size: String(variant?.size || ""),
+    price: String(variant?.price ?? ""),
+    image_url: Array.isArray(variant?.image_url)
+      ? variant.image_url
+      : variant?.image_url
+        ? [String(variant.image_url)]
+        : [],
+  }));
+}
+
+function buildSizeVariantPayload(variants: SizeVariantForm[]) {
+  return variants
+    .map((variant) => ({
+      size: variant.size.trim(),
+      price: Number(variant.price),
+      image_url: variant.image_url.filter(Boolean),
+    }))
+    .filter(
+      (variant) =>
+        variant.size &&
+        Number.isFinite(variant.price) &&
+        variant.price > 0 &&
+        variant.image_url.length > 0,
+    );
+}
 
 type ProductsResponse =
   | {
@@ -73,17 +131,17 @@ export default function BuyerProductsPage() {
   const [form, setForm] = useState({
     name: "",
     description: "",
-    price: "",
     quantity: "",
     min_order_quantity: "1",
-    sizes: "",
     colors: "",
     category_id: "",
     sub_category_id: "",
+    sub_sub_category_id: "",
     image_urls: "",
   });
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+  const [sizeVariants, setSizeVariants] = useState<SizeVariantForm[]>([emptyVariant()]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-products"],
@@ -128,12 +186,41 @@ export default function BuyerProductsPage() {
     (Array.isArray(subCategoriesData?.subcategories) && subCategoriesData.subcategories) ||
     (Array.isArray(subCategoriesData) ? subCategoriesData : []);
 
+  const selectedSubCategoryId = String(form.sub_category_id || "").trim();
+  const selectedSubCategory =
+    subCategories.find((item: ProductSubCategory) => String(item?.id || "") === selectedSubCategoryId) || null;
+  const { data: subSubCategoriesData } = useQuery({
+    queryKey: ["buyer-subsubcategories-options", selectedSubCategoryId],
+    enabled: selectedSubCategoryId.length > 0,
+    queryFn: async () => {
+      const res = await api.get("/sub-subcategory", {
+        params: { sub_category_id: selectedSubCategoryId, is_active: true },
+      });
+      return res.data;
+    },
+  });
+
+  const subSubCategories =
+    (Array.isArray(subSubCategoriesData?.data?.items) && subSubCategoriesData.data.items) ||
+    (Array.isArray(subSubCategoriesData?.subSubCategories) &&
+      subSubCategoriesData.subSubCategories) ||
+    (Array.isArray(subSubCategoriesData) ? subSubCategoriesData : []);
+  const variantTypeMeta = getVariantTypeMeta(
+    (
+      selectedSubCategory as { variant_options?: string[]; variant_type?: string } | null
+    )?.variant_options ||
+      (selectedSubCategory as { variant_options?: string[]; variant_type?: string } | null)
+        ?.variant_type,
+  );
+
   const requiresSubCategory = selectedCategoryId.length > 0 && subCategories.length > 0;
+  const requiresSubSubCategory =
+    selectedSubCategoryId.length > 0 && subSubCategories.length > 0;
+  const normalizedSizeVariants = buildSizeVariantPayload(sizeVariants);
+  const fallbackVariantPrice = normalizedSizeVariants[0]?.price ?? 0;
   const isFormReady =
     form.name.trim().length > 0 &&
     form.description.trim().length > 0 &&
-    String(form.price).trim().length > 0 &&
-    Number(form.price) > 0 &&
     String(form.quantity).trim().length > 0 &&
     Number(form.quantity) > 0 &&
     String(form.min_order_quantity).trim().length > 0 &&
@@ -141,6 +228,8 @@ export default function BuyerProductsPage() {
     Number(form.quantity) >= Number(form.min_order_quantity) &&
     String(form.category_id).trim().length > 0 &&
     (!requiresSubCategory || String(form.sub_category_id).trim().length > 0) &&
+    (!requiresSubSubCategory || String(form.sub_sub_category_id).trim().length > 0) &&
+    normalizedSizeVariants.length > 0 &&
     uploadedUrls.length > 0;
 
   const deleteMutation = useMutation({
@@ -165,19 +254,19 @@ export default function BuyerProductsPage() {
       const payload = {
         name: form.name,
         description: form.description,
-        price: Number(form.price),
+        price: fallbackVariantPrice,
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
-        sizes: form.sizes
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        sizes: normalizedSizeVariants.map((variant) => variant.size),
         colors: form.colors
           .split(",")
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
         sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
+        sub_sub_category_id: form.sub_sub_category_id
+          ? Number(form.sub_sub_category_id)
+          : null,
         image_url:
           uploadedUrls.length > 0
             ? uploadedUrls
@@ -185,6 +274,7 @@ export default function BuyerProductsPage() {
                 .split(",")
                 .map((u) => u.trim())
                 .filter(Boolean),
+        size_variants: normalizedSizeVariants,
       };
 
       const res = await api.post("/product", payload, {
@@ -197,16 +287,16 @@ export default function BuyerProductsPage() {
       setForm({
         name: "",
         description: "",
-        price: "",
         quantity: "",
         min_order_quantity: "1",
-        sizes: "",
         colors: "",
         category_id: "",
         sub_category_id: "",
+        sub_sub_category_id: "",
         image_urls: "",
       });
       setUploadedUrls([]);
+      setSizeVariants([emptyVariant()]);
       queryClient.invalidateQueries({ queryKey: ["buyer-products"] });
     },
   });
@@ -217,19 +307,20 @@ export default function BuyerProductsPage() {
       const basePayload = {
         name: form.name,
         description: form.description,
-        price: Number(form.price),
+        price: fallbackVariantPrice,
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
-        sizes: form.sizes
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        sizes: normalizedSizeVariants.map((variant) => variant.size),
         colors: form.colors
           .split(",")
           .map((c) => c.trim())
           .filter(Boolean),
         category_id: Number(form.category_id),
         sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
+        sub_sub_category_id: form.sub_sub_category_id
+          ? Number(form.sub_sub_category_id)
+          : null,
+        size_variants: normalizedSizeVariants,
       };
 
       const urls =
@@ -255,16 +346,16 @@ export default function BuyerProductsPage() {
       setForm({
         name: "",
         description: "",
-        price: "",
         quantity: "",
         min_order_quantity: "1",
-        sizes: "",
         colors: "",
         category_id: "",
         sub_category_id: "",
+        sub_sub_category_id: "",
         image_urls: "",
       });
       setUploadedUrls([]);
+      setSizeVariants([emptyVariant()]);
       queryClient.invalidateQueries({ queryKey: ["buyer-products"] });
     },
   });
@@ -275,16 +366,16 @@ export default function BuyerProductsPage() {
     setForm({
       name: "",
       description: "",
-      price: "",
       quantity: "",
       min_order_quantity: "1",
-      sizes: "",
       colors: "",
       category_id: "",
       sub_category_id: "",
+      sub_sub_category_id: "",
       image_urls: "",
     });
     setUploadedUrls([]);
+    setSizeVariants([emptyVariant()]);
     setIsModalOpen(true);
   };
 
@@ -299,20 +390,20 @@ export default function BuyerProductsPage() {
     setForm({
       name: product.name || "",
       description: product.description || "",
-      price: String(product.price ?? ""),
       quantity: String(product.quantity ?? ""),
       min_order_quantity: String(product.min_order_quantity ?? 1),
-      sizes: Array.isArray(product.sizes)
-        ? product.sizes.join(", ")
-        : String(product.sizes ?? ""),
       colors: Array.isArray(product.colors)
         ? product.colors.join(", ")
         : String(product.colors ?? ""),
       category_id: String(product.category_id ?? ""),
       sub_category_id: String(product.sub_category_id ?? product.SubCategory?.id ?? ""),
+      sub_sub_category_id: String(
+        product.sub_sub_category_id ?? product.SubSubCategory?.id ?? "",
+      ),
       image_urls: existingImages.join(", "),
     });
     setUploadedUrls(existingImages);
+    setSizeVariants(normalizeVariantsForForm(product));
     setIsModalOpen(true);
   };
 
@@ -410,6 +501,9 @@ export default function BuyerProductsPage() {
                           <p className="mt-0.5 text-[11px] text-slate-500 truncate">
                             {product.Category?.name || "Uncategorized"}
                             {product.SubCategory?.name ? ` / ${product.SubCategory.name}` : ""}
+                            {product.SubSubCategory?.name
+                              ? ` / ${product.SubSubCategory.name}`
+                              : ""}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
@@ -619,6 +713,11 @@ export default function BuyerProductsPage() {
                         {selectedProduct.SubCategory.name}
                       </div>
                     )}
+                    {selectedProduct.SubSubCategory?.name && (
+                      <div className="mt-0.5 text-[11px] text-slate-500">
+                        {selectedProduct.SubSubCategory.name}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -656,18 +755,6 @@ export default function BuyerProductsPage() {
             <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold text-slate-600">
-                  Name
-                </label>
-                <input
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  className="mt-1 w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-600">
                   Category
                 </label>
                 <select
@@ -677,6 +764,7 @@ export default function BuyerProductsPage() {
                       ...f,
                       category_id: e.target.value,
                       sub_category_id: "",
+                      sub_sub_category_id: "",
                     }))
                   }
                   className="mt-1 w-full border rounded px-3 py-2"
@@ -691,12 +779,28 @@ export default function BuyerProductsPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-600">
+                  Name
+                </label>
+                <input
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  className="mt-1 w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600">
                   Subcategory
                 </label>
                 <select
                   value={form.sub_category_id}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, sub_category_id: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      sub_category_id: e.target.value,
+                      sub_sub_category_id: "",
+                    }))
                   }
                   disabled={!selectedCategoryId || subCategories.length === 0}
                   className="mt-1 w-full border rounded px-3 py-2"
@@ -717,16 +821,29 @@ export default function BuyerProductsPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-600">
-                  Price
+                  Sub-sub-category
                 </label>
-                <input
-                  type="number"
-                  value={form.price}
+                <select
+                  value={form.sub_sub_category_id}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, price: e.target.value }))
+                    setForm((f) => ({ ...f, sub_sub_category_id: e.target.value }))
                   }
+                  disabled={!selectedSubCategoryId || subSubCategories.length === 0}
                   className="mt-1 w-full border rounded px-3 py-2"
-                />
+                >
+                  <option value="">
+                    {!selectedSubCategoryId
+                      ? "Select subcategory first"
+                      : subSubCategories.length === 0
+                        ? "No sub-sub-categories"
+                        : "Select sub-sub-category"}
+                  </option>
+                  {subSubCategories.map((subSub: ProductSubSubCategory & { id: number }) => (
+                    <option key={subSub.id} value={subSub.id}>
+                      {subSub.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-600">
@@ -765,24 +882,6 @@ export default function BuyerProductsPage() {
 
               <div>
                 <label className="text-xs font-semibold text-slate-600">
-                  Sizes
-                </label>
-                <input
-                  type="text"
-                  value={form.sizes}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, sizes: e.target.value }))
-                  }
-                  className="mt-1 w-full border rounded px-3 py-2"
-                  placeholder="S, M, L, XL"
-                />
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Optional. Comma separated.
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-600">
                   Colors
                 </label>
                 <input
@@ -797,6 +896,19 @@ export default function BuyerProductsPage() {
                 <p className="mt-1 text-[11px] text-slate-500">
                   Optional. Comma separated.
                 </p>
+              </div>
+              <div className="md:col-span-2">
+                <SizeVariantsEditor
+                  variants={sizeVariants}
+                  onChange={setSizeVariants}
+                  uploadedUrls={uploadedUrls}
+                  allowedOptions={variantTypeMeta.options}
+                  title={variantTypeMeta.title}
+                  optionLabel={variantTypeMeta.label}
+                  helperText={variantTypeMeta.helperText}
+                  addButtonText={variantTypeMeta.addButtonText}
+                  placeholder={variantTypeMeta.placeholder}
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-slate-600">

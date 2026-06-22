@@ -272,6 +272,7 @@ const dashboardDictionary = {
       categoryManagement: "Category Management",
       categories: "Categories",
       subcategories: "Subcategories",
+      subSubcategories: "Sub-Subcategories",
       approvals: "Approvals",
       buyerApprovals: "Buyer Approvals",
       sellerApprovals: "Seller Approvals",

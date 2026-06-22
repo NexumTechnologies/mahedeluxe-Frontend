@@ -1,8 +1,9 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { formatAED } from "@/lib/utils";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 interface OrderSummaryProps {
   items: any[];
@@ -52,7 +53,8 @@ export default function OrderSummary({
     : 0;
 
   const serviceFee = Math.max(0, customerSubtotal - baseProductsTotal);
-  const { dir, t } = useI18n();
+  const { dir, locale, t } = useI18n();
+  const { currency, rates } = useCurrency();
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm" dir={dir}>
@@ -61,21 +63,21 @@ export default function OrderSummary({
       <div className="mt-5 space-y-3 border-b border-slate-200 pb-4 text-sm">
         <div className="flex items-center justify-between text-slate-600">
           <span>{t("checkout.items")} ({itemCount})</span>
-          <span className="font-medium text-slate-900">{formatAED(customerSubtotal)}</span>
+          <span className="font-medium text-slate-900">{formatPriceFromAED(customerSubtotal, currency, rates, locale)}</span>
         </div>
         <div className="flex items-center justify-between text-slate-600">
           <span>{t("checkout.productsBaseTotal")}</span>
-          <span className="font-medium text-slate-900">{formatAED(baseProductsTotal)}</span>
+          <span className="font-medium text-slate-900">{formatPriceFromAED(baseProductsTotal, currency, rates, locale)}</span>
         </div>
         <div className="flex items-center justify-between text-slate-600">
           <span>{t("checkout.serviceFee")}</span>
-          <span className="font-medium text-slate-900">{formatAED(serviceFee)}</span>
+          <span className="font-medium text-slate-900">{formatPriceFromAED(serviceFee, currency, rates, locale)}</span>
         </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-base sm:text-lg font-semibold text-slate-950">{t("checkout.orderTotal")}</span>
-        <span className="text-xl sm:text-2xl font-semibold text-slate-950">{formatAED(customerSubtotal)}</span>
+        <span className="text-xl sm:text-2xl font-semibold text-slate-950">{formatPriceFromAED(customerSubtotal, currency, rates, locale)}</span>
       </div>
 
       <button

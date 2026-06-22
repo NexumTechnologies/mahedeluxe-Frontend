@@ -47,6 +47,7 @@ const ADMIN_NAV: AdminNavSection[] = [
     items: [
       { href: "/admin/categories", labelKey: "adminLayout.categories" },
       { href: "/admin/subcategories", labelKey: "adminLayout.subcategories" },
+      { href: "/admin/sub-subcategories", labelKey: "adminLayout.subSubcategories" },
     ],
   },
   {

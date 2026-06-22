@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Package, X, Trash2 } from "lucide-react";
+import { Package, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { formatAED } from "@/lib/utils";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 interface ItemsAndDeliverySectionProps {
   isActive: boolean;
@@ -25,32 +27,29 @@ export default function ItemsAndDeliverySection({
   isRemoving,
   mode = "account",
 }: ItemsAndDeliverySectionProps) {
-  const { dir, t } = useI18n();
+  const { dir, locale, t } = useI18n();
+  const { currency, rates } = useCurrency();
 
   return (
-    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm" dir={dir}>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
+    <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6" dir={dir}>
+      <div className="mb-4 flex items-center gap-3">
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          className={`flex h-8 w-8 items-center justify-center rounded-full ${
             isActive ? "bg-orange text-white" : "bg-gray-200 text-gray-500"
           }`}
         >
-          <Package className="w-4 h-4" />
+          <Package className="h-4 w-4" />
         </div>
-          <h2 className="text-lg sm:text-xl font-semibold text-[#000000]">
+        <h2 className="text-lg font-semibold text-[#000000] sm:text-xl">
           {t("checkout.itemsAndDelivery")}
         </h2>
       </div>
 
       <div className="space-y-6">
-        {/* Items list / states */}
         {isLoading ? (
           <p className="text-sm text-[#6B6B6B]">{t("browse.loadingProducts")}</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-[#6B6B6B]">
-            {t("checkout.yourCartEmpty")}
-          </p>
+          <p className="text-sm text-[#6B6B6B]">{t("checkout.yourCartEmpty")}</p>
         ) : (
           <div className="space-y-4">
             {items.map((item) => {
@@ -59,18 +58,18 @@ export default function ItemsAndDeliverySection({
               const imageSrc = Array.isArray(rawImage)
                 ? rawImage[0]
                 : rawImage || "/detail-product.jpg";
-              const listing = (product as any).listing;
+              const listing = product.listing as any;
               const listingPrice =
                 listing && listing.is_listed && listing.display_price != null
                   ? Number(listing.display_price)
                   : undefined;
-
               const safeQuantity = Number(item.quantity ?? 1) || 1;
+              const selectedSize = item.selected_size || product.selected_size || null;
               const baseUnit =
                 typeof item.unit_price === "number" && !Number.isNaN(item.unit_price)
                   ? item.unit_price
                   : undefined;
-              const fallbackUnit = (Number(item.total_price ?? 0) / safeQuantity) || 0;
+              const fallbackUnit = Number(item.total_price ?? 0) / safeQuantity || 0;
               const unitPrice =
                 typeof baseUnit === "number"
                   ? baseUnit
@@ -80,11 +79,11 @@ export default function ItemsAndDeliverySection({
 
               return (
                 <div
-                  key={item.id}
-                  className="flex flex-col sm:flex-row gap-3 pb-3 border-b border-[#E0E0E0] last:border-0"
+                  key={`${item.id || item.product_id}-${selectedSize || "default"}`}
+                  className="flex flex-col gap-3 border-b border-[#E0E0E0] pb-3 last:border-0 sm:flex-row"
                 >
                   <div className="relative shrink-0 self-start">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-[#F5F5F5]">
+                    <div className="h-20 w-20 overflow-hidden rounded-lg bg-[#F5F5F5] sm:h-24 sm:w-24">
                       <Image
                         src={imageSrc}
                         alt={product.name || "Product"}
@@ -92,38 +91,45 @@ export default function ItemsAndDeliverySection({
                         className="object-cover"
                       />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-7 h-7 sm:w-9 sm:h-9 bg-orange rounded-full flex items-center justify-center shadow-md">
-                      <span className="text-xs sm:text-sm text-white font-semibold">{safeQuantity}</span>
+                    <div className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-orange shadow-md sm:h-9 sm:w-9">
+                      <span className="text-xs font-semibold text-white sm:text-sm">
+                        {safeQuantity}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#000000] mb-1 line-clamp-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-1 line-clamp-2 text-sm font-medium text-[#000000]">
                       {product.name || t("checkout.productFallback")}
                     </p>
-                    <div className="flex items-center gap-3 mb-2 text-sm">
-                      <p className="font-medium">{t("checkout.qty")} ×{safeQuantity}</p>
-                      <p className="text-[#6B6B6B]">{t("checkout.unit")}: {formatAED(Number(unitPrice) || 0)}</p>
+                    <div className="mb-2 flex flex-wrap items-center gap-3 text-sm">
+                      <p className="font-medium">{`Qty x${safeQuantity}`}</p>
+                      {selectedSize && (
+                        <p className="text-[#6B6B6B]">{`Size: ${selectedSize}`}</p>
+                      )}
+                      <p className="text-[#6B6B6B]">
+                        {t("checkout.unit")}: {formatPriceFromAED(Number(unitPrice) || 0, currency, rates, locale)}
+                      </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold text-[#000000]">
-                          {t("checkout.lineTotal")}: {formatAED(Number(item.total_price) || 0)}
+                          {t("checkout.lineTotal")}: {formatPriceFromAED(Number(item.total_price) || 0, currency, rates, locale)}
                         </p>
-                        <p className="mt-1 text-xs sm:text-[11px] text-slate-500">
+                        <p className="mt-1 text-xs text-slate-500 sm:text-[11px]">
                           {mode === "guest"
                             ? t("checkout.savedInBrowser")
                             : t("checkout.savedToAccount")}
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-2 sm:mt-0 sm:ml-4">
+                      <div className="mt-2 flex items-center gap-2 sm:ml-4 sm:mt-0">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={onActivate}
-                          className="text-orange text-sm px-2"
+                          className="px-2 text-sm text-orange"
                         >
                           {t("checkout.change")}
                         </Button>
@@ -134,7 +140,7 @@ export default function ItemsAndDeliverySection({
                           aria-label={t("checkout.removeFromCart")}
                           disabled={isRemoving}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -145,13 +151,12 @@ export default function ItemsAndDeliverySection({
           </div>
         )}
 
-        {/* Add note to supplier */}
         <div>
-          <label className="block text-sm font-medium text-[#000000] mb-2">
+          <label className="mb-2 block text-sm font-medium text-[#000000]">
             {t("checkout.addNoteToSupplier")}
           </label>
           <textarea
-            className="w-full h-24 px-4 py-3 border-2 border-[#E0E0E0] rounded-lg focus:outline-none focus:border-orange resize-none"
+            className="h-24 w-full resize-none rounded-lg border-2 border-[#E0E0E0] px-4 py-3 focus:border-orange focus:outline-none"
             placeholder={t("checkout.enterYourMessage")}
           />
         </div>

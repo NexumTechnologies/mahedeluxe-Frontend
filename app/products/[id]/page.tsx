@@ -1,27 +1,33 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
-import { Mail, MessageCircle } from "lucide-react";
+import { Mail, MessageCircle, Share2 } from "lucide-react";
 import api from "@/lib/axios";
 import { addGuestCartItem, hasStoredAuth } from "@/lib/cartStorage";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 type ApiErrorResponse = {
   message?: string;
 };
 
 export default function ProductDetailPage() {
-  const { dir, t } = useI18n();
+  const { dir, locale, t } = useI18n();
+  const { currency, rates } = useCurrency();
   const { id } = useParams();
   const router = useRouter();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [toast, setToast] = useState<{ show: boolean; message: string } | null>(
     null,
   );
+  const [linkCopied, setLinkCopied] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isSavingGuest, setIsSavingGuest] = useState(false);
 
@@ -40,44 +46,30 @@ export default function ProductDetailPage() {
     enabled: !!id,
   });
 
-  console.log("Product detail data:", data, "data:", data);
-
-  const addToCartMutation = useMutation({
-    mutationFn: async ({
-      product_id,
-      quantity,
-    }: {
-      product_id: number;
-      quantity: number;
-    }) => {
-      const res = await api.post("/addToCart", { product_id, quantity });
-      return res.data;
-    },
-    onSuccess: (res) => {
-      setToast({
-        show: true,
-        message: res?.message || t("product.addedToCart"),
-      });
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("open-cart-drawer"));
-      }
-      setTimeout(() => setToast(null), 1000);
-    },
-    onError: (err: unknown) => {
-      // If backend reports unauthorized, redirect to login.
-      if (getErrorStatus(err) === 401) {
-        router.push("/auth/signin");
-        return;
-      }
-      setToast({
-        show: true,
-        message: getErrorMessage(err) || t("product.failedToAddToCart"),
-      });
-      setTimeout(() => setToast(null), 1000);
-    },
-  });
-
   const product = data?.data || data?.product || data || null;
+  const sizeVariants = Array.isArray(product?.size_variants)
+    ? product.size_variants
+    : [];
+  const availableSizes =
+    sizeVariants.length > 0
+      ? sizeVariants
+          .map((variant: any) => String(variant?.size || "").trim())
+          .filter(Boolean)
+      : Array.isArray(product?.sizes)
+        ? product.sizes
+        : [];
+  const effectiveSelectedSize =
+    selectedSize && availableSizes.includes(selectedSize)
+      ? selectedSize
+      : availableSizes[0] || null;
+  const activeVariant =
+    effectiveSelectedSize && sizeVariants.length > 0
+      ? sizeVariants.find(
+          (variant: any) =>
+            String(variant?.size || "").trim().toLowerCase() ===
+            effectiveSelectedSize.toLowerCase(),
+        ) || null
+      : null;
 
   const userRole = (() => {
     if (typeof window === "undefined") return null;
@@ -95,8 +87,6 @@ export default function ProductDetailPage() {
     product && product.min_order_quantity != null
       ? Math.max(1, Math.floor(Number(product.min_order_quantity) || 1))
       : 1;
-  // Guest orders are allowed (public endpoin t) and MOQ is enforced server-side,
-  // so guests should also see/obey MOQ in the quantity selector.
   const isPurchaseFlowUser = userRole === "buyer" || userRole == null;
   const minAllowedQty = isPurchaseFlowUser ? moq : 1;
   const effectiveQuantity = Math.max(
@@ -104,15 +94,23 @@ export default function ProductDetailPage() {
     Math.floor(Number(quantity) || minAllowedQty),
   );
 
-  const basePrice = product ? Number(product.price) || 0 : 0;
+  const basePrice = activeVariant?.price != null
+    ? Number(activeVariant.price) || 0
+    : product
+      ? Number(product.price) || 0
+      : 0;
   const basePriceRaw =
-    product && (product.base_price != null || product.base_price === 0)
-      ? Number(product.base_price)
-      : basePrice;
+    activeVariant?.price != null
+      ? Number(activeVariant.price) || 0
+      : product && (product.base_price != null || product.base_price === 0)
+        ? Number(product.base_price)
+        : basePrice;
   const customerPriceRaw =
-    product && product.customer_price != null
-      ? Number(product.customer_price)
-      : null;
+    activeVariant?.price != null
+      ? Number(activeVariant.price) || 0
+      : product && product.customer_price != null
+        ? Number(product.customer_price)
+        : null;
   const listingPrice =
     (customerPriceRaw != null && !Number.isNaN(customerPriceRaw)
       ? customerPriceRaw
@@ -121,21 +119,62 @@ export default function ProductDetailPage() {
       ? Number(product.listing.display_price)
       : basePrice);
 
-  const images: string[] = product
-    ? Array.isArray(product.image_url)
-      ? product.image_url
-      : product.image_url
-        ? [product.image_url]
-        : []
-    : [];
+  const images: string[] = activeVariant?.image_url?.length
+    ? activeVariant.image_url
+    : product
+      ? Array.isArray(product.image_url)
+        ? product.image_url
+        : product.image_url
+          ? [product.image_url]
+          : []
+      : [];
 
   const selectedImage = images[selectedImageIndex] || images[0] || null;
+  const sizeRequired = sizeVariants.length > 0;
+
+  const addToCartMutation = useMutation({
+    mutationFn: async ({
+      product_id,
+      quantity,
+      selected_size,
+    }: {
+      product_id: number;
+      quantity: number;
+      selected_size?: string | null;
+    }) => {
+      const res = await api.post("/addToCart", {
+        product_id,
+        quantity,
+        selected_size,
+      });
+      return res.data;
+    },
+    onSuccess: (res) => {
+      setToast({
+        show: true,
+        message: res?.message || t("product.addedToCart"),
+      });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("open-cart-drawer"));
+      }
+      setTimeout(() => setToast(null), 1000);
+    },
+    onError: (err: unknown) => {
+      if (getErrorStatus(err) === 401) {
+        router.push("/auth/signin");
+        return;
+      }
+      setToast({
+        show: true,
+        message: getErrorMessage(err) || t("product.failedToAddToCart"),
+      });
+      setTimeout(() => setToast(null), 1000);
+    },
+  });
 
   const saveGuestCartItem = () => {
     if (!product) return;
 
-    // Store the selected quantity in the product snapshot we save to guest cart
-    // so the UI shows the chosen amount (not the stock level).
     const productSnapshot = {
       id: Number(product.id),
       name: product.name,
@@ -146,16 +185,18 @@ export default function ProductDetailPage() {
           ? customerPriceRaw
           : listingPrice,
       admin_margin_amount:
-        product && product.admin_margin_amount != null
+        product.admin_margin_amount != null
           ? Number(product.admin_margin_amount)
           : undefined,
       admin_margin_percentage:
-        product && product.admin_margin_percentage != null
+        product.admin_margin_percentage != null
           ? Number(product.admin_margin_percentage)
           : undefined,
-      quantity: effectiveQuantity,
+      quantity: product.quantity,
       min_order_quantity: product.min_order_quantity,
-      image_url: product.image_url,
+      image_url: images,
+      selected_size: effectiveSelectedSize,
+      size_variants: sizeVariants,
       listing: product.listing
         ? {
             display_price: product.listing.display_price,
@@ -170,8 +211,7 @@ export default function ProductDetailPage() {
     }
   };
 
-  const supportEmail =
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "info@mahedeluxe.ae";
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "info@mahedeluxe.ae";
   const whatsappNumberRaw =
     process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "+971 50 329 8799";
   const whatsappNumber = whatsappNumberRaw.replace(/[^\d]/g, "");
@@ -186,6 +226,7 @@ export default function ProductDetailPage() {
   const whatsappText = [
     "Hello, I have a question about this product:",
     productName,
+    effectiveSelectedSize ? `Size: ${effectiveSelectedSize}` : "",
     productUrl,
   ]
     .filter(Boolean)
@@ -198,30 +239,42 @@ export default function ProductDetailPage() {
     ? `mailto:${supportEmail}?subject=${encodeURIComponent(
         productName ? `Product inquiry: ${productName}` : "Product inquiry",
       )}&body=${encodeURIComponent(
-        productUrl
-          ? `Hi,\n\nI have a question about this product:\n${productUrl}`
-          : "Hi,\n\nI have a question about this product.",
+        `Hi,\n\nI have a question about this product${
+          effectiveSelectedSize ? ` (size: ${effectiveSelectedSize})` : ""
+        }:\n${productUrl}`,
       )}`
     : "";
+
+  const handleCopyLink = async () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1800);
+    } catch (copyError) {
+      console.error("Failed to copy product link", copyError);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50" dir={dir}>
       <CartDrawer />
       {toast?.show && (
-        <div className="fixed top-6 right-6 z-50">
-          <div className="flex items-center gap-3 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+        <div className="fixed right-6 top-6 z-50">
+          <div className="flex items-center gap-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
             <span>{toast.message}</span>
           </div>
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <button
           type="button"
           onClick={() => router.back()}
-          className="mb-4 text-xs sm:text-sm text-slate-500 hover:text-slate-800"
+          className="mb-4 text-xs text-slate-500 hover:text-slate-800 sm:text-sm"
         >
-          ← {t("product.backToProducts")}
+          {"<-"} {t("product.backToProducts")}
         </button>
 
         {isLoading ? (
@@ -237,19 +290,18 @@ export default function ProductDetailPage() {
             {t("product.productNotFound")}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
-            {/* Left: Images */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
             <div className="space-y-4">
-              <div className="relative w-full aspect-4/3 rounded-2xl bg-white shadow-sm border border-slate-100 overflow-hidden">
+              <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
                 {selectedImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={selectedImage}
                     alt={product.name}
-                    className="w-full h-full object-contain p-4 bg-linear-to-br from-slate-50 to-slate-100"
+                    className="h-full w-full bg-linear-to-br from-slate-50 to-slate-100 p-4 object-contain"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
+                  <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
                     {t("product.noImageAvailable")}
                   </div>
                 )}
@@ -259,10 +311,10 @@ export default function ProductDetailPage() {
                 <div className="flex gap-3 overflow-x-auto pb-1">
                   {images.map((img, index) => (
                     <button
-                      key={img + index}
+                      key={`${img}-${index}`}
                       type="button"
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`relative w-20 h-20 rounded-xl overflow-hidden border transition-all ${
+                      className={`relative h-20 w-20 overflow-hidden rounded-xl border transition-all ${
                         index === selectedImageIndex
                           ? "border-blue-500 ring-2 ring-blue-200"
                           : "border-slate-200 hover:border-blue-200"
@@ -272,7 +324,7 @@ export default function ProductDetailPage() {
                       <img
                         src={img}
                         alt={`${product.name} thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     </button>
                   ))}
@@ -280,27 +332,37 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Right: Details */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 flex flex-col gap-4">
+            <div className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
               <div className="space-y-2">
-                <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
-                  {product.name}
-                </h1>
-                {product.Category?.name && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                    {product.Category.name}
-                  </span>
-                )}
-                {product.User?.name && (
-                  <p className="text-xs text-slate-500">
-                    {t("product.soldBy")}{" "}
-                    <span className="font-medium">{product.User.name}</span>
-                  </p>
-                )}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+                      {product.name}
+                    </h1>
+                    {product.Category?.name && (
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                        {product.Category.name}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className={`inline-flex items-center gap-2 self-start rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                      linkCopied
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-blue-600"
+                    }`}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    {linkCopied ? "Link copied" : "Copy link"}
+                  </button>
+                </div>
               </div>
 
               {product.description && (
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-sm leading-relaxed text-slate-600">
                   {product.description}
                 </p>
               )}
@@ -312,7 +374,7 @@ export default function ProductDetailPage() {
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-semibold text-emerald-700">
-                      {listingPrice} AED
+                      {formatPriceFromAED(listingPrice, currency, rates, locale)}
                     </span>
                   </div>
                 </div>
@@ -327,34 +389,58 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
+              {availableSizes.length > 0 && (
+                <div className="pt-1">
+                  <div className="mb-2 text-xs uppercase tracking-wide text-slate-500">
+                    Size
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map((size: string) => {
+                      const isActive = effectiveSelectedSize === size;
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSize(size);
+                            setSelectedImageIndex(0);
+                          }}
+                          className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                            isActive
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="pt-1">
-                <div className="text-xs uppercase tracking-wide text-slate-500 mb-1.5">
+                <div className="mb-1.5 text-xs uppercase tracking-wide text-slate-500">
                   {t("product.quantity")}
                 </div>
                 {isPurchaseFlowUser && (
-                  <div className="text-[11px] text-slate-500 mb-2">
+                  <div className="mb-2 text-[11px] text-slate-500">
                     {t("product.minimumOrder")}{" "}
                     <span className="font-medium">{moq}</span>
                   </div>
                 )}
-                <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 overflow-hidden">
+                <div className="inline-flex items-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
                   <button
                     type="button"
                     onClick={() =>
                       setQuantity((q) =>
-                        Math.max(
-                          minAllowedQty,
-                          (Number(q) || minAllowedQty) - 1,
-                        ),
+                        Math.max(minAllowedQty, (Number(q) || minAllowedQty) - 1),
                       )
                     }
-                    disabled={
-                      effectiveQuantity <= minAllowedQty ||
-                      product.quantity === 0
-                    }
-                    className="w-9 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-lg"
+                    disabled={effectiveQuantity <= minAllowedQty || product.quantity === 0}
+                    className="flex h-8 w-9 items-center justify-center text-lg text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    −
+                    -
                   </button>
                   <div className="w-10 text-center text-sm font-medium text-slate-900">
                     {effectiveQuantity}
@@ -367,24 +453,23 @@ export default function ProductDetailPage() {
                           product.quantity || 1,
                           Math.max(
                             minAllowedQty,
-                            Math.floor(Number(q) || minAllowedQty),
-                          ) + 1,
+                            Math.floor(Number(q) || minAllowedQty) + 1,
+                          ),
                         ),
                       )
                     }
                     disabled={
-                      effectiveQuantity >= (product.quantity || 0) ||
-                      product.quantity === 0
+                      effectiveQuantity >= (product.quantity || 0) || product.quantity === 0
                     }
-                    className="w-9 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-lg"
+                    className="flex h-8 w-9 items-center justify-center text-lg text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     +
                   </button>
                 </div>
               </div>
 
-              <div className="pt-2 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <a
                     href={canWhatsapp ? whatsappHref : undefined}
                     target={canWhatsapp ? "_blank" : undefined}
@@ -420,77 +505,86 @@ export default function ProductDetailPage() {
                   </a>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!hasStoredAuth()) {
-                      if (isSavingGuest) return;
-                      setIsSavingGuest(true);
-                      saveGuestCartItem();
-                      setToast({
-                        show: true,
-                        message: t("product.savedToCartReady"),
-                      });
-                      setTimeout(() => setToast(null), 1000);
-                      // Prevent double-adds from rapid clicks
-                      setTimeout(() => setIsSavingGuest(false), 800);
-                      return;
-                    }
-                    addToCartMutation.mutate({
-                      product_id: product.id,
-                      quantity: effectiveQuantity,
-                    });
-                  }}
-                  disabled={
-                    addToCartMutation.isPending ||
-                    product.quantity === 0 ||
-                    isSavingGuest
-                  }
-                  className="flex-1 inline-flex items-center justify-center rounded-full border border-blue-600 text-blue-600 text-sm py-2.5 hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {t("product.addToCart")}
-                </button>
-                <button
-                  type="button"
-                  disabled={product.quantity === 0}
-                  onClick={() => {
-                    if (!hasStoredAuth()) {
-                      saveGuestCartItem();
-                      router.push("/checkout");
-                      return;
-                    }
-                    // For "Buy now", add this item to the cart with the selected quantity,
-                    // then navigate to checkout so it appears there.
-                    addToCartMutation.mutate(
-                      {
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (sizeRequired && !selectedSize) {
+                        setToast({ show: true, message: "Please choose a size first." });
+                        setTimeout(() => setToast(null), 1000);
+                        return;
+                      }
+
+                      if (!hasStoredAuth()) {
+                        if (isSavingGuest) return;
+                        setIsSavingGuest(true);
+                        saveGuestCartItem();
+                        setToast({
+                          show: true,
+                          message: t("product.savedToCartReady"),
+                        });
+                        setTimeout(() => setToast(null), 1000);
+                        setTimeout(() => setIsSavingGuest(false), 800);
+                        return;
+                      }
+
+                      addToCartMutation.mutate({
                         product_id: product.id,
                         quantity: effectiveQuantity,
-                      },
-                      {
-                        onSuccess: () => {
-                          router.push("/checkout");
+                        selected_size: effectiveSelectedSize,
+                      });
+                    }}
+                    disabled={addToCartMutation.isPending || product.quantity === 0 || isSavingGuest}
+                    className="inline-flex flex-1 items-center justify-center rounded-full border border-blue-600 py-2.5 text-sm text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {t("product.addToCart")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={product.quantity === 0}
+                    onClick={() => {
+                      if (sizeRequired && !selectedSize) {
+                        setToast({ show: true, message: "Please choose a size first." });
+                        setTimeout(() => setToast(null), 1000);
+                        return;
+                      }
+
+                      if (!hasStoredAuth()) {
+                        saveGuestCartItem();
+                        router.push("/checkout");
+                        return;
+                      }
+
+                      addToCartMutation.mutate(
+                        {
+                          product_id: product.id,
+                          quantity: effectiveQuantity,
+                        selected_size: effectiveSelectedSize,
                         },
-                        onError: (err: unknown) => {
-                          if (getErrorStatus(err) === 401) {
-                            router.push("/auth/signin");
-                            return;
-                          }
-                          setToast({
-                            show: true,
-                            message:
-                              getErrorMessage(err) ||
-                              t("product.failedToPrepareCheckout"),
-                          });
-                          setTimeout(() => setToast(null), 1000);
+                        {
+                          onSuccess: () => {
+                            router.push("/checkout");
+                          },
+                          onError: (err: unknown) => {
+                            if (getErrorStatus(err) === 401) {
+                              router.push("/auth/signin");
+                              return;
+                            }
+                            setToast({
+                              show: true,
+                              message:
+                                getErrorMessage(err) ||
+                                t("product.failedToPrepareCheckout"),
+                            });
+                            setTimeout(() => setToast(null), 1000);
+                          },
                         },
-                      },
-                    );
-                  }}
-                  className="flex-1 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-sm py-2.5 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {t("product.buyNow")}
-                </button>
+                      );
+                    }}
+                    className="inline-flex flex-1 items-center justify-center rounded-full bg-blue-600 py-2.5 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {t("product.buyNow")}
+                  </button>
                 </div>
               </div>
             </div>

@@ -146,7 +146,7 @@ export default function AdminCategoriesPage() {
 
       {modalOpen && (
         <div className="app-modal-overlay">
-          <div className="app-modal-panel z-10 max-w-2xl">
+          <div className="app-modal-panel z-10 flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h3 className="text-lg font-semibold">
                 {editing ? "Edit Category" : "Add Category"}

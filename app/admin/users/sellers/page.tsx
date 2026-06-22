@@ -10,12 +10,15 @@ import { translateDashboard } from "@/lib/dashboard-i18n";
 type SellerProfile = {
   profile_image?: string | null;
   verification_status?: string | null;
+  approved_at?: string | null;
+  created_at?: string | null;
 };
 
 type SellerRow = {
   id: number;
   name: string;
   email: string;
+  created_at?: string | null;
   is_varified?: boolean;
   productsCount?: number;
   ordersReceived?: number;
@@ -38,6 +41,15 @@ function initials(name?: string) {
     .map((s) => s.charAt(0).toUpperCase())
     .slice(0, 2)
     .join("");
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  try {
+    return new Date(value).toLocaleDateString();
+  } catch {
+    return value;
+  }
 }
 
 export default function AdminSellersPage() {
@@ -176,7 +188,7 @@ export default function AdminSellersPage() {
                   {users.map((b) => (
                     <li
                       key={b.id}
-                      className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-px hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition hover:-translate-y-px hover:shadow-md lg:flex-row lg:items-center lg:justify-between"
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-lg font-semibold text-indigo-700 overflow-hidden">
@@ -211,7 +223,14 @@ export default function AdminSellersPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="lg:flex-1 lg:px-6">
+                          <div className="text-xs text-gray-500">Approval request Date</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">
+                          {formatDate(b.Seller?.created_at ?? b.created_at)}
+                          </div>
+                        </div>
+
+                      <div className="flex items-center gap-3 sm:gap-4 lg:shrink-0">
                         <div>
                           {b.Seller?.verification_status === "approved" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">

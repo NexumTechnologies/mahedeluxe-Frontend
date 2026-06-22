@@ -9,6 +9,12 @@ export type GuestCartProduct = {
   quantity?: number;
   min_order_quantity?: number;
   image_url?: string | string[] | null;
+  selected_size?: string | null;
+  size_variants?: Array<{
+    size: string;
+    price: number;
+    image_url: string[];
+  }> | null;
   listing?: {
     display_price?: number | null;
     is_listed?: boolean | null;
@@ -18,6 +24,7 @@ export type GuestCartProduct = {
 export type GuestCartItem = {
   id: string;
   product_id: number;
+  selected_size?: string | null;
   quantity: number;
   total_price: number;
   unit_price: number;
@@ -112,7 +119,12 @@ export function addGuestCartItem(product: GuestCartProduct, quantity: number) {
   const safeQuantity = Math.max(1, Math.floor(normalizeNumber(quantity, 1)));
   const unitPrice = getUnitPrice(product);
   const currentCart = getGuestCart();
-  const existingItem = currentCart.items.find((item) => item.product_id === product.id);
+  const selectedSize = product.selected_size ? String(product.selected_size).trim() : null;
+  const existingItem = currentCart.items.find(
+    (item) =>
+      item.product_id === product.id &&
+      (item.selected_size || null) === selectedSize,
+  );
   const productStock = product.quantity != null ? normalizeNumber(product.quantity, 0) : null;
   const minOrderQuantity = Math.max(1, Math.floor(normalizeNumber(product.min_order_quantity, 1)));
 
@@ -133,8 +145,9 @@ export function addGuestCartItem(product: GuestCartProduct, quantity: number) {
         : Math.max(minOrderQuantity, safeQuantity);
 
     nextItems.unshift({
-      id: `guest-${product.id}`,
+      id: `guest-${product.id}-${selectedSize || "default"}`,
       product_id: product.id,
+      selected_size: selectedSize,
       quantity: initialQuantity,
       unit_price: unitPrice,
       total_price: initialQuantity * unitPrice,
@@ -149,6 +162,8 @@ export function addGuestCartItem(product: GuestCartProduct, quantity: number) {
         quantity: product.quantity,
         min_order_quantity: product.min_order_quantity,
         image_url: product.image_url,
+        selected_size: selectedSize,
+        size_variants: product.size_variants ?? undefined,
         listing: product.listing ?? undefined,
       },
     });
@@ -185,9 +200,16 @@ export function updateGuestCartItemQuantity(productId: number, quantity: number)
   return setGuestCart(nextItems);
 }
 
-export function removeGuestCartItem(productId: number) {
+export function removeGuestCartItem(productId: number, selectedSize?: string | null) {
   const currentCart = getGuestCart();
-  return setGuestCart(currentCart.items.filter((item) => item.product_id !== productId));
+  const normalizedSize = selectedSize ? String(selectedSize).trim() : null;
+  return setGuestCart(
+    currentCart.items.filter(
+      (item) =>
+        item.product_id !== productId ||
+        (item.selected_size || null) !== normalizedSize,
+    ),
+  );
 }
 
 export function hasStoredAuth() {

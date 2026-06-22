@@ -56,8 +56,14 @@ export default function AppDownloadSection() {
                 rel="noopener noreferrer"
                 className="mt-3 inline-flex min-w-67.5 items-center gap-4 rounded-2xl border border-slate-300 bg-white/80 px-6 py-4 shadow-[0_10px_28px_rgba(0,0,0,0.08)] transition hover:bg-white"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-xl font-black text-emerald-700">
-                  A
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100">
+                  <Image
+                    src="/playstore1.png"
+                    alt="Google Play"
+                    width={48}
+                    height={48}
+                    className="h-36 w-36 object-contain"
+                  />
                 </span>
                 <span className="text-left">
                   <span className="block text-xs font-medium text-black/75">Get it on</span>

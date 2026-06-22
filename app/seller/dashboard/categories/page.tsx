@@ -34,9 +34,9 @@ export default function SellerCategoriesPage() {
         <div className="text-gray-500 text-center py-8">{td("sellerCategories.empty")}</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {categories.map((item: any) => (
+          {categories.map((item: any, index: number) => (
             <div
-              key={item._id}
+              key={item.id ?? item._id ?? item.name ?? index}
               className="bg-white border border-blue-100 rounded-xl shadow-sm p-6 flex flex-col items-start hover:shadow-md transition-shadow min-h-30"
             >
               <div className="flex items-center mb-2">

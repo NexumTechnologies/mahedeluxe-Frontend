@@ -6,13 +6,17 @@ import { Star, ShoppingCart, Heart } from "lucide-react";
 import { useState } from "react";
 import { getSafeImageSrc } from "@/lib/utils";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 interface ProductCardProps {
   id: string;
   name: string;
   image: string;
-  discountPrice: string;
+  discountPrice?: string;
   cutPrice?: string;
+  discountPriceAmount?: number;
+  cutPriceAmount?: number;
   rating?: number;
   reviews?: number;
   discount?: number;
@@ -28,6 +32,8 @@ export default function ProductCard({
   image,
   discountPrice,
   cutPrice,
+  discountPriceAmount,
+  cutPriceAmount,
   rating,
   reviews,
   discount,
@@ -38,7 +44,16 @@ export default function ProductCard({
 }: ProductCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const safeImage = getSafeImageSrc(image);
-  const { dir, t } = useI18n();
+  const { dir, locale, t } = useI18n();
+  const { currency, rates } = useCurrency();
+  const formattedDiscountPrice =
+    discountPriceAmount != null
+      ? formatPriceFromAED(discountPriceAmount, currency, rates, locale)
+      : (discountPrice ?? "");
+  const formattedCutPrice =
+    cutPriceAmount != null
+      ? formatPriceFromAED(cutPriceAmount, currency, rates, locale)
+      : cutPrice;
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -118,11 +133,12 @@ export default function ProductCard({
           <div className="space-y-1 pt-2 border-t border-gray-100">
             <div className="flex items-baseline gap-2">
               <span className="font-bold text-lg sm:text-xl text-blue">
-                {discountPrice}
+                {formattedDiscountPrice}
               </span>
-              {cutPrice && cutPrice !== discountPrice && (
+              {formattedCutPrice &&
+                formattedCutPrice !== formattedDiscountPrice && (
                 <span className="text-sm text-gray-400 line-through">
-                  {cutPrice}
+                  {formattedCutPrice}
                 </span>
               )}
             </div>

@@ -3,26 +3,30 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
-import { VARIANT_TYPE_OPTIONS } from "@/lib/productVariantType";
 
 type CategoryOption = {
   id: number;
   name: string;
 };
 
-type SubCategoryItem = {
+type SubCategoryOption = {
   id: number;
   name: string;
-  description?: string | null;
-  image_url?: string | null;
-  variant_type?: string | null;
-  variant_options?: string[] | null;
-  is_active?: boolean;
   category_id?: number;
   Category?: {
     id?: number;
     name?: string;
   };
+};
+
+type SubSubCategoryItem = {
+  id: number;
+  name: string;
+  description?: string | null;
+  image_url?: string | null;
+  is_active?: boolean;
+  sub_category_id?: number;
+  SubCategory?: SubCategoryOption;
 };
 
 async function fetchCategories() {
@@ -41,17 +45,25 @@ async function fetchSubCategories() {
   return [];
 }
 
-export default function AdminSubCategoriesPage() {
+async function fetchSubSubCategories() {
+  const res = await api.get("/sub-subcategory");
+  if (Array.isArray(res.data?.data?.items)) return res.data.data.items;
+  if (Array.isArray(res.data?.subSubCategories)) return res.data.subSubCategories;
+  if (Array.isArray(res.data)) return res.data;
+  return [];
+}
+
+export default function AdminSubSubCategoriesPage() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<SubCategoryItem | null>(null);
+  const [editing, setEditing] = useState<SubSubCategoryItem | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
     category_id: "",
+    sub_category_id: "",
     image_url: "",
-    variant_options: ["size"],
   });
 
   const { data: categories = [] } = useQuery<CategoryOption[]>({
@@ -59,47 +71,61 @@ export default function AdminSubCategoriesPage() {
     queryFn: fetchCategories,
   });
 
-  const { data: subCategories = [], isLoading } = useQuery<SubCategoryItem[]>({
-    queryKey: ["admin-subcategories"],
+  const { data: subCategories = [] } = useQuery<SubCategoryOption[]>({
+    queryKey: ["admin-subcategories-options-all"],
     queryFn: fetchSubCategories,
+  });
+
+  const { data: subSubCategories = [], isLoading } = useQuery<SubSubCategoryItem[]>({
+    queryKey: ["admin-subsubcategories"],
+    queryFn: fetchSubSubCategories,
+  });
+
+  const filteredSubCategories = subCategories.filter((subCategory) => {
+    if (!form.category_id.trim()) return true;
+    return String(subCategory.category_id || subCategory.Category?.id || "") === form.category_id;
   });
 
   const createMutation = useMutation({
     mutationFn: async (payload: typeof form) => {
-      const res = await api.post("/subcategory", {
-        ...payload,
-        category_id: Number(payload.category_id),
+      const res = await api.post("/sub-subcategory", {
+        name: payload.name,
+        description: payload.description,
+        sub_category_id: Number(payload.sub_category_id),
+        image_url: payload.image_url,
       });
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subcategories"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subsubcategories"] }),
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: number; payload: typeof form }) => {
-      const res = await api.put(`/subcategory/${id}`, {
-        ...payload,
-        category_id: Number(payload.category_id),
+      const res = await api.put(`/sub-subcategory/${id}`, {
+        name: payload.name,
+        description: payload.description,
+        sub_category_id: Number(payload.sub_category_id),
+        image_url: payload.image_url,
       });
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subcategories"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subsubcategories"] }),
   });
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await api.patch(`/subcategory/${id}/toggle-status`);
+      const res = await api.patch(`/sub-subcategory/${id}/toggle-status`);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subcategories"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subsubcategories"] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await api.delete(`/subcategory/${id}`);
+      const res = await api.delete(`/sub-subcategory/${id}`);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subcategories"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-subsubcategories"] }),
   });
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -107,7 +133,7 @@ export default function AdminSubCategoriesPage() {
   const uploadImage = async (file: File) => {
     const formData = new FormData();
     formData.append("image", file);
-    formData.append("folder", "subcategories");
+    formData.append("folder", "sub-subcategories");
 
     const res = await api.post("/upload/single", formData);
     return String(res.data?.url || res.data?.data?.url || res.data?.secure_url || "").trim();
@@ -119,8 +145,8 @@ export default function AdminSubCategoriesPage() {
         name: "",
         description: "",
         category_id: "",
+        sub_category_id: "",
         image_url: "",
-        variant_options: ["size"],
       });
       return;
     }
@@ -128,12 +154,11 @@ export default function AdminSubCategoriesPage() {
     setForm({
       name: editing.name || "",
       description: editing.description || "",
-      category_id: String(editing.category_id || editing.Category?.id || ""),
+      category_id: String(
+        editing.SubCategory?.category_id || editing.SubCategory?.Category?.id || "",
+      ),
+      sub_category_id: String(editing.sub_category_id || editing.SubCategory?.id || ""),
       image_url: editing.image_url || "",
-      variant_options:
-        Array.isArray(editing.variant_options) && editing.variant_options.length > 0
-          ? editing.variant_options
-          : [String(editing.variant_type || "size")],
     });
   }, [editing]);
 
@@ -141,9 +166,9 @@ export default function AdminSubCategoriesPage() {
     <div className="space-y-4">
       <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Subcategories</h1>
+          <h1 className="text-2xl font-semibold">Sub-sub-categories</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage subcategories under each category.
+            Manage the third level under each subcategory.
           </p>
         </div>
 
@@ -155,7 +180,7 @@ export default function AdminSubCategoriesPage() {
           }}
           className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white"
         >
-          Add Subcategory
+          Add Sub-sub-category
         </button>
       </header>
 
@@ -165,17 +190,17 @@ export default function AdminSubCategoriesPage() {
         ) : (
           <div className="p-4">
             <ul className="divide-y">
-              {subCategories.map((subCategory) => (
+              {subSubCategories.map((item) => (
                 <li
-                  key={subCategory.id}
+                  key={item.id}
                   className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 overflow-hidden rounded-lg border bg-slate-50">
-                      {subCategory.image_url ? (
+                      {item.image_url ? (
                         <img
-                          src={subCategory.image_url}
-                          alt={subCategory.name}
+                          src={item.image_url}
+                          alt={item.name}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -186,31 +211,25 @@ export default function AdminSubCategoriesPage() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{subCategory.name}</span>
+                        <span className="font-medium">{item.name}</span>
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-                          {subCategory.Category?.name || "No category"}
+                          {item.SubCategory?.Category?.name || "No category"}
                         </span>
                         <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
-                          {(
-                            Array.isArray(subCategory.variant_options) && subCategory.variant_options.length > 0
-                              ? subCategory.variant_options
-                              : [String(subCategory.variant_type || "size")]
-                          )
-                            .join(", ")
-                            .toUpperCase()}
+                          {item.SubCategory?.name || "No subcategory"}
                         </span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[11px] ${
-                            subCategory.is_active === false
+                            item.is_active === false
                               ? "bg-amber-100 text-amber-700"
                               : "bg-emerald-100 text-emerald-700"
                           }`}
                         >
-                          {subCategory.is_active === false ? "Inactive" : "Active"}
+                          {item.is_active === false ? "Inactive" : "Active"}
                         </span>
                       </div>
                       <div className="text-sm text-slate-500">
-                        {subCategory.description || "No description"}
+                        {item.description || "No description"}
                       </div>
                     </div>
                   </div>
@@ -219,7 +238,7 @@ export default function AdminSubCategoriesPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setEditing(subCategory);
+                        setEditing(item);
                         setModalOpen(true);
                       }}
                       className="rounded-lg border border-indigo-500 px-3 py-1.5 text-sm text-indigo-600"
@@ -228,16 +247,16 @@ export default function AdminSubCategoriesPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => toggleStatusMutation.mutate(subCategory.id)}
+                      onClick={() => toggleStatusMutation.mutate(item.id)}
                       className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700"
                     >
-                      {subCategory.is_active === false ? "Activate" : "Deactivate"}
+                      {item.is_active === false ? "Activate" : "Deactivate"}
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        if (window.confirm(`Delete "${subCategory.name}"?`)) {
-                          deleteMutation.mutate(subCategory.id);
+                        if (window.confirm(`Delete "${item.name}"?`)) {
+                          deleteMutation.mutate(item.id);
                         }
                       }}
                       className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-600"
@@ -257,7 +276,7 @@ export default function AdminSubCategoriesPage() {
           <div className="app-modal-panel z-10 flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h3 className="text-lg font-semibold">
-                {editing ? "Edit Subcategory" : "Add Subcategory"}
+                {editing ? "Edit Sub-sub-category" : "Add Sub-sub-category"}
               </h3>
               <button
                 type="button"
@@ -274,7 +293,13 @@ export default function AdminSubCategoriesPage() {
                 <label className="text-sm">Category</label>
                 <select
                   value={form.category_id}
-                  onChange={(e) => setForm((prev) => ({ ...prev, category_id: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      category_id: e.target.value,
+                      sub_category_id: "",
+                    }))
+                  }
                   className="w-full rounded border px-3 py-2"
                 >
                   <option value="">Select category</option>
@@ -287,32 +312,22 @@ export default function AdminSubCategoriesPage() {
               </div>
 
               <div>
-                <label className="text-sm">Allowed variant options</label>
-                <div className="mt-2 grid grid-cols-2 gap-2 rounded border px-3 py-3">
-                  {VARIANT_TYPE_OPTIONS.map((option) => {
-                    const checked = form.variant_options.includes(option.value);
-                    return (
-                      <label key={option.value} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) =>
-                            setForm((prev) => ({
-                              ...prev,
-                              variant_options: e.target.checked
-                                ? [...prev.variant_options, option.value]
-                                : prev.variant_options.filter((item) => item !== option.value),
-                            }))
-                          }
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Choose multiple when needed, like `KG` + `Gram` for weight or `Liter` + `ML` for volume.
-                </p>
+                <label className="text-sm">Subcategory</label>
+                <select
+                  value={form.sub_category_id}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, sub_category_id: e.target.value }))
+                  }
+                  className="w-full rounded border px-3 py-2"
+                  disabled={!form.category_id.trim()}
+                >
+                  <option value="">Select subcategory</option>
+                  {filteredSubCategories.map((subCategory) => (
+                    <option key={subCategory.id} value={subCategory.id}>
+                      {subCategory.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -328,13 +343,15 @@ export default function AdminSubCategoriesPage() {
                 <label className="text-sm">Description</label>
                 <textarea
                   value={form.description}
-                  onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
                   className="min-h-24 w-full rounded border px-3 py-2"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm">Subcategory Image</label>
+                <label className="text-sm">Image</label>
                 <div className="flex items-center gap-3">
                   <label className="cursor-pointer rounded border bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100">
                     {uploadingImage ? "Uploading..." : "Upload Image"}
@@ -378,7 +395,7 @@ export default function AdminSubCategoriesPage() {
                   <div className="h-24 w-24 overflow-hidden rounded-lg border bg-slate-50">
                     <img
                       src={form.image_url}
-                      alt="Subcategory preview"
+                      alt="Sub-sub-category preview"
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -393,7 +410,7 @@ export default function AdminSubCategoriesPage() {
                     isSaving ||
                     !form.name.trim() ||
                     !form.category_id.trim() ||
-                    form.variant_options.length === 0
+                    !form.sub_category_id.trim()
                   }
                   onClick={async () => {
                     try {
@@ -401,8 +418,8 @@ export default function AdminSubCategoriesPage() {
                         name: form.name.trim(),
                         description: form.description.trim(),
                         category_id: form.category_id,
+                        sub_category_id: form.sub_category_id,
                         image_url: form.image_url.trim(),
-                        variant_options: form.variant_options,
                       };
 
                       if (editing) {

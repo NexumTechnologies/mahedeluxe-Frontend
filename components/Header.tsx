@@ -22,6 +22,8 @@ import { getSafeImageFromValue } from "@/lib/utils";
 import { clearAllClientAuthState, getStoredUser } from "@/lib/authStorage";
 import { getGuestCart } from "@/lib/cartStorage";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 type HeaderUser = {
   id?: string;
@@ -35,7 +37,7 @@ type SearchProduct = {
   id: string;
   name: string;
   image: string;
-  price: string;
+  price: number;
 };
 
 type SearchApiItem = {
@@ -76,7 +78,7 @@ async function searchProductsByName(search: string): Promise<SearchProduct[]> {
       id: String(item.id),
       name: item.name || "Product",
       image: getSafeImageFromValue(item.image_url, "/dummy-product.png"),
-      price: `${displayPrice} AED`,
+      price: displayPrice,
     };
   });
 }
@@ -85,6 +87,7 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { locale, dir, setLocale, t } = useI18n();
+  const { currency, rates, setCurrency } = useCurrency();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -96,6 +99,8 @@ export default function Header() {
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement | null>(null);
+  const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
+  const currencyMenuRef = useRef<HTMLDivElement | null>(null);
 
   const getDashboardHref = (role?: string) => {
     if (role === "buyer") return "/buyer/dashboard";
@@ -188,6 +193,9 @@ export default function Header() {
     const handleOutsideClick = (event: MouseEvent) => {
       if (!langMenuRef.current?.contains(event.target as Node)) {
         setIsLangMenuOpen(false);
+      }
+      if (!currencyMenuRef.current?.contains(event.target as Node)) {
+        setIsCurrencyMenuOpen(false);
       }
     };
 
@@ -444,7 +452,12 @@ export default function Header() {
                               {product.name}
                             </div>
                             <div className="mt-1 text-sm font-medium text-[#8d4d2b]">
-                              {product.price}
+                              {formatPriceFromAED(
+                                product.price,
+                                currency,
+                                rates,
+                                locale,
+                              )}
                             </div>
                           </div>
 
@@ -462,6 +475,43 @@ export default function Header() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3 lg:gap-6">
+              <div ref={currencyMenuRef} className="relative flex">
+                <button
+                  type="button"
+                  onClick={() => setIsCurrencyMenuOpen((open) => !open)}
+                  className="flex items-center gap-2 rounded-full border border-stone-200 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#efc9b4] hover:text-[#8d4d2b] sm:text-sm"
+                  aria-expanded={isCurrencyMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  <span>{currency}</span>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+
+                {isCurrencyMenuOpen && (
+                  <div
+                    className={`absolute top-[calc(100%+0.5rem)] ${dir === "rtl" ? "left-0" : "right-0"} z-50 w-28 rounded-xl border border-stone-200 bg-white p-1 shadow-lg`}
+                  >
+                    {(["AED", "USD", "EUR"] as const).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setCurrency(option);
+                          setIsCurrencyMenuOpen(false);
+                        }}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                          currency === option
+                            ? "bg-stone-100 font-semibold text-slate-900"
+                            : "text-slate-600 hover:bg-stone-50"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Language (Desktop) - dropdown for English / Arabic */}
               <div ref={langMenuRef} className="relative hidden lg:flex">
                 <button
@@ -639,7 +689,12 @@ export default function Header() {
                           {product.name}
                         </div>
                         <div className="mt-1 text-sm font-medium text-[#8d4d2b]">
-                          {product.price}
+                          {formatPriceFromAED(
+                            product.price,
+                            currency,
+                            rates,
+                            locale,
+                          )}
                         </div>
                       </div>
                     </button>

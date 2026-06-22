@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import ScreenModal from "@/components/ui/ScreenModal";
+import { getVariantTypeMeta } from "@/lib/productVariantType";
 
 type CategoryOption = {
   id: number;
@@ -18,6 +19,13 @@ type AdminProductCategory = {
 type AdminProductSubCategory = {
   id?: number;
   name?: string;
+  variant_type?: string;
+  variant_options?: string[];
+};
+
+type AdminProductSubSubCategory = {
+  id?: number;
+  name?: string;
 };
 
 type AdminOwnProduct = {
@@ -30,12 +38,14 @@ type AdminOwnProduct = {
   min_order_quantity?: number | string;
   category_id?: number | string;
   sub_category_id?: number | string | null;
+  sub_sub_category_id?: number | string | null;
   is_active?: boolean;
   image_url?: string | string[] | null;
   sizes?: string[] | string | null;
   colors?: string[] | string | null;
   Category?: AdminProductCategory;
   SubCategory?: AdminProductSubCategory;
+  SubSubCategory?: AdminProductSubSubCategory;
 };
 
 type ProductsResponse =
@@ -94,6 +104,7 @@ export default function AdminOwnProductsPage() {
     colors: "",
     category_id: "",
     sub_category_id: "",
+    sub_sub_category_id: "",
   });
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
@@ -143,6 +154,30 @@ export default function AdminOwnProductsPage() {
     (Array.isArray(subCategoriesData?.data?.items) && subCategoriesData.data.items) ||
     (Array.isArray(subCategoriesData?.subcategories) && subCategoriesData.subcategories) ||
     (Array.isArray(subCategoriesData) ? subCategoriesData : []);
+  const selectedSubCategoryId = String(form.sub_category_id || "").trim();
+  const selectedSubCategory =
+    subCategories.find((item: AdminProductSubCategory) => String(item?.id || "") === selectedSubCategoryId) || null;
+  const { data: subSubCategoriesData } = useQuery({
+    queryKey: ["admin-own-subsubcategories-options", selectedSubCategoryId],
+    enabled: selectedSubCategoryId.length > 0,
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await api.get("/sub-subcategory", {
+        params: { sub_category_id: selectedSubCategoryId, is_active: true },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return res.data;
+    },
+  });
+
+  const subSubCategories =
+    (Array.isArray(subSubCategoriesData?.data?.items) && subSubCategoriesData.data.items) ||
+    (Array.isArray(subSubCategoriesData?.subSubCategories) &&
+      subSubCategoriesData.subSubCategories) ||
+    (Array.isArray(subSubCategoriesData) ? subSubCategoriesData : []);
+  const variantTypeMeta = getVariantTypeMeta(
+    selectedSubCategory?.variant_options || selectedSubCategory?.variant_type,
+  );
   const ownProducts = getProductsFromResponse(ownProductsData);
 
   const imagesForSelected = (() => {
@@ -154,6 +189,8 @@ export default function AdminOwnProductsPage() {
   })();
 
   const requiresSubCategory = selectedCategoryId.length > 0 && subCategories.length > 0;
+  const requiresSubSubCategory =
+    selectedSubCategoryId.length > 0 && subSubCategories.length > 0;
   const isFormReady =
     form.name.trim().length > 0 &&
     form.description.trim().length > 0 &&
@@ -166,6 +203,7 @@ export default function AdminOwnProductsPage() {
     Number(form.quantity) >= Number(form.min_order_quantity) &&
     String(form.category_id).trim().length > 0 &&
     (!requiresSubCategory || String(form.sub_category_id).trim().length > 0) &&
+    (!requiresSubSubCategory || String(form.sub_sub_category_id).trim().length > 0) &&
     uploadedUrls.length > 0;
 
   const createMutation = useMutation({
@@ -187,6 +225,9 @@ export default function AdminOwnProductsPage() {
           .filter(Boolean),
         category_id: Number(form.category_id),
         sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
+        sub_sub_category_id: form.sub_sub_category_id
+          ? Number(form.sub_sub_category_id)
+          : null,
         image_url: uploadedUrls,
       };
 
@@ -237,6 +278,9 @@ export default function AdminOwnProductsPage() {
           .filter(Boolean),
         category_id: Number(form.category_id),
         sub_category_id: form.sub_category_id ? Number(form.sub_category_id) : null,
+        sub_sub_category_id: form.sub_sub_category_id
+          ? Number(form.sub_sub_category_id)
+          : null,
         image_url: uploadedUrls,
       };
 
@@ -310,6 +354,7 @@ export default function AdminOwnProductsPage() {
       colors: "",
       category_id: "",
       sub_category_id: "",
+      sub_sub_category_id: "",
     });
     setUploadedUrls([]);
     setSelectedProduct(null);
@@ -340,6 +385,9 @@ export default function AdminOwnProductsPage() {
         : String(product.colors ?? ""),
       category_id: String(product.category_id || product.Category?.id || ""),
       sub_category_id: String(product.sub_category_id ?? product.SubCategory?.id ?? ""),
+      sub_sub_category_id: String(
+        product.sub_sub_category_id ?? product.SubSubCategory?.id ?? "",
+      ),
     });
     setUploadedUrls(imgs);
     setSelectedProduct(null);
@@ -443,6 +491,11 @@ export default function AdminOwnProductsPage() {
                         {product.SubCategory?.name && (
                           <div className="text-[11px] text-slate-500">
                             {product.SubCategory.name}
+                          </div>
+                        )}
+                        {product.SubSubCategory?.name && (
+                          <div className="text-[11px] text-slate-500">
+                            {product.SubSubCategory.name}
                           </div>
                         )}
                       </td>
@@ -685,6 +738,11 @@ export default function AdminOwnProductsPage() {
                           {selectedProduct.SubCategory.name}
                         </div>
                       )}
+                      {selectedProduct.SubSubCategory?.name && (
+                        <div className="mt-0.5 text-[11px] text-slate-500">
+                          {selectedProduct.SubSubCategory.name}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -801,42 +859,6 @@ export default function AdminOwnProductsPage() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Sizes
-                    </label>
-                    <input
-                      type="text"
-                      value={form.sizes}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, sizes: e.target.value }))
-                      }
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="S, M, L, XL"
-                    />
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Required. Comma separated.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Colors
-                    </label>
-                    <input
-                      type="text"
-                      value={form.colors}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, colors: e.target.value }))
-                      }
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Red, Blue, Black"
-                    />
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Required. Comma separated.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
                       Category
                     </label>
                     <select
@@ -846,6 +868,7 @@ export default function AdminOwnProductsPage() {
                           ...f,
                           category_id: e.target.value,
                           sub_category_id: "",
+                          sub_sub_category_id: "",
                         }))
                       }
                       className="w-full border rounded-md px-3 py-2 text-sm bg-white"
@@ -865,7 +888,11 @@ export default function AdminOwnProductsPage() {
                     <select
                       value={form.sub_category_id}
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, sub_category_id: e.target.value }))
+                        setForm((f) => ({
+                          ...f,
+                          sub_category_id: e.target.value,
+                          sub_sub_category_id: "",
+                        }))
                       }
                       disabled={!selectedCategoryId || subCategories.length === 0}
                       className="w-full border rounded-md px-3 py-2 text-sm bg-white"
@@ -883,6 +910,69 @@ export default function AdminOwnProductsPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Sub-sub-category
+                    </label>
+                    <select
+                      value={form.sub_sub_category_id}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sub_sub_category_id: e.target.value }))
+                      }
+                      disabled={!selectedSubCategoryId || subSubCategories.length === 0}
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">
+                        {!selectedSubCategoryId
+                          ? "Select subcategory first"
+                          : subSubCategories.length === 0
+                            ? "No sub-sub-categories"
+                            : "Select sub-sub-category"}
+                      </option>
+                      {subSubCategories.map(
+                        (subSub: AdminProductSubSubCategory & { id: number }) => (
+                          <option key={subSub.id} value={subSub.id}>
+                            {subSub.name}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      {variantTypeMeta.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={form.sizes}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sizes: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder={variantTypeMeta.placeholder}
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Required. Comma separated {variantTypeMeta.label.toLowerCase()} options.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Colors
+                    </label>
+                    <input
+                      type="text"
+                      value={form.colors}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, colors: e.target.value }))
+                      }
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Red, Blue, Black"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Required. Comma separated.
+                    </p>
                   </div>
                 </div>
 

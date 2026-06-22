@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,6 +21,8 @@ import {
 } from "@/lib/cartStorage";
 import { getStoredUser } from "@/lib/authStorage";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 const ORDER_SUCCESS_STORAGE_KEY = "checkout:last-order";
 const NGENIUS_PENDING_CHECKOUT_KEY = "checkout:pending-ngenius";
@@ -32,11 +35,14 @@ type CheckoutListing = {
 type CheckoutProduct = {
   name?: string;
   listing?: CheckoutListing;
+  image_url?: string | string[] | null;
+  selected_size?: string | null;
 };
 
 type CheckoutItem = {
   id?: number | string;
   product_id: number;
+  selected_size?: string | null;
   quantity: number;
   total_price?: number;
   unit_price?: number;
@@ -78,7 +84,8 @@ const isLocalOrigin = (origin: string) => {
 };
 
 export default function CheckoutContent() {
-  const { dir, t } = useI18n();
+  const { dir, locale, t } = useI18n();
+  const { currency, rates } = useCurrency();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [toast, setToast] = useState<{ show: boolean; message: string } | null>(
@@ -150,12 +157,26 @@ export default function CheckoutContent() {
           if (!fresh) return item;
 
           const quantity = Math.max(1, Math.floor(Number(item.quantity) || 1));
-          const basePrice = Number(fresh.base_price ?? fresh.price ?? 0) || 0;
-          const customerPrice = Number(fresh.customer_price ?? 0) || 0;
-          const unitPrice = customerPrice > 0 ? customerPrice : Number(item.unit_price) || 0;
+          const selectedSize = item.selected_size || (item as any)?.Product?.selected_size || null;
+          const variant = Array.isArray(fresh.size_variants)
+            ? fresh.size_variants.find(
+                (entry: any) =>
+                  String(entry?.size || "").trim().toLowerCase() ===
+                  String(selectedSize || "").trim().toLowerCase(),
+              )
+            : null;
+          const basePrice = Number(variant?.price ?? fresh.base_price ?? fresh.price ?? 0) || 0;
+          const customerPrice = Number(item.unit_price ?? fresh.customer_price ?? 0) || 0;
+          const unitPrice = customerPrice > 0 ? customerPrice : basePrice;
+          const variantImages = Array.isArray(variant?.image_url)
+            ? variant.image_url
+            : variant?.image_url
+              ? [variant.image_url]
+              : null;
 
           return {
             ...item,
+            selected_size: selectedSize,
             unit_price: unitPrice,
             total_price: unitPrice * quantity,
             Product: {
@@ -164,14 +185,18 @@ export default function CheckoutContent() {
               name: fresh.name ?? (item as any).Product?.name,
               price: basePrice,
               base_price: basePrice,
-              customer_price: customerPrice > 0 ? customerPrice : undefined,
+              customer_price: unitPrice > 0 ? unitPrice : undefined,
               admin_margin_amount:
                 fresh.admin_margin_amount != null ? Number(fresh.admin_margin_amount) : undefined,
               admin_margin_percentage:
                 fresh.admin_margin_percentage != null ? Number(fresh.admin_margin_percentage) : undefined,
               min_order_quantity:
                 fresh.min_order_quantity ?? (item as any).Product?.min_order_quantity,
-              image_url: fresh.image_url ?? (item as any).Product?.image_url,
+              image_url:
+                variantImages ??
+                fresh.image_url ??
+                (item as any).Product?.image_url,
+              selected_size: selectedSize,
               listing: fresh.listing ?? (item as any).Product?.listing,
             },
           };
@@ -209,6 +234,7 @@ export default function CheckoutContent() {
         await api.post("/addToCart", {
           product_id: item.product_id,
           quantity: item.quantity,
+          selected_size: item.selected_size || item.Product?.selected_size || null,
         });
       }
     },
@@ -308,6 +334,7 @@ export default function CheckoutContent() {
         items: items.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
+          selected_size: item.selected_size || item.Product?.selected_size || null,
         })),
         email: shippingAddress.email,
         firstName: shippingAddress.firstName,
@@ -449,7 +476,10 @@ export default function CheckoutContent() {
       return;
     }
 
-    removeGuestCartItem(Number(item.product_id));
+    removeGuestCartItem(
+      Number(item.product_id),
+      item.selected_size || item.Product?.selected_size || null,
+    );
     setGuestCart(getGuestCart());
   };
 
@@ -501,7 +531,7 @@ export default function CheckoutContent() {
               : t("checkout.itemPlural")}
           </div>
           <div className="mt-1 text-base sm:text-lg font-semibold text-slate-950">
-            {itemSubtotal} AED
+            {formatPriceFromAED(itemSubtotal, currency, rates, locale)}
           </div>
         </div>
       </div>
@@ -594,7 +624,7 @@ export default function CheckoutContent() {
                 <div className="mt-2 flex items-center justify-between">
                   <span>{t("checkout.total")}</span>
                   <span className="font-medium text-slate-900">
-                    {itemSubtotal} AED
+                    {formatPriceFromAED(itemSubtotal, currency, rates, locale)}
                   </span>
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
@@ -702,10 +732,14 @@ export default function CheckoutContent() {
                           <>
                             <span className="truncate mr-2">
                               {item.Product?.name ||
-                                t("checkout.productFallback")}{" "}
+                                t("checkout.productFallback")}
+                              {(item.selected_size || item.Product?.selected_size) &&
+                                ` (${item.selected_size || item.Product?.selected_size})`}{" "}
                               x{quantity}
                             </span>
-                            <span className="font-medium">{lineTotal} AED</span>
+                            <span className="font-medium">
+                              {formatPriceFromAED(lineTotal, currency, rates, locale)}
+                            </span>
                           </>
                         );
                       })()}
@@ -718,7 +752,7 @@ export default function CheckoutContent() {
                   {t("checkout.total")}
                 </span>
                 <span className="font-semibold text-slate-900">
-                  {itemSubtotal} AED
+                  {formatPriceFromAED(itemSubtotal, currency, rates, locale)}
                 </span>
               </div>
             </div>

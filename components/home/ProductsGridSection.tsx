@@ -8,6 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { getSafeImageFromValue } from "@/lib/utils";
 import { useI18n } from "@/components/LanguageProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPriceFromAED } from "@/lib/currency";
 
 interface ProductApiItem {
   id?: string | number;
@@ -25,8 +27,8 @@ interface Product {
   id: string;
   name: string;
   rating: number;
-  discountPrice: string;
-  cutPrice: string;
+  discountPrice: number;
+  cutPrice: number;
   image: string;
   reviews?: number;
   discount?: number;
@@ -52,8 +54,8 @@ async function fetchFeaturedProducts(): Promise<Product[]> {
         ? customerPriceRaw
         : basePrice;
 
-    const discountPrice = `${listingPrice} AED`;
-    const cutPrice = discountPrice;
+    const discountPrice = listingPrice;
+    const cutPrice = listingPrice;
 
     return {
       id: String(product.id),
@@ -69,7 +71,8 @@ async function fetchFeaturedProducts(): Promise<Product[]> {
 
 export default function ProductsGridSection() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const { dir, t } = useI18n();
+  const { dir, locale, t } = useI18n();
+  const { currency, rates } = useCurrency();
 
   const {
     data: products = [],
@@ -199,11 +202,21 @@ export default function ProductsGridSection() {
                       </span>
                       <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
                         <span className="text-[1.05rem] font-extrabold tracking-[-0.04em] text-slate-900 sm:text-2xl">
-                          {product.discountPrice}
+                          {formatPriceFromAED(
+                            product.discountPrice,
+                            currency,
+                            rates,
+                            locale,
+                          )}
                         </span>
                         {product.cutPrice !== product.discountPrice && (
                           <span className="text-xs text-slate-400 line-through sm:text-sm">
-                            {product.cutPrice}
+                            {formatPriceFromAED(
+                              product.cutPrice,
+                              currency,
+                              rates,
+                              locale,
+                            )}
                           </span>
                         )}
                       </div>
