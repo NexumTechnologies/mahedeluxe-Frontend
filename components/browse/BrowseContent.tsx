@@ -29,6 +29,7 @@ async function fetchBrowseProducts(
   subSubCategoryId: string | null,
   minPriceParam: string | null,
   maxPriceParam: string | null,
+  page: number,
 ) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -40,10 +41,18 @@ async function fetchBrowseProducts(
       : "/product";
 
   const res = await api.get(endpoint, {
+    params:
+      !categoryId && !subCategoryId
+        ? {
+            page,
+            size: ITEMS_PER_PAGE,
+          }
+        : undefined,
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
   const data = res.data;
+  const pagination = data?.data?.pagination;
   const items =
     data?.data?.items ||
     data?.products ||
@@ -86,8 +95,7 @@ async function fetchBrowseProducts(
     };
   });
 
-  // Apply client-side sub-subcategory + price filtering based on shown (listing) price
-  return normalized.filter((p: any) => {
+  const filteredProducts = normalized.filter((p: any) => {
     if (
       subSubCategoryId &&
       String(p._subSubCategoryId || "").trim() !== String(subSubCategoryId).trim()
@@ -101,6 +109,24 @@ async function fetchBrowseProducts(
     if (maxPrice != null && price > maxPrice) return false;
     return true;
   });
+
+  if (!categoryId && !subCategoryId) {
+    return {
+      items: filteredProducts,
+      totalItems: pagination?.totalItems ?? filteredProducts.length,
+      totalPages:
+        pagination?.totalPages ??
+        Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)),
+      currentPage: pagination?.currentPage ?? page,
+    };
+  }
+
+  return {
+    items: filteredProducts,
+    totalItems: filteredProducts.length,
+    totalPages: Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)),
+    currentPage: page,
+  };
 }
 
 export default function BrowseContent() {
@@ -116,13 +142,20 @@ export default function BrowseContent() {
   const [sortBy, setSortBy] = useState(t("browse.recommended"));
   const [currentPage, setCurrentPage] = useState(1);
   const {
-    data: products = [],
+    data,
     isLoading,
     error,
   } = useQuery({
     queryKey: [
       "browse-products",
-      { categoryId, subCategoryId, subSubCategoryId, minPriceParam, maxPriceParam },
+      {
+        categoryId,
+        subCategoryId,
+        subSubCategoryId,
+        minPriceParam,
+        maxPriceParam,
+        currentPage,
+      },
     ],
     queryFn: () =>
       fetchBrowseProducts(
@@ -131,8 +164,11 @@ export default function BrowseContent() {
         subSubCategoryId,
         minPriceParam,
         maxPriceParam,
+        currentPage,
       ),
   });
+
+  const products = data?.items ?? [];
 
   const sortedProducts = [...products].sort((left: any, right: any) => {
     const leftPrice = Number(left?._numericPrice) || 0;
@@ -149,12 +185,16 @@ export default function BrowseContent() {
     return 0;
   });
 
-  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentProducts = sortedProducts.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
-  );
+  const isAllProductsMode = !categoryId && !subCategoryId;
+  const totalPages = isAllProductsMode
+    ? Math.max(1, data?.totalPages ?? 1)
+    : Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
+  const activePage = isAllProductsMode ? data?.currentPage ?? currentPage : currentPage;
+  const startIndex = (activePage - 1) * ITEMS_PER_PAGE;
+  const currentProducts = isAllProductsMode
+    ? sortedProducts
+    : sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalItems = isAllProductsMode ? data?.totalItems ?? products.length : sortedProducts.length;
 
   const sortOptions = [
     t("browse.recommended"),
@@ -186,8 +226,8 @@ export default function BrowseContent() {
               <span>
                 {t("browse.showingRange", {
                   start: startIndex + 1,
-                  end: Math.min(startIndex + ITEMS_PER_PAGE, sortedProducts.length),
-                  count: sortedProducts.length,
+                  end: Math.min(startIndex + currentProducts.length, totalItems),
+                  count: totalItems,
                 })}
               </span>
             ) : (
@@ -282,7 +322,7 @@ export default function BrowseContent() {
           <nav className="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              disabled={activePage === 1}
               className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-100 text-gray-600 hover:border-blue hover:text-blue transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -293,7 +333,7 @@ export default function BrowseContent() {
                 key={i + 1}
                 onClick={() => setCurrentPage(i + 1)}
                 className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all font-bold ${
-                  currentPage === i + 1
+                  activePage === i + 1
                     ? "bg-blue text-white shadow-lg shadow-blue/20"
                     : "border border-gray-100 text-gray-600 hover:border-blue hover:text-blue"
                 }`}
@@ -306,7 +346,7 @@ export default function BrowseContent() {
               onClick={() =>
                 setCurrentPage((prev) => Math.min(totalPages, prev + 1))
               }
-              disabled={currentPage === totalPages}
+              disabled={activePage === totalPages}
               className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-100 text-gray-600 hover:border-blue hover:text-blue transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight className="h-5 w-5" />

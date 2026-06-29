@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import ScreenModal from "@/components/ui/ScreenModal";
+import SizeVariantsEditor from "@/components/product-forms/SizeVariantsEditor";
 import { getVariantTypeMeta } from "@/lib/productVariantType";
 
 type CategoryOption = {
@@ -48,16 +49,29 @@ type AdminProduct = {
   is_active?: boolean;
   image_url?: string | string[] | null;
   sizes?: string[] | string | null;
+  size_variants?: Array<{
+    size?: string;
+    price?: number | string;
+    image_url?: string[] | string | null;
+  }> | null;
   colors?: string[] | string | null;
   User?: AdminProductUser;
   Category?: AdminProductCategory;
   SubCategory?: AdminProductSubCategory;
   SubSubCategory?: AdminProductSubSubCategory;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type AdminProductsResponse = {
   data?: {
     items?: AdminProduct[];
+    pagination?: {
+      totalItems?: number;
+      totalPages?: number;
+      currentPage?: number;
+      pageSize?: number;
+    };
   };
   products?: AdminProduct[];
 } | AdminProduct[];
@@ -68,6 +82,138 @@ type CategoriesResponse =
       categories?: CategoryOption[];
     }
   | CategoryOption[];
+
+type SizeVariantForm = {
+  size: string;
+  price: string;
+  image_url: string[];
+};
+
+const emptyVariant = (): SizeVariantForm => ({
+  size: "",
+  price: "",
+  image_url: [],
+});
+
+const normalizeVariantsForForm = (product: AdminProduct): SizeVariantForm[] => {
+  if (
+    !Array.isArray(product?.size_variants) ||
+    product.size_variants.length === 0
+  ) {
+    return [emptyVariant()];
+  }
+
+  return product.size_variants.map((variant) => ({
+    size: String(variant?.size || ""),
+    price: String(variant?.price ?? ""),
+    image_url: Array.isArray(variant?.image_url)
+      ? variant.image_url
+      : variant?.image_url
+        ? [variant.image_url]
+        : [],
+  }));
+};
+
+const buildSizeVariantPayload = (
+  variants: SizeVariantForm[],
+  uploadedUrls: string[] = [],
+) =>
+  variants
+    .map((variant) => {
+      const selectedImages = variant.image_url.filter(Boolean);
+      const fallbackImages =
+        selectedImages.length === 0 && uploadedUrls.length === 1
+          ? [uploadedUrls[0]]
+          : [];
+
+      return {
+        size: variant.size.trim(),
+        price: Number(variant.price),
+        image_url: selectedImages.length > 0 ? selectedImages : fallbackImages,
+      };
+    })
+    .filter(
+      (variant) =>
+        variant.size &&
+        Number.isFinite(variant.price) &&
+        variant.price > 0 &&
+        variant.image_url.length > 0,
+    );
+
+const getProductFormValidationErrors = ({
+  form,
+  uploadedUrls,
+  normalizedSizeVariants,
+  requiresSubCategory,
+  requiresSubSubCategory,
+}: {
+  form: {
+    name: string;
+    description: string;
+    quantity: string;
+    min_order_quantity: string;
+    category_id: string;
+    sub_category_id: string;
+    sub_sub_category_id: string;
+  };
+  uploadedUrls: string[];
+  normalizedSizeVariants: Array<{
+    size: string;
+    price: number;
+    image_url: string[];
+  }>;
+  requiresSubCategory: boolean;
+  requiresSubSubCategory: boolean;
+}) => {
+  const errors: string[] = [];
+
+  if (!form.name.trim()) errors.push("Enter a product name.");
+  if (!form.description.trim()) errors.push("Enter a product description.");
+
+  if (!String(form.quantity).trim()) {
+    errors.push("Enter product quantity.");
+  } else if (Number(form.quantity) <= 0) {
+    errors.push("Quantity must be greater than 0.");
+  }
+
+  if (!String(form.min_order_quantity).trim()) {
+    errors.push("Enter minimum order quantity.");
+  } else if (Number(form.min_order_quantity) < 1) {
+    errors.push("Minimum order quantity must be at least 1.");
+  }
+
+  if (
+    String(form.quantity).trim() &&
+    String(form.min_order_quantity).trim() &&
+    Number(form.quantity) > 0 &&
+    Number(form.min_order_quantity) >= 1 &&
+    Number(form.quantity) < Number(form.min_order_quantity)
+  ) {
+    errors.push(
+      "Quantity must be greater than or equal to minimum order quantity.",
+    );
+  }
+
+  if (!String(form.category_id).trim()) errors.push("Select a category.");
+  if (requiresSubCategory && !String(form.sub_category_id).trim()) {
+    errors.push("Select a subcategory.");
+  }
+  if (requiresSubSubCategory && !String(form.sub_sub_category_id).trim()) {
+    errors.push("Select a sub-sub-category.");
+  }
+
+  if (uploadedUrls.length === 0) {
+    errors.push("Upload at least one product image.");
+  }
+
+  if (normalizedSizeVariants.length === 0) {
+    errors.push(
+      "Add at least one complete variant option with value, price, and assigned image.",
+    );
+  }
+
+  return errors;
+};
 
 function getProductsFromResponse(payload: unknown): AdminProduct[] {
   const data = payload as AdminProductsResponse;
@@ -111,28 +257,38 @@ export default function AdminProductsPage() {
   >({});
   const [editingCommissionId, setEditingCommissionId] = useState<number | null>(null);
   const [updatingCommissionId, setUpdatingCommissionId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 10;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
-    price: "",
     quantity: "",
     min_order_quantity: "1",
-    sizes: "",
     colors: "",
     category_id: "",
     sub_category_id: "",
     sub_sub_category_id: "",
+    image_urls: "",
   });
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+  const [sizeVariants, setSizeVariants] = useState<SizeVariantForm[]>([
+    emptyVariant(),
+  ]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-products"],
+    queryKey: ["admin-products", activeTab, currentPage, productsPerPage],
     queryFn: async () => {
       const token = localStorage.getItem("token");
       const res = await api.get("/product/admin", {
+        params: {
+          page: currentPage,
+          size: productsPerPage,
+          ...(activeTab !== "all" ? { role: activeTab } : {}),
+        },
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       return res.data;
@@ -194,13 +350,25 @@ export default function AdminProductsPage() {
     selectedSubCategory?.variant_options || selectedSubCategory?.variant_type,
   );
 
+  const responseData = Array.isArray(data) ? undefined : data?.data;
   const products = getProductsFromResponse(data);
-
+  const pagination = responseData?.pagination;
   const displayProducts = products.filter((product) => {
     if (activeTab === "all") return true;
     const role = String(product.User?.role || "").toLowerCase();
     return role === activeTab;
   });
+  const totalItems =
+    activeTab === "all"
+      ? pagination?.totalItems ?? displayProducts.length
+      : pagination?.totalItems ?? displayProducts.length;
+  const totalPages = Math.max(
+    pagination?.totalPages ?? Math.ceil(totalItems / productsPerPage) ?? 1,
+    1,
+  );
+  const pageFromApi = pagination?.currentPage ?? currentPage;
+  const startIndex = totalItems === 0 ? 0 : (pageFromApi - 1) * productsPerPage + 1;
+  const endIndex = Math.min(pageFromApi * productsPerPage, totalItems);
 
   const imagesForSelected = (() => {
     if (!selectedProduct) return [];
@@ -209,6 +377,17 @@ export default function AdminProductsPage() {
     if (typeof raw === "string" && raw.trim()) return [raw];
     return [];
   })();
+  const selectedProductColors = Array.isArray(selectedProduct?.colors)
+    ? selectedProduct.colors.filter(Boolean)
+    : typeof selectedProduct?.colors === "string" && selectedProduct.colors.trim()
+      ? selectedProduct.colors
+          .split(",")
+          .map((color) => color.trim())
+          .filter(Boolean)
+      : [];
+  const selectedProductVariants = Array.isArray(selectedProduct?.size_variants)
+    ? selectedProduct.size_variants
+    : [];
 
   const approvalMutation = useMutation({
     mutationFn: async ({
@@ -259,37 +438,37 @@ export default function AdminProductsPage() {
   const requiresSubCategory = selectedCategoryId.length > 0 && subCategories.length > 0;
   const requiresSubSubCategory =
     selectedSubCategoryId.length > 0 && subSubCategories.length > 0;
-  const isFormReady =
-    form.name.trim().length > 0 &&
-    form.description.trim().length > 0 &&
-    String(form.price).trim().length > 0 &&
-    Number(form.price) > 0 &&
-    String(form.quantity).trim().length > 0 &&
-    Number(form.quantity) > 0 &&
-    String(form.min_order_quantity).trim().length > 0 &&
-    Number(form.min_order_quantity) >= 1 &&
-    Number(form.quantity) >= Number(form.min_order_quantity) &&
-    String(form.category_id).trim().length > 0 &&
-    (!requiresSubCategory || String(form.sub_category_id).trim().length > 0) &&
-    (!requiresSubSubCategory || String(form.sub_sub_category_id).trim().length > 0) &&
-    uploadedUrls.length > 0;
+  const normalizedSizeVariants = buildSizeVariantPayload(
+    sizeVariants,
+    uploadedUrls,
+  );
+  const fallbackVariantPrice = normalizedSizeVariants[0]?.price ?? 0;
+  const validationErrors = getProductFormValidationErrors({
+    form,
+    uploadedUrls,
+    normalizedSizeVariants,
+    requiresSubCategory,
+    requiresSubSubCategory,
+  });
+  const isFormReady = validationErrors.length === 0;
 
   const resetForm = () => {
     setForm({
       name: "",
       description: "",
-      price: "",
       quantity: "",
       min_order_quantity: "1",
-      sizes: "",
       colors: "",
       category_id: "",
       sub_category_id: "",
       sub_sub_category_id: "",
+      image_urls: "",
     });
     setUploadedUrls([]);
+    setSizeVariants([emptyVariant()]);
     setEditingProductId(null);
     setProductModalMode("create");
+    setShowValidationErrors(false);
   };
 
   const openCreateModal = () => {
@@ -309,18 +488,19 @@ export default function AdminProductsPage() {
     setForm({
       name: product.name ?? "",
       description: product.description ?? "",
-      price: String(product.price ?? ""),
       quantity: String(product.quantity ?? ""),
       min_order_quantity: String(product.min_order_quantity ?? 1),
-      sizes: Array.isArray(product.sizes) ? product.sizes.join(", ") : String(product.sizes ?? ""),
       colors: Array.isArray(product.colors) ? product.colors.join(", ") : String(product.colors ?? ""),
       category_id: String(product.category_id ?? ""),
       sub_category_id: String(product.sub_category_id ?? product.SubCategory?.id ?? ""),
       sub_sub_category_id: String(
         product.sub_sub_category_id ?? product.SubSubCategory?.id ?? "",
       ),
+      image_urls: "",
     });
     setUploadedUrls(imageUrls);
+    setSizeVariants(normalizeVariantsForForm(product));
+    setShowValidationErrors(false);
     setIsCreateModalOpen(true);
   };
 
@@ -330,13 +510,10 @@ export default function AdminProductsPage() {
       const payload = {
         name: form.name,
         description: form.description,
-        price: Number(form.price),
+        price: fallbackVariantPrice,
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
-        sizes: form.sizes
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        sizes: normalizedSizeVariants.map((variant) => variant.size),
         colors: form.colors
           .split(",")
           .map((c) => c.trim())
@@ -346,7 +523,14 @@ export default function AdminProductsPage() {
         sub_sub_category_id: form.sub_sub_category_id
           ? Number(form.sub_sub_category_id)
           : null,
-        image_url: uploadedUrls,
+        image_url:
+          uploadedUrls.length > 0
+            ? uploadedUrls
+            : form.image_urls
+                .split(",")
+                .map((u) => u.trim())
+                .filter(Boolean),
+        size_variants: normalizedSizeVariants,
       };
 
       const res = await api.post("/product", payload, {
@@ -384,13 +568,10 @@ export default function AdminProductsPage() {
       const payload = {
         name: form.name,
         description: form.description,
-        price: Number(form.price),
+        price: fallbackVariantPrice,
         quantity: Number(form.quantity),
         min_order_quantity: Math.max(1, Number(form.min_order_quantity) || 1),
-        sizes: form.sizes
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        sizes: normalizedSizeVariants.map((variant) => variant.size),
         colors: form.colors
           .split(",")
           .map((c) => c.trim())
@@ -400,7 +581,14 @@ export default function AdminProductsPage() {
         sub_sub_category_id: form.sub_sub_category_id
           ? Number(form.sub_sub_category_id)
           : null,
-        image_url: uploadedUrls,
+        image_url:
+          uploadedUrls.length > 0
+            ? uploadedUrls
+            : form.image_urls
+                .split(",")
+                .map((u) => u.trim())
+                .filter(Boolean),
+        size_variants: normalizedSizeVariants,
       };
 
       const res = await api.put(`/product/${editingProductId}`, payload, {
@@ -537,7 +725,10 @@ export default function AdminProductsPage() {
           <div className="mb-4 flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setActiveTab("all")}
+              onClick={() => {
+                setActiveTab("all");
+                setCurrentPage(1);
+              }}
               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                 activeTab === "all"
                   ? "bg-slate-900 text-white border-slate-900"
@@ -548,7 +739,10 @@ export default function AdminProductsPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("seller")}
+              onClick={() => {
+                setActiveTab("seller");
+                setCurrentPage(1);
+              }}
               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                 activeTab === "seller"
                   ? "bg-slate-900 text-white border-slate-900"
@@ -559,7 +753,10 @@ export default function AdminProductsPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("buyer")}
+              onClick={() => {
+                setActiveTab("buyer");
+                setCurrentPage(1);
+              }}
               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                 activeTab === "buyer"
                   ? "bg-slate-900 text-white border-slate-900"
@@ -570,7 +767,10 @@ export default function AdminProductsPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("admin")}
+              onClick={() => {
+                setActiveTab("admin");
+                setCurrentPage(1);
+              }}
               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                 activeTab === "admin"
                   ? "bg-slate-900 text-white border-slate-900"
@@ -647,9 +847,6 @@ export default function AdminProductsPage() {
                     const hasCommissionChanged =
                       isValidDraftCommission &&
                       Math.abs(parsedDraftCommission - currentCommission) > 0.0001;
-                    const isCommissionUpdating =
-                      commissionMutation.isPending &&
-                      commissionMutation.variables?.id === product.id;
 
                     return (
                       <tr key={product.id} className="align-top">
@@ -861,6 +1058,37 @@ export default function AdminProductsPage() {
                   })}
                 </tbody>
               </table>
+              <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-500">
+                  Showing {startIndex}-{endIndex} of {totalItems} products
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={pageFromApi === 1}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-slate-600">
+                    Page {pageFromApi} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    disabled={pageFromApi === totalPages}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
       </section>
@@ -884,12 +1112,12 @@ export default function AdminProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
 
               <div className="px-6 py-4 text-sm text-slate-600">
-                This action can’t be undone.
+                This action canâ€™t be undone.
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
@@ -936,7 +1164,7 @@ export default function AdminProductsPage() {
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -985,8 +1213,15 @@ export default function AdminProductsPage() {
 
               <div className="md:col-span-2 space-y-4 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[11px] text-slate-500">
-                    Product ID: <span className="text-slate-700">{selectedProduct.id}</span>
+                  <div className="space-y-1 text-[11px] text-slate-500">
+                    <div>
+                      Product ID: <span className="text-slate-700">{selectedProduct.id}</span>
+                    </div>
+                    {selectedProduct.user_id && (
+                      <div>
+                        Seller ID: <span className="text-slate-700">{selectedProduct.user_id}</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     {selectedProduct.is_active ? (
@@ -1021,7 +1256,7 @@ export default function AdminProductsPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 border rounded-lg">
-                    <div className="text-xs text-slate-500">Price</div>
+                    <div className="text-xs text-slate-500">Base Price</div>
                     <div className="font-semibold text-slate-900">
                       {selectedProduct.price ?? "-"} AED
                     </div>
@@ -1039,23 +1274,38 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                   <div className="p-3 border rounded-lg">
-                    <div className="text-xs text-slate-500">Category</div>
+                    <div className="text-xs text-slate-500">Minimum Order Quantity</div>
+                    <div className="font-semibold text-slate-900">
+                      {selectedProduct.min_order_quantity ?? "-"}
+                    </div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="text-xs text-slate-500">Category Details</div>
                     <div className="font-semibold text-slate-900">
                       {selectedProduct.Category?.name || "-"}
                     </div>
+                    <div className="mt-1 text-[11px] text-slate-500">
+                      Category ID: {selectedProduct.category_id ?? "-"}
+                    </div>
                     {selectedProduct.SubCategory?.name && (
                       <div className="mt-0.5 text-[11px] text-slate-500">
-                        {selectedProduct.SubCategory.name}
+                        Subcategory: {selectedProduct.SubCategory.name}
+                        {selectedProduct.sub_category_id
+                          ? ` (ID: ${selectedProduct.sub_category_id})`
+                          : ""}
                       </div>
                     )}
                     {selectedProduct.SubSubCategory?.name && (
                       <div className="mt-0.5 text-[11px] text-slate-500">
-                        {selectedProduct.SubSubCategory.name}
+                        Sub-sub-category: {selectedProduct.SubSubCategory.name}
+                        {selectedProduct.sub_sub_category_id
+                          ? ` (ID: ${selectedProduct.sub_sub_category_id})`
+                          : ""}
                       </div>
                     )}
                   </div>
                   <div className="p-3 border rounded-lg">
-                    <div className="text-xs text-slate-500">Seller</div>
+                    <div className="text-xs text-slate-500">Seller / Uploader</div>
                     <div className="font-semibold text-slate-900">
                       {selectedProduct.User?.name || "Seller"}
                     </div>
@@ -1064,7 +1314,108 @@ export default function AdminProductsPage() {
                         {selectedProduct.User.email}
                       </div>
                     )}
+                    {selectedProduct.User?.role && (
+                      <div className="text-[11px] text-slate-500 mt-0.5 capitalize">
+                        Role: {selectedProduct.User.role}
+                      </div>
+                    )}
                   </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="text-xs text-slate-500">Images</div>
+                    <div className="font-semibold text-slate-900">
+                      {imagesForSelected.length}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-slate-500">
+                      Total uploaded product images
+                    </div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="text-xs text-slate-500">Colors</div>
+                    {selectedProductColors.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {selectedProductColors.map((color) => (
+                          <span
+                            key={color}
+                            className="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700"
+                          >
+                            {color}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="font-semibold text-slate-900">-</div>
+                    )}
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="text-xs text-slate-500">Dates</div>
+                    <div className="mt-1 space-y-1 text-[11px] text-slate-600">
+                      <div>
+                        Created:{" "}
+                        <span className="text-slate-900">
+                          {selectedProduct.createdAt
+                            ? new Date(selectedProduct.createdAt).toLocaleString()
+                            : "-"}
+                        </span>
+                      </div>
+                      <div>
+                        Updated:{" "}
+                        <span className="text-slate-900">
+                          {selectedProduct.updatedAt
+                            ? new Date(selectedProduct.updatedAt).toLocaleString()
+                            : "-"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs font-semibold text-slate-600">
+                    Product Variants
+                  </div>
+                  {selectedProductVariants.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {selectedProductVariants.map((variant, index) => {
+                        const variantImages = Array.isArray(variant?.image_url)
+                          ? variant.image_url
+                          : variant?.image_url
+                            ? [variant.image_url]
+                            : [];
+
+                        return (
+                          <div
+                            key={`${variant?.size || "variant"}-${index}`}
+                            className="rounded-lg border bg-slate-50 p-3"
+                          >
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                              <div>
+                                <div className="text-[11px] text-slate-500">Option</div>
+                                <div className="font-medium text-slate-900">
+                                  {variant?.size || "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] text-slate-500">Price</div>
+                                <div className="font-medium text-slate-900">
+                                  {variant?.price ?? "-"} AED
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] text-slate-500">Images</div>
+                                <div className="font-medium text-slate-900">
+                                  {variantImages.length}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-sm text-slate-500">
+                      No variant details available.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1077,181 +1428,74 @@ export default function AdminProductsPage() {
         <ScreenModal open={isCreateModalOpen}>
           <div className="app-modal-overlay">
             <div className="app-modal-panel flex max-w-lg flex-col">
-              <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
-                <div className="min-w-0">
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    {productModalMode === "edit" ? "Edit Product" : "Add Product"}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {productModalMode === "edit"
-                      ? "Update product details for this listing."
-                      : "This product will be auto-approved for marketplace."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateModalOpen(false);
-                    resetForm();
-                  }}
-                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
+              <div className="border-b px-6 py-4">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  {productModalMode === "create" ? "Add New Product" : "Edit Product"}
+                </h2>
               </div>
 
-              <div className="app-modal-scroll space-y-4 px-6 py-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Name
-                  </label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="Product name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, description: e.target.value }))
-                    }
-                    className="w-full border rounded-md px-3 py-2 text-sm min-h-24"
-                    placeholder="Write product description"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <form
+                className="flex min-h-0 flex-1 flex-col"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setShowValidationErrors(true);
+                  if (!isFormReady) return;
+                  if (productModalMode === "edit") {
+                    updateMutation.mutate();
+                  } else {
+                    createMutation.mutate();
+                  }
+                }}
+              >
+                <div className="app-modal-scroll space-y-4 px-6 py-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Price (AED)
-                    </label>
-                    <input
-                      type="number"
-                      value={form.price}
-                      onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="0"
-                      min={1}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      value={form.quantity}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, quantity: e.target.value }))
-                      }
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="0"
-                      min={1}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Minimum Order Quantity
-                    </label>
-                    <input
-                      type="number"
-                      value={form.min_order_quantity}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, min_order_quantity: e.target.value }))
-                      }
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="1"
-                      min={1}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Category
                     </label>
                     <select
+                      className="w-full border rounded px-3 py-2 text-sm"
                       value={form.category_id}
                       onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
+                        setForm({
+                          ...form,
                           category_id: e.target.value,
                           sub_category_id: "",
                           sub_sub_category_id: "",
-                        }))
+                        })
                       }
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                      required
                     >
-                      <option value="">Select category</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
+                      <option value="">Select a category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
                         </option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      {variantTypeMeta.label}
-                    </label>
-                    <input
-                      type="text"
-                      value={form.sizes}
-                      onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder={variantTypeMeta.placeholder}
-                    />
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Optional. Comma separated {variantTypeMeta.label.toLowerCase()} options.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Colors
-                    </label>
-                    <input
-                      type="text"
-                      value={form.colors}
-                      onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Red, Blue, Black"
-                    />
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Optional. Comma separated.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Subcategory
                     </label>
                     <select
+                      className="w-full border rounded px-3 py-2 text-sm"
                       value={form.sub_category_id}
                       onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
+                        setForm({
+                          ...form,
                           sub_category_id: e.target.value,
                           sub_sub_category_id: "",
-                        }))
+                        })
                       }
                       disabled={!selectedCategoryId || subCategories.length === 0}
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
                     >
                       <option value="">
                         {!selectedCategoryId
-                          ? "Select category first"
+                          ? "Select a category first"
                           : subCategories.length === 0
                             ? "No subcategories"
-                            : "Select subcategory"}
+                            : "Select a subcategory"}
                       </option>
                       {subCategories.map((sub: AdminProductSubCategory & { id: number }) => (
                         <option key={sub.id} value={sub.id}>
@@ -1262,23 +1506,26 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Sub-sub-category
                     </label>
                     <select
+                      className="w-full border rounded px-3 py-2 text-sm"
                       value={form.sub_sub_category_id}
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, sub_sub_category_id: e.target.value }))
+                        setForm({
+                          ...form,
+                          sub_sub_category_id: e.target.value,
+                        })
                       }
                       disabled={!selectedSubCategoryId || subSubCategories.length === 0}
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
                     >
                       <option value="">
                         {!selectedSubCategoryId
-                          ? "Select subcategory first"
+                          ? "Select a subcategory first"
                           : subSubCategories.length === 0
                             ? "No sub-sub-categories"
-                            : "Select sub-sub-category"}
+                            : "Select a sub-sub-category"}
                       </option>
                       {subSubCategories.map(
                         (subSub: AdminProductSubSubCategory & { id: number }) => (
@@ -1289,106 +1536,250 @@ export default function AdminProductsPage() {
                       )}
                     </select>
                   </div>
-                </div>
 
-                <div className="border-t pt-4 space-y-2">
-                  <div className="text-sm font-semibold text-slate-800">
-                    Product Images
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <label
-                      htmlFor="admin-product-images"
-                      className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
-                    >
-                      Choose images
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Name
                     </label>
-                    <span className="text-[11px] text-slate-500">
-                      JPG, PNG etc. You can select multiple files.
-                    </span>
-                  </div>
-                  <input
-                    id="admin-product-images"
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const files = e.target.files;
-                      if (!files || files.length === 0) return;
-
-                      const formData = new FormData();
-                      Array.from(files).forEach((file) =>
-                        formData.append("images", file),
-                      );
-
-                      try {
-                        setUploading(true);
-                        const res = await api.post("/upload/multiple", formData, {
-                          headers: {
-                            "Content-Type": "multipart/form-data",
-                          },
-                        });
-                        const urls =
-                          res.data?.urls || res.data?.url || res.data || [];
-                        const newUrls = Array.isArray(urls) ? urls : [urls];
-                        setUploadedUrls((prev) => [...prev, ...newUrls]);
-                      } catch (err) {
-                        console.error("Image upload failed", err);
-                        setToast({
-                          show: true,
-                          message: "Image upload failed",
-                          tone: "error",
-                        });
-                        setTimeout(() => setToast(null), 2500);
-                      } finally {
-                        setUploading(false);
+                    <input
+                      type="text"
+                      className="w-full border rounded px-3 py-2 text-sm"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
                       }
-                    }}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      className="w-full border rounded px-3 py-2 text-sm min-h-20"
+                      value={form.description}
+                      onChange={(e) =>
+                        setForm({ ...form, description: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={form.quantity}
+                        onChange={(e) =>
+                          setForm({ ...form, quantity: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Colors
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        placeholder="Red, Blue, Black"
+                        value={form.colors}
+                        onChange={(e) =>
+                          setForm({ ...form, colors: e.target.value })
+                        }
+                      />
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Optional. Comma separated.
+                      </p>
+                    </div>
+                  </div>
+
+                  <SizeVariantsEditor
+                    variants={sizeVariants}
+                    onChange={setSizeVariants}
+                    uploadedUrls={uploadedUrls}
+                    allowedOptions={variantTypeMeta.options}
+                    title={variantTypeMeta.title}
+                    optionLabel={variantTypeMeta.label}
+                    helperText={variantTypeMeta.helperText}
+                    addButtonText={variantTypeMeta.addButtonText}
+                    placeholder={variantTypeMeta.placeholder}
                   />
 
-                  {uploading && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Uploading images...
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Minimum order quantity
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="w-full border rounded px-3 py-2 text-sm"
+                      value={form.min_order_quantity}
+                      onChange={(e) =>
+                        setForm({ ...form, min_order_quantity: e.target.value })
+                      }
+                      required
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Buyers can&apos;t purchase below this quantity.
                     </p>
-                  )}
+                  </div>
 
-                  {uploadedUrls.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      <p className="text-xs text-emerald-700 font-medium">
-                        {uploadedUrls.length} image(s) uploaded. Click × to remove.
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {uploadedUrls.map((url) => (
-                          <div
-                            key={url}
-                            className="relative w-16 h-16 border rounded overflow-hidden bg-slate-50"
-                          >
-                            <button
-                              type="button"
-                              className="absolute -top-1 -right-1 bg-white text-xs rounded-full border px-1 leading-none shadow"
-                              onClick={() =>
-                                setUploadedUrls((prev) =>
-                                  prev.filter((u) => u !== url),
-                                )
-                              }
-                            >
-                              ×
-                            </button>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={url}
-                              alt="Product"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
+                  <div className="mt-4 border-t pt-4 space-y-3">
+                    <p className="text-sm font-semibold text-slate-800">
+                      Product Images
+                    </p>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Choose image files
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <label
+                          htmlFor="admin-product-images"
+                          className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+                        >
+                          Choose images
+                        </label>
+                        <span className="text-[11px] text-slate-500">
+                          JPG, PNG etc. You can select multiple files.
+                        </span>
                       </div>
+                      <input
+                        id="admin-product-images"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (!files || files.length === 0) return;
+
+                          const formData = new FormData();
+                          Array.from(files).forEach((file) =>
+                            formData.append("images", file),
+                          );
+
+                          try {
+                            setUploading(true);
+                            const res = await api.post(
+                              "/upload/multiple",
+                              formData,
+                              {
+                                headers: {
+                                  "Content-Type": "multipart/form-data",
+                                },
+                              },
+                            );
+                            const urls =
+                              res.data?.urls || res.data?.url || res.data || [];
+                            const newUrls = Array.isArray(urls) ? urls : [urls];
+                            setUploadedUrls((prev) => {
+                              const mergedUrls = [...prev, ...newUrls];
+
+                              setSizeVariants((currentVariants) => {
+                                if (mergedUrls.length !== 1) return currentVariants;
+
+                                return currentVariants.map((variant, index) => {
+                                  if (index !== 0) return variant;
+                                  if (variant.image_url.filter(Boolean).length > 0) {
+                                    return variant;
+                                  }
+
+                                  return {
+                                    ...variant,
+                                    image_url: [mergedUrls[0]],
+                                  };
+                                });
+                              });
+
+                              return mergedUrls;
+                            });
+                          } catch (err) {
+                            console.error("Image upload failed", err);
+                            setToast({
+                              show: true,
+                              message: "Image upload failed",
+                              tone: "error",
+                            });
+                            setTimeout(() => setToast(null), 2500);
+                          } finally {
+                            setUploading(false);
+                          }
+                        }}
+                      />
+                      {uploading && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Uploading images...
+                        </p>
+                      )}
+                      {uploadedUrls.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs text-green-600">
+                            {uploadedUrls.length} image(s) uploaded. Click × to
+                            remove.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {uploadedUrls.map((url) => (
+                              <div
+                                key={url}
+                                className="relative w-16 h-16 border rounded overflow-hidden bg-slate-50"
+                              >
+                                <button
+                                  type="button"
+                                  className="absolute -top-1 -right-1 bg-white text-xs rounded-full border px-1 leading-none shadow"
+                                  onClick={() => {
+                                    setUploadedUrls((prev) =>
+                                      prev.filter((u) => u !== url),
+                                    );
+                                    setSizeVariants((currentVariants) =>
+                                      currentVariants.map((variant) => ({
+                                        ...variant,
+                                        image_url: variant.image_url.filter(
+                                          (imageUrl) => imageUrl !== url,
+                                        ),
+                                      })),
+                                    );
+                                  }}
+                                >
+                                  ×
+                                </button>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={url}
+                                  alt="Product"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {showValidationErrors && validationErrors.length > 0 && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      <p className="font-medium">Please fix the following:</p>
+                      <ul className="mt-1 list-disc pl-5">
+                        {validationErrors.map((message) => (
+                          <li key={message}>{message}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2 border-t">
+                <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
                   <button
                     type="button"
                     onClick={() => {
@@ -1400,20 +1791,12 @@ export default function AdminProductsPage() {
                     Cancel
                   </button>
                   <button
-                    type="button"
+                    type="submit"
                     disabled={
-                      !isFormReady ||
                       createMutation.isPending ||
                       updateMutation.isPending ||
                       uploading
                     }
-                    onClick={() => {
-                      if (productModalMode === "edit") {
-                        updateMutation.mutate();
-                        return;
-                      }
-                      createMutation.mutate();
-                    }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60"
                   >
                     {createMutation.isPending || updateMutation.isPending
@@ -1423,7 +1806,7 @@ export default function AdminProductsPage() {
                         : "Save Product"}
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </ScreenModal>
@@ -1432,3 +1815,5 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+
+
