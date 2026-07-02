@@ -1,9 +1,9 @@
-export function normalizeCheckoutNumber(value: unknown, fallback = 0) {
+export function normalizeCheckoutNumber(value: unknown, fallback = 0): number {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-export function getCheckoutItemQuantity(item: unknown) {
+export function getCheckoutItemQuantity(item: unknown): number {
   const quantity = normalizeCheckoutNumber(
     (item as { quantity?: unknown } | null | undefined)?.quantity,
     1,
@@ -11,7 +11,7 @@ export function getCheckoutItemQuantity(item: unknown) {
   return Math.max(1, Math.floor(quantity));
 }
 
-export function getCheckoutUnitPrice(item: unknown) {
+export function getCheckoutUnitPrice(item: unknown): number {
   const entry = (item as {
     unit_price?: unknown;
     total_price?: unknown;
@@ -61,7 +61,7 @@ export function getCheckoutUnitPrice(item: unknown) {
   return Math.max(0, fallbackUnitPrice);
 }
 
-export function getCheckoutBaseUnitPrice(item: unknown) {
+export function getCheckoutBaseUnitPrice(item: unknown): number {
   const entry = (item as {
     base_unit_price?: unknown;
     baseUnitPrice?: unknown;
@@ -96,11 +96,14 @@ export function getCheckoutBaseUnitPrice(item: unknown) {
   return Math.max(0, normalizeCheckoutNumber(entry.unit_price, 0));
 }
 
-export function getCheckoutLineTotal(item: unknown) {
+export function getCheckoutLineTotal(item: unknown): number {
   return getCheckoutUnitPrice(item) * getCheckoutItemQuantity(item);
 }
 
-export function getCheckoutSubtotal(items: unknown[]) {
+export function getCheckoutSubtotal(items: unknown[]): number {
   if (!Array.isArray(items)) return 0;
-  return items.reduce((sum, item) => sum + getCheckoutLineTotal(item), 0);
+  return items.reduce<number>(
+    (sum, item) => sum + getCheckoutLineTotal(item),
+    0,
+  );
 }

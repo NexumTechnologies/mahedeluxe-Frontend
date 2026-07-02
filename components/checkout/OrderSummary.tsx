@@ -30,13 +30,13 @@ export default function OrderSummary({
   onPayNow,
 }: OrderSummaryProps) {
   const itemCount = totalItems ?? items.length ?? 0;
-  const computedCustomerSubtotal = getCheckoutSubtotal(items);
+  const computedCustomerSubtotal: number = getCheckoutSubtotal(items);
 
-  const customerSubtotal =
+  const customerSubtotal: number =
     itemSubtotal != null ? Number(itemSubtotal) || 0 : computedCustomerSubtotal;
 
-  const baseProductsTotal = Array.isArray(items)
-    ? items.reduce((sum, item) => {
+  const baseProductsTotal: number = Array.isArray(items)
+    ? items.reduce<number>((sum, item) => {
         const quantity = getCheckoutItemQuantity(item);
         const baseUnitPrice = getCheckoutBaseUnitPrice(item);
         return sum + baseUnitPrice * quantity;

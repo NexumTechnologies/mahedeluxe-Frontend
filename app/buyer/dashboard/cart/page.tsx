@@ -20,6 +20,28 @@ import {
 } from "@/lib/checkoutPricing";
 import { ChevronRight, Minus, Package, Plus, ShieldCheck, Trash2, Truck } from "lucide-react";
 
+type BuyerCartItem = {
+  id?: number | string;
+  product_id?: number | string;
+  quantity?: number;
+  total_price?: number;
+  unit_price?: number;
+  selected_size?: string | null;
+  Product?: {
+    name?: string;
+    image_url?: string[] | string | null;
+    quantity?: number | null;
+    min_order_quantity?: number | null;
+    selected_size?: string | null;
+  } | null;
+};
+
+type BuyerCartData = {
+  items?: BuyerCartItem[];
+  totalItems?: number;
+  totalPrice?: number;
+};
+
 export default function BuyerCartPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -95,11 +117,14 @@ export default function BuyerCartPage() {
     },
   });
 
-  const accountCart = data?.data || data || {};
-  const cart = isAuthenticated ? accountCart : guestCart;
-  const items = cart.items || [];
-  const totalItems = cart.totalItems || items.length || 0;
-  const totalPrice = getCheckoutSubtotal(items);
+  const accountCart: BuyerCartData =
+    ((data as { data?: BuyerCartData } | undefined)?.data ??
+      (data as BuyerCartData | undefined) ??
+      {}) as BuyerCartData;
+  const cart: BuyerCartData = isAuthenticated ? accountCart : guestCart;
+  const items: BuyerCartItem[] = cart.items || [];
+  const totalItems = Number(cart.totalItems) || items.length || 0;
+  const totalPrice: number = getCheckoutSubtotal(items);
   const summaryCards = [
     {
       label: "Items ready",
