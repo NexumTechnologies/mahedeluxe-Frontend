@@ -34,6 +34,8 @@ interface Product {
   discount?: number;
 }
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchFeaturedProducts(): Promise<Product[]> {
   const res = await api.get("/product/public/listed", { params: { limit: 12 } });
   const data = res.data;

@@ -10,6 +10,8 @@ export default function VerificationPage() {
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const checkStatus = async () => {
     setLoading(true);
     setMessage(null);
@@ -21,7 +23,7 @@ export default function VerificationPage() {
         router.push("/auth/signin");
         return;
       }
-      // Customers (role 'user') do not require admin approval — treat as verified
+      // Customers (role 'user') do not require admin approval ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â treat as verified
       if (user.role === "user") {
         router.push("/");
         return;
@@ -65,7 +67,7 @@ export default function VerificationPage() {
 
         <h1 className="mt-6 text-2xl font-semibold">Verification pending</h1>
         <p className="mt-2 text-gray-600">
-          Your account is currently under review by our team. Your verification is pending — we will inform you when an admin approves your account.
+          Your account is currently under review by our team. Your verification is pending ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â we will inform you when an admin approves your account.
         </p>
 
         <ul className="mt-6 text-left mx-auto max-w-sm space-y-3">

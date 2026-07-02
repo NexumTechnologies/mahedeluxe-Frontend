@@ -33,6 +33,8 @@ export default function PaymentReturnPage() {
       redirectToHome();
     }, REDIRECT_TIMEOUT_MS);
 
+    //========================= API CALLS ==========================//
+    //==============================================================//
     const clearAndRedirect = async () => {
       try {
         clearGuestCart();

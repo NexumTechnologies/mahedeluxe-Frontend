@@ -37,13 +37,59 @@ export default function ProductDetailPage() {
   const getErrorStatus = (error: unknown) =>
     (error as AxiosError<ApiErrorResponse>)?.response?.status;
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
+  const fetchProductDetail = async () => {
+    const res = await api.get(`/product/${id}`);
+    return res.data;
+  };
+
+  const addToCartRequest = async ({
+    product_id,
+    quantity,
+    selected_size,
+  }: {
+    product_id: number;
+    quantity: number;
+    selected_size?: string | null;
+  }) => {
+    const res = await api.post("/addToCart", {
+      product_id,
+      quantity,
+      selected_size,
+    });
+    return res.data;
+  };
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["product-detail", id],
-    queryFn: async () => {
-      const res = await api.get(`/product/${id}`);
-      return res.data;
-    },
+    queryFn: fetchProductDetail,
     enabled: !!id,
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: addToCartRequest,
+    onSuccess: (res) => {
+      setToast({
+        show: true,
+        message: res?.message || t("product.addedToCart"),
+      });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("open-cart-drawer"));
+      }
+      setTimeout(() => setToast(null), 1000);
+    },
+    onError: (err: unknown) => {
+      if (getErrorStatus(err) === 401) {
+        router.push("/auth/signin");
+        return;
+      }
+      setToast({
+        show: true,
+        message: getErrorMessage(err) || t("product.failedToAddToCart"),
+      });
+      setTimeout(() => setToast(null), 1000);
+    },
   });
 
   const product = data?.data || data?.product || data || null;
@@ -66,8 +112,9 @@ export default function ProductDetailPage() {
     effectiveSelectedSize && sizeVariants.length > 0
       ? sizeVariants.find(
           (variant: any) =>
-            String(variant?.size || "").trim().toLowerCase() ===
-            effectiveSelectedSize.toLowerCase(),
+            String(variant?.size || "")
+              .trim()
+              .toLowerCase() === effectiveSelectedSize.toLowerCase(),
         ) || null
       : null;
 
@@ -94,20 +141,21 @@ export default function ProductDetailPage() {
     Math.floor(Number(quantity) || minAllowedQty),
   );
 
-  const basePrice = activeVariant?.price != null
-    ? Number(activeVariant.price) || 0
-    : product
-      ? Number(product.price) || 0
-      : 0;
-  const basePriceRaw =
+  const basePrice =
     activeVariant?.price != null
       ? Number(activeVariant.price) || 0
+      : product
+        ? Number(product.price) || 0
+        : 0;
+  const basePriceRaw =
+    activeVariant?.base_price != null
+      ? Number(activeVariant.base_price) || 0
       : product && (product.base_price != null || product.base_price === 0)
         ? Number(product.base_price)
         : basePrice;
   const customerPriceRaw =
-    activeVariant?.price != null
-      ? Number(activeVariant.price) || 0
+    activeVariant?.customer_price != null
+      ? Number(activeVariant.customer_price) || 0
       : product && product.customer_price != null
         ? Number(product.customer_price)
         : null;
@@ -119,58 +167,50 @@ export default function ProductDetailPage() {
       ? Number(product.listing.display_price)
       : basePrice);
 
-  const images: string[] = activeVariant?.image_url?.length
-    ? activeVariant.image_url
-    : product
-      ? Array.isArray(product.image_url)
-        ? product.image_url
-        : product.image_url
-          ? [product.image_url]
-          : []
-      : [];
+  const allVariantImages: string[] = Array.from(
+    new Set(
+      sizeVariants.flatMap((variant: any): string[] =>
+        Array.isArray(variant?.image_url)
+          ? variant.image_url
+              .filter((image: unknown): image is string => Boolean(image))
+              .map((image: string) => String(image))
+          : variant?.image_url
+            ? [String(variant.image_url)]
+            : [],
+      ),
+    ),
+  );
+  const imageToVariantSize = new Map<string, string>();
+  sizeVariants.forEach((variant: any) => {
+    const variantSize = String(variant?.size || "").trim();
+    if (!variantSize) return;
+
+    const variantImageList = Array.isArray(variant?.image_url)
+      ? variant.image_url
+          .filter((image: unknown): image is string => Boolean(image))
+          .map((image: string) => String(image))
+      : variant?.image_url
+        ? [String(variant.image_url)]
+        : [];
+
+    variantImageList.forEach((image: string) => {
+      if (!imageToVariantSize.has(image)) {
+        imageToVariantSize.set(image, variantSize);
+      }
+    });
+  });
+  const productImages: string[] = product
+    ? Array.isArray(product.image_url)
+      ? product.image_url
+      : product.image_url
+        ? [product.image_url]
+        : []
+    : [];
+  const images: string[] =
+    allVariantImages.length > 0 ? allVariantImages : productImages;
 
   const selectedImage = images[selectedImageIndex] || images[0] || null;
   const sizeRequired = sizeVariants.length > 0;
-
-  const addToCartMutation = useMutation({
-    mutationFn: async ({
-      product_id,
-      quantity,
-      selected_size,
-    }: {
-      product_id: number;
-      quantity: number;
-      selected_size?: string | null;
-    }) => {
-      const res = await api.post("/addToCart", {
-        product_id,
-        quantity,
-        selected_size,
-      });
-      return res.data;
-    },
-    onSuccess: (res) => {
-      setToast({
-        show: true,
-        message: res?.message || t("product.addedToCart"),
-      });
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("open-cart-drawer"));
-      }
-      setTimeout(() => setToast(null), 1000);
-    },
-    onError: (err: unknown) => {
-      if (getErrorStatus(err) === 401) {
-        router.push("/auth/signin");
-        return;
-      }
-      setToast({
-        show: true,
-        message: getErrorMessage(err) || t("product.failedToAddToCart"),
-      });
-      setTimeout(() => setToast(null), 1000);
-    },
-  });
 
   const saveGuestCartItem = () => {
     if (!product) return;
@@ -211,7 +251,8 @@ export default function ProductDetailPage() {
     }
   };
 
-  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "info@mahedeluxe.ae";
+  const supportEmail =
+    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "info@mahedeluxe.ae";
   const whatsappNumberRaw =
     process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "+971 50 329 8799";
   const whatsappNumber = whatsappNumberRaw.replace(/[^\d]/g, "");
@@ -313,7 +354,13 @@ export default function ProductDetailPage() {
                     <button
                       key={`${img}-${index}`}
                       type="button"
-                      onClick={() => setSelectedImageIndex(index)}
+                      onClick={() => {
+                        setSelectedImageIndex(index);
+                        const matchingVariantSize = imageToVariantSize.get(img);
+                        if (matchingVariantSize) {
+                          setSelectedSize(matchingVariantSize);
+                        }
+                      }}
                       className={`relative h-20 w-20 overflow-hidden rounded-xl border transition-all ${
                         index === selectedImageIndex
                           ? "border-blue-500 ring-2 ring-blue-200"
@@ -372,9 +419,14 @@ export default function ProductDetailPage() {
                   <div className="text-xs uppercase tracking-wide text-slate-500">
                     {t("product.price")}
                   </div>
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     <span className="text-2xl font-semibold text-emerald-700">
-                      {formatPriceFromAED(listingPrice, currency, rates, locale)}
+                      {formatPriceFromAED(
+                        listingPrice,
+                        currency,
+                        rates,
+                        locale,
+                      )}
                     </span>
                   </div>
                 </div>
@@ -403,6 +455,21 @@ export default function ProductDetailPage() {
                           type="button"
                           onClick={() => {
                             setSelectedSize(size);
+                            const matchingVariant = sizeVariants.find(
+                              (variant: any) =>
+                                String(variant?.size || "").trim().toLowerCase() ===
+                                size.toLowerCase(),
+                            );
+                            const nextImage = Array.isArray(matchingVariant?.image_url)
+                              ? matchingVariant.image_url.find(Boolean)
+                              : matchingVariant?.image_url;
+                            if (nextImage) {
+                              const nextIndex = images.findIndex(
+                                (image) => image === String(nextImage),
+                              );
+                              setSelectedImageIndex(nextIndex >= 0 ? nextIndex : 0);
+                              return;
+                            }
                             setSelectedImageIndex(0);
                           }}
                           className={`rounded-full border px-4 py-2 text-sm transition-colors ${
@@ -434,10 +501,16 @@ export default function ProductDetailPage() {
                     type="button"
                     onClick={() =>
                       setQuantity((q) =>
-                        Math.max(minAllowedQty, (Number(q) || minAllowedQty) - 1),
+                        Math.max(
+                          minAllowedQty,
+                          (Number(q) || minAllowedQty) - 1,
+                        ),
                       )
                     }
-                    disabled={effectiveQuantity <= minAllowedQty || product.quantity === 0}
+                    disabled={
+                      effectiveQuantity <= minAllowedQty ||
+                      product.quantity === 0
+                    }
                     className="flex h-8 w-9 items-center justify-center text-lg text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     -
@@ -459,7 +532,8 @@ export default function ProductDetailPage() {
                       )
                     }
                     disabled={
-                      effectiveQuantity >= (product.quantity || 0) || product.quantity === 0
+                      effectiveQuantity >= (product.quantity || 0) ||
+                      product.quantity === 0
                     }
                     className="flex h-8 w-9 items-center justify-center text-lg text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -509,8 +583,11 @@ export default function ProductDetailPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (sizeRequired && !selectedSize) {
-                        setToast({ show: true, message: "Please choose a size first." });
+                      if (sizeRequired && !effectiveSelectedSize) {
+                        setToast({
+                          show: true,
+                          message: "Please choose a size first.",
+                        });
                         setTimeout(() => setToast(null), 1000);
                         return;
                       }
@@ -534,7 +611,11 @@ export default function ProductDetailPage() {
                         selected_size: effectiveSelectedSize,
                       });
                     }}
-                    disabled={addToCartMutation.isPending || product.quantity === 0 || isSavingGuest}
+                    disabled={
+                      addToCartMutation.isPending ||
+                      product.quantity === 0 ||
+                      isSavingGuest
+                    }
                     className="inline-flex flex-1 items-center justify-center rounded-full border border-blue-600 py-2.5 text-sm text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {t("product.addToCart")}
@@ -543,8 +624,11 @@ export default function ProductDetailPage() {
                     type="button"
                     disabled={product.quantity === 0}
                     onClick={() => {
-                      if (sizeRequired && !selectedSize) {
-                        setToast({ show: true, message: "Please choose a size first." });
+                      if (sizeRequired && !effectiveSelectedSize) {
+                        setToast({
+                          show: true,
+                          message: "Please choose a size first.",
+                        });
                         setTimeout(() => setToast(null), 1000);
                         return;
                       }
@@ -559,7 +643,7 @@ export default function ProductDetailPage() {
                         {
                           product_id: product.id,
                           quantity: effectiveQuantity,
-                        selected_size: effectiveSelectedSize,
+                          selected_size: effectiveSelectedSize,
                         },
                         {
                           onSuccess: () => {

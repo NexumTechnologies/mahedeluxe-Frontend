@@ -24,6 +24,8 @@ interface Product {
   moq: string;
   discount?: number;
 }
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchTopDeals(): Promise<Product[]> {
   const res = await api.get("/product/public/listed", { params: { limit: 10 } });
   const data = res.data;
@@ -166,7 +168,7 @@ export default function TopDealsSection() {
                         {product.discount && (
                           <div className="absolute top-3 left-3 z-20">
                             <div className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1">
-                              <span>🔥</span>
+                              <span>ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â¥</span>
                               <span>{product.discount}% OFF</span>
                             </div>
                           </div>

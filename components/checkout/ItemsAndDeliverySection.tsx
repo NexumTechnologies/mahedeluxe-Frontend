@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/LanguageProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPriceFromAED } from "@/lib/currency";
+import {
+  getCheckoutItemQuantity,
+  getCheckoutLineTotal,
+  getCheckoutUnitPrice,
+} from "@/lib/checkoutPricing";
 
 interface ItemsAndDeliverySectionProps {
   isActive: boolean;
@@ -58,24 +63,10 @@ export default function ItemsAndDeliverySection({
               const imageSrc = Array.isArray(rawImage)
                 ? rawImage[0]
                 : rawImage || "/detail-product.jpg";
-              const listing = product.listing as any;
-              const listingPrice =
-                listing && listing.is_listed && listing.display_price != null
-                  ? Number(listing.display_price)
-                  : undefined;
-              const safeQuantity = Number(item.quantity ?? 1) || 1;
+              const safeQuantity = getCheckoutItemQuantity(item);
               const selectedSize = item.selected_size || product.selected_size || null;
-              const baseUnit =
-                typeof item.unit_price === "number" && !Number.isNaN(item.unit_price)
-                  ? item.unit_price
-                  : undefined;
-              const fallbackUnit = Number(item.total_price ?? 0) / safeQuantity || 0;
-              const unitPrice =
-                typeof baseUnit === "number"
-                  ? baseUnit
-                  : typeof listingPrice === "number" && !Number.isNaN(listingPrice)
-                    ? listingPrice
-                    : fallbackUnit;
+              const unitPrice = getCheckoutUnitPrice(item);
+              const lineTotal = getCheckoutLineTotal(item);
 
               return (
                 <div
@@ -115,7 +106,7 @@ export default function ItemsAndDeliverySection({
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold text-[#000000]">
-                          {t("checkout.lineTotal")}: {formatPriceFromAED(Number(item.total_price) || 0, currency, rates, locale)}
+                          {t("checkout.lineTotal")}: {formatPriceFromAED(lineTotal, currency, rates, locale)}
                         </p>
                         <p className="mt-1 text-xs text-slate-500 sm:text-[11px]">
                           {mode === "guest"

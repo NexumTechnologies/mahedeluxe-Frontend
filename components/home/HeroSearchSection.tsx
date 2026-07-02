@@ -52,6 +52,8 @@ const HERO_SLIDES: BannerSlide[] = [
   },
 ];
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchHeaderCategories(): Promise<UiCategory[]> {
   const res = await api.get("/category");
   const data = res.data;
@@ -120,7 +122,7 @@ export default function HeroSearchSection() {
       <div className="mx-auto w-full max-w-350 px-2 py-2 sm:px-6 sm:py-4 lg:px-8">
         <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#d8e4f5] bg-gradient-to-br from-[#e8f1ff] via-[#f6f9ff] to-[#fff7e6] shadow-[0_10px_26px_rgba(29,78,216,0.12)] sm:rounded-3xl sm:shadow-[0_18px_45px_rgba(29,78,216,0.16)] lg:min-h-[calc(100vh-90px)]">
 
-          {/* ── Categories strip – above the banner ── */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Categories strip ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ above the banner ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <div className="border-b border-[#dbe5f4] bg-white/92 px-2 py-2 backdrop-blur sm:px-6 sm:py-3">
             {isLoading ? (
               <div className="px-2 text-xs font-medium text-slate-500 sm:text-sm">{t("home.loadingCategories")}</div>
@@ -178,7 +180,7 @@ export default function HeroSearchSection() {
             )}
           </div>
 
-          {/* ── Hero banner ── */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Hero banner ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <div className="p-2 sm:p-6 lg:p-8">
             <div className="relative h-[48vh] min-h-[310px] w-full max-h-[520px] overflow-hidden rounded-[20px] border border-white/70 shadow-[0_14px_30px_rgba(15,23,42,0.14)] sm:h-[46vh] sm:min-h-[320px] sm:max-h-none sm:rounded-[28px] sm:shadow-[0_20px_45px_rgba(15,23,42,0.18)] lg:h-[62vh] lg:min-h-[500px]">
               {HERO_SLIDES.map((item, index) => (

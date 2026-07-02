@@ -56,6 +56,8 @@ export default function BuyerProfilePage() {
       ? "inline-block px-2 py-0.5 text-emerald-700 bg-emerald-50 rounded-full text-xs font-medium"
       : "inline-block px-2 py-0.5 text-amber-700 bg-amber-50 rounded-full text-xs font-medium";
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const passwordMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem("token");

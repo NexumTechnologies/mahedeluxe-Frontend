@@ -13,6 +13,8 @@ type RequestError = Error & {
 
 type JsonPayload = Record<string, unknown>;
  
+//========================= API CALLS ==========================//
+//==============================================================//
 async function request(path: string, opts: RequestInit = {}) {
   const shouldTrack = typeof window !== "undefined";
   if (shouldTrack) incrementPendingRequests();

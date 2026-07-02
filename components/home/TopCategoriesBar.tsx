@@ -29,6 +29,8 @@ type UiCategory = {
 
 const CATEGORY_ICONS = [Shirt, Monitor, Gem, Home, Footprints, Package, Cpu];
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchTopCategories(): Promise<UiCategory[]> {
   const res = await api.get("/category");
   const data = res.data;

@@ -22,6 +22,11 @@ import {
 import { getStoredUser } from "@/lib/authStorage";
 import { useI18n } from "@/components/LanguageProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
+import {
+  getCheckoutItemQuantity,
+  getCheckoutLineTotal,
+  getCheckoutSubtotal,
+} from "@/lib/checkoutPricing";
 import { formatPriceFromAED } from "@/lib/currency";
 
 const ORDER_SUCCESS_STORAGE_KEY = "checkout:last-order";
@@ -127,6 +132,8 @@ export default function CheckoutContent() {
 
     let cancelled = false;
 
+    //========================= API CALLS ==========================//
+    //==============================================================//
     (async () => {
       try {
         const uniqueIds = Array.from(
@@ -165,8 +172,10 @@ export default function CheckoutContent() {
                   String(selectedSize || "").trim().toLowerCase(),
               )
             : null;
-          const basePrice = Number(variant?.price ?? fresh.base_price ?? fresh.price ?? 0) || 0;
-          const customerPrice = Number(item.unit_price ?? fresh.customer_price ?? 0) || 0;
+          const basePrice =
+            Number(variant?.base_price ?? fresh.base_price ?? fresh.price ?? 0) || 0;
+          const customerPrice =
+            Number(variant?.customer_price ?? item.unit_price ?? fresh.customer_price ?? 0) || 0;
           const unitPrice = customerPrice > 0 ? customerPrice : basePrice;
           const variantImages = Array.isArray(variant?.image_url)
             ? variant.image_url
@@ -183,7 +192,7 @@ export default function CheckoutContent() {
               ...(item as any).Product,
               id: Number(fresh.id ?? productId),
               name: fresh.name ?? (item as any).Product?.name,
-              price: basePrice,
+              price: unitPrice,
               base_price: basePrice,
               customer_price: unitPrice > 0 ? unitPrice : undefined,
               admin_margin_amount:
@@ -260,7 +269,7 @@ export default function CheckoutContent() {
     : guestCart;
   const items = cart.items || [];
   const totalItems = cart.totalItems || items.length || 0;
-  const itemSubtotal = cart.totalPrice || 0;
+  const itemSubtotal = getCheckoutSubtotal(items);
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
@@ -458,7 +467,7 @@ export default function CheckoutContent() {
         // ignore session storage issues
       }
 
-      window.location.href = paymentUrl;
+      window.location.assign(paymentUrl);
     },
     onError: () => {
       setToast({
@@ -703,30 +712,8 @@ export default function CheckoutContent() {
                   {items.map((item) => (
                     <li key={item.id} className="flex justify-between text-xs">
                       {(() => {
-                        const quantity = Number(item.quantity ?? 1) || 1;
-                        const product = item.Product || {};
-                        const listing = product.listing;
-                        const listingPrice =
-                          listing &&
-                          listing.is_listed &&
-                          listing.display_price != null
-                            ? Number(listing.display_price)
-                            : undefined;
-                        const baseUnit =
-                          typeof item.unit_price === "number" &&
-                          !Number.isNaN(item.unit_price)
-                            ? item.unit_price
-                            : undefined;
-                        const fallbackUnit =
-                          Number(item.total_price ?? 0) / quantity || 0;
-                        const unitPrice =
-                          typeof listingPrice === "number" &&
-                          !Number.isNaN(listingPrice)
-                            ? listingPrice
-                            : typeof baseUnit === "number"
-                              ? baseUnit
-                              : fallbackUnit;
-                        const lineTotal = unitPrice * quantity;
+                        const quantity = getCheckoutItemQuantity(item);
+                        const lineTotal = getCheckoutLineTotal(item);
 
                         return (
                           <>

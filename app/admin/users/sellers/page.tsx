@@ -67,6 +67,8 @@ export default function AdminSellersPage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users", "seller", page, size, debouncedSearch],
     queryFn: async () => {

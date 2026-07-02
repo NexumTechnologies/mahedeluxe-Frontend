@@ -143,6 +143,8 @@ export default function BuyerProductsPage() {
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [sizeVariants, setSizeVariants] = useState<SizeVariantForm[]>([emptyVariant()]);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-products"],
     queryFn: async () => {
@@ -585,12 +587,12 @@ export default function BuyerProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  ✕
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
               <div className="px-6 py-4 text-sm text-slate-600">
-                This action can’t be undone.
+                This action canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t be undone.
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
@@ -633,7 +635,7 @@ export default function BuyerProductsPage() {
                 onClick={() => setSelectedProduct(null)}
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               >
-                ✕
+                ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
               </button>
             </div>
 
@@ -747,7 +749,7 @@ export default function BuyerProductsPage() {
                 onClick={() => setIsModalOpen(false)}
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               >
-                ✕
+                ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
               </button>
             </div>
 
@@ -876,7 +878,7 @@ export default function BuyerProductsPage() {
                   className="mt-1 w-full border rounded px-3 py-2"
                 />
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Buyers can’t purchase below this quantity.
+                  Buyers canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t purchase below this quantity.
                 </p>
               </div>
 
@@ -901,7 +903,6 @@ export default function BuyerProductsPage() {
                 <SizeVariantsEditor
                   variants={sizeVariants}
                   onChange={setSizeVariants}
-                  uploadedUrls={uploadedUrls}
                   allowedOptions={variantTypeMeta.options}
                   title={variantTypeMeta.title}
                   optionLabel={variantTypeMeta.label}
@@ -1006,7 +1007,7 @@ export default function BuyerProductsPage() {
                     {uploadedUrls.length > 0 && (
                       <div className="mt-2 space-y-1">
                         <p className="text-xs text-green-600">
-                          {uploadedUrls.length} image(s) uploaded. Click × to
+                          {uploadedUrls.length} image(s) uploaded. Click ÃƒÆ’Ã¢â‚¬â€ to
                           remove.
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -1029,7 +1030,7 @@ export default function BuyerProductsPage() {
                                   })
                                 }
                               >
-                                ×
+                                ÃƒÆ’Ã¢â‚¬â€
                               </button>
                               <img
                                 src={url}

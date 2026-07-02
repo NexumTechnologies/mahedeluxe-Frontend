@@ -28,6 +28,8 @@ export default function BuyerDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-user", "buyer", id],
     queryFn: async () => {
@@ -124,7 +126,7 @@ export default function BuyerDetailPage() {
             onClick={() => router.back()}
             className="text-sm text-gray-600 hover:text-gray-800"
           >
-            ← Back
+            ÃƒÂ¢Ã¢â‚¬Â Ã‚Â Back
           </button>
         </div>
       </header>

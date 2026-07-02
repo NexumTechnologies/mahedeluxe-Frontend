@@ -48,6 +48,8 @@ type SearchApiItem = {
   customer_price?: string | number | null;
 };
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function searchProductsByName(search: string): Promise<SearchProduct[]> {
   const trimmedSearch = search.trim();
   if (!trimmedSearch) return [];
@@ -855,7 +857,7 @@ export default function Header() {
                   className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-orange rounded-lg transition-colors"
                 >
                   <span className="w-5 h-5 flex items-center justify-center">
-                    🔥
+                    ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â¥
                   </span>
                   <span>Flash Sales</span>
                 </Link>
@@ -866,7 +868,7 @@ export default function Header() {
                   className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-orange rounded-lg transition-colors"
                 >
                   <span className="w-5 h-5 flex items-center justify-center">
-                    ⭐
+                    ÃƒÂ¢Ã‚Â­Ã‚Â
                   </span>
                   <span>Best Sellers</span>
                 </Link>
@@ -877,7 +879,7 @@ export default function Header() {
                   className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-orange rounded-lg transition-colors"
                 >
                   <span className="w-5 h-5 flex items-center justify-center">
-                    📋
+                    ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â¹
                   </span>
                   <span>Custom Orders</span>
                 </Link>
@@ -888,7 +890,7 @@ export default function Header() {
                   className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-orange rounded-lg transition-colors"
                 >
                   <span className="w-5 h-5 flex items-center justify-center">
-                    ⚙️
+                    ÃƒÂ¢Ã…Â¡Ã¢â€žÂ¢ÃƒÂ¯Ã‚Â¸Ã‚Â
                   </span>
                   <span>On-Demand</span>
                 </Link>
@@ -900,7 +902,7 @@ export default function Header() {
                     className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-orange rounded-lg transition-colors"
                   >
                     <span className="w-5 h-5 flex items-center justify-center">
-                      🏭
+                      ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â­
                     </span>
                     <span>Find Suppliers</span>
                   </Link>
@@ -911,7 +913,7 @@ export default function Header() {
                     className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-orange rounded-lg transition-colors"
                   >
                     <span className="w-5 h-5 flex items-center justify-center">
-                      💬
+                      ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¬
                     </span>
                     <span>Support</span>
                   </Link>
@@ -922,7 +924,7 @@ export default function Header() {
                     className="flex items-center gap-3 px-4 py-3 bg-orange text-white rounded-lg hover:opacity-90 transition-opacity font-semibold mt-2"
                   >
                     <span className="w-5 h-5 flex items-center justify-center">
-                      ✨
+                      ÃƒÂ¢Ã…â€œÃ‚Â¨
                     </span>
                     <span>Become a Vendor</span>
                   </Link>

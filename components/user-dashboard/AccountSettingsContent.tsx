@@ -30,6 +30,8 @@ export default function AccountSettingsContent() {
   const [currentView, setCurrentView] = useState<SettingsView>("main");
   const router = useRouter();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");

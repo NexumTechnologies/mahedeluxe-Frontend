@@ -23,6 +23,8 @@ import {
 
 const ITEMS_PER_PAGE = 12;
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchBrowseProducts(
   categoryId: string | null,
   subCategoryId: string | null,

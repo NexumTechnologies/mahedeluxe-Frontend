@@ -145,6 +145,8 @@ export default function AdminLayout({
     return match?.href ?? null;
   }, [pathname]);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const handleLogout = async () => {
     try {
       setLoggingOut(true);

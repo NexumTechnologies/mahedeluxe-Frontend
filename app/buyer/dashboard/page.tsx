@@ -16,6 +16,8 @@ export default function BuyerDashboardHome() {
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data: profileData } = useQuery({
     queryKey: ["buyer-profile"],
     queryFn: async () => {
@@ -135,11 +137,19 @@ export default function BuyerDashboardHome() {
                       {order.Product?.name || td("common.product")}
                     </td>
                     <td className="py-2 text-xs text-slate-600">
+                      {(() => {
+                        const quantity = Math.max(1, Number(order.quantity || 1));
+                        const finalUnitPrice = quantity > 0
+                          ? Number(order.total_amount || 0) / quantity
+                          : 0;
+
+                        return (
+                          <>
                       <div className="font-semibold text-slate-900">
                         {formatAED(order.total_amount || 0)}
                       </div>
                       <div>
-                        Product price: {formatAED(order.base_unit_price || order.Product?.price || 0)}
+                        Product price: {formatAED(finalUnitPrice)}
                       </div>
                       <div>
                         Admin commission: {typeof order.commission_percentage === "number" ? `${order.commission_percentage}%` : "0%"}
@@ -147,6 +157,9 @@ export default function BuyerDashboardHome() {
                       <div>
                         Admin amount: {formatAED(order.admin_earning_amount || 0)}
                       </div>
+                          </>
+                        );
+                      })()}
                     </td>
                     <td className="py-2">
                       <span

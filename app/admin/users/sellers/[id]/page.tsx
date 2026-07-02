@@ -31,6 +31,8 @@ export default function SellerDetailPage() {
   const [previewSelected, setPreviewSelected] = useState(0);
   const [fullOpen, setFullOpen] = useState(false);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-user", "seller", id],
     queryFn: async () => {
@@ -200,7 +202,7 @@ export default function SellerDetailPage() {
           <p className="text-sm text-gray-500 mt-1">Detailed account and profile information</p>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="text-sm text-gray-600 hover:text-gray-800">← Back</button>
+          <button onClick={() => router.back()} className="text-sm text-gray-600 hover:text-gray-800">ÃƒÂ¢Ã¢â‚¬Â Ã‚Â Back</button>
         </div>
       </header>
 

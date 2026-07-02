@@ -45,6 +45,8 @@ export default function ProfilePage() {
   const seller =
     profileData?.data || profileData?.seller || profileData || null;
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const passwordMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem("token");

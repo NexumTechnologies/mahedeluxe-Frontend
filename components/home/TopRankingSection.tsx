@@ -17,6 +17,8 @@ interface Product {
   reviews?: number;
 }
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchTopRanking(): Promise<Product[]> {
   const res = await api.get("/product/public/listed", { params: { limit: 10 } });
   const data = res.data;

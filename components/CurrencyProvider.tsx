@@ -55,6 +55,8 @@ export default function CurrencyProvider({ children }: CurrencyProviderProps) {
   useEffect(() => {
     let cancelled = false;
 
+    //========================= API CALLS ==========================//
+    //==============================================================//
     const loadRates = async () => {
       setIsLoadingRates(true);
 

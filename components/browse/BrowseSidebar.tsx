@@ -37,6 +37,8 @@ interface SubSubCategory {
 
 const CATEGORY_ICONS = [Shirt, Monitor, Shield, Sparkles, Gem, Home, Footprints];
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchBrowseCategories(): Promise<Category[]> {
   const res = await api.get("/category");
   const data = res.data;

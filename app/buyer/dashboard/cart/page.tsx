@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,12 @@ import {
   removeGuestCartItem,
   updateGuestCartItemQuantity,
 } from "@/lib/cartStorage";
+import {
+  getCheckoutItemQuantity,
+  getCheckoutLineTotal,
+  getCheckoutSubtotal,
+  getCheckoutUnitPrice,
+} from "@/lib/checkoutPricing";
 import { ChevronRight, Minus, Package, Plus, ShieldCheck, Trash2, Truck } from "lucide-react";
 
 export default function BuyerCartPage() {
@@ -32,6 +38,8 @@ export default function BuyerCartPage() {
     };
   }, []);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-cart"],
     enabled: isAuthenticated,
@@ -91,30 +99,27 @@ export default function BuyerCartPage() {
   const cart = isAuthenticated ? accountCart : guestCart;
   const items = cart.items || [];
   const totalItems = cart.totalItems || items.length || 0;
-  const totalPrice = cart.totalPrice || 0;
-  const summaryCards = useMemo(
-    () => [
-      {
-        label: "Items ready",
-        value: String(totalItems),
-        icon: Package,
-        tone: "bg-sky-50 text-sky-700",
-      },
-      {
-        label: "Delivery",
-        value: "Calculated later",
-        icon: Truck,
-        tone: "bg-amber-50 text-amber-700",
-      },
-      {
-        label: "Checkout",
-        value: isAuthenticated ? "Account order" : "Guest or login",
-        icon: ShieldCheck,
-        tone: "bg-emerald-50 text-emerald-700",
-      },
-    ],
-    [isAuthenticated, totalItems],
-  );
+  const totalPrice = getCheckoutSubtotal(items);
+  const summaryCards = [
+    {
+      label: "Items ready",
+      value: String(totalItems),
+      icon: Package,
+      tone: "bg-sky-50 text-sky-700",
+    },
+    {
+      label: "Delivery",
+      value: "Calculated later",
+      icon: Truck,
+      tone: "bg-amber-50 text-amber-700",
+    },
+    {
+      label: "Checkout",
+      value: isAuthenticated ? "Account order" : "Guest or login",
+      icon: ShieldCheck,
+      tone: "bg-emerald-50 text-emerald-700",
+    },
+  ];
 
   const handleChangeQuantity = (item: any, delta: number) => {
     const currentQty = item.quantity || 1;
@@ -226,7 +231,12 @@ export default function BuyerCartPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-4">
-            {items.map((item: any) => (
+            {items.map((item: any) => {
+              const unitPrice = getCheckoutUnitPrice(item);
+              const lineTotal = getCheckoutLineTotal(item);
+              const safeQuantity = getCheckoutItemQuantity(item);
+
+              return (
               <div
                 key={item.id}
                 className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
@@ -255,7 +265,7 @@ export default function BuyerCartPage() {
                           {item.Product?.name || "Product"}
                         </h2>
                         <p className="text-sm text-slate-500">
-                          Unit price: {formatAED(item.unit_price || item.total_price / Math.max(1, item.quantity || 1))}
+                          Unit price: {formatAED(unitPrice)}
                         </p>
                         <p className="text-sm text-slate-500">
                           Minimum order: {Math.max(1, Number(item.Product?.min_order_quantity) || 1)}
@@ -267,7 +277,7 @@ export default function BuyerCartPage() {
                           Line total
                         </p>
                         <p className="mt-1 text-xl font-semibold text-slate-950">
-                          {formatAED(item.total_price)}
+                          {formatAED(lineTotal)}
                         </p>
                       </div>
                     </div>
@@ -279,7 +289,7 @@ export default function BuyerCartPage() {
                         onClick={() => handleChangeQuantity(item, -1)}
                         disabled={
                           updateQuantityMutation.isPending ||
-                          item.quantity <=
+                          safeQuantity <=
                             (item.Product?.min_order_quantity != null
                               ? Math.max(
                                   1,
@@ -294,7 +304,7 @@ export default function BuyerCartPage() {
                         <Minus className="h-4 w-4" />
                       </button>
                       <div className="w-12 text-center text-sm font-medium text-slate-900">
-                        {item.quantity}
+                        {safeQuantity}
                       </div>
                       <button
                         type="button"
@@ -302,7 +312,7 @@ export default function BuyerCartPage() {
                         disabled={
                           updateQuantityMutation.isPending ||
                           (item.Product?.quantity != null &&
-                            item.quantity >= item.Product.quantity)
+                            safeQuantity >= item.Product.quantity)
                         }
                         className="flex h-10 w-10 items-center justify-center text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -323,7 +333,8 @@ export default function BuyerCartPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <aside className="h-fit rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

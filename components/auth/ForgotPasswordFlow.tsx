@@ -60,6 +60,8 @@ export default function ForgotPasswordFlow() {
     return err instanceof Error ? err.message : fallback;
   };
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const sendOtpMutation = useMutation({
     mutationFn: async (payload: { email: string }) => {
       const response = await api.post("/auth/forgot-password/send-otp", payload);

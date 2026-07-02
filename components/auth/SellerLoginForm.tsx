@@ -13,6 +13,8 @@ export default function SellerLoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");

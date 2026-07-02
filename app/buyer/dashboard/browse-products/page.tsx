@@ -12,6 +12,8 @@ export default function BuyerBrowseProducts() {
     null,
   );
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["buyer-all-products"],
     queryFn: async () => {

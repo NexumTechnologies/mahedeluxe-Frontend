@@ -17,6 +17,8 @@ export default function BuyerOrdersPage() {
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["buyer-orders"],
     queryFn: async () => {
@@ -157,7 +159,7 @@ export default function BuyerOrdersPage() {
                   {selectedOrder.Product?.name || td("common.product")}
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  {td("common.order")} #{selectedOrder.id} {"•"}{" "}
+                  {td("common.order")} #{selectedOrder.id} {"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢"}{" "}
                   {selectedOrder.createdAt
                     ? formatDashboardDateTime(locale, selectedOrder.createdAt)
                     : ""}

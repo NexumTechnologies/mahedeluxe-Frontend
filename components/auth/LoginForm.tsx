@@ -35,6 +35,8 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const { dir, t } = useI18n();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const mutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
       const resp = await api.post("/auth/login", credentials);

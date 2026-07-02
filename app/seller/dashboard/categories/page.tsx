@@ -11,6 +11,8 @@ export default function SellerCategoriesPage() {
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => {

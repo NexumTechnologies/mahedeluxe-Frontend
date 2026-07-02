@@ -22,6 +22,8 @@ export default function SellerOrdersPage() {
     "all",
   );
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["seller-orders"],
     queryFn: async () => {
@@ -301,7 +303,7 @@ export default function SellerOrdersPage() {
                 className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <span className="sr-only">{td("common.close")}</span>
-                ✕
+                ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
               </button>
             </div>
 

@@ -8,6 +8,8 @@ import api from "@/lib/axios";
 export default function UserDashboardContent() {
   const user = getStoredUser();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ["user-stats", user?.id],
     queryFn: async () => {

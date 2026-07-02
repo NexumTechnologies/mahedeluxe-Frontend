@@ -13,6 +13,8 @@ export default function DeploymentVersionWatcher() {
   const isReloadingRef = useRef(false);
 
   useEffect(() => {
+    //========================= API CALLS ==========================//
+    //==============================================================//
     async function checkVersion() {
       if (isReloadingRef.current) return;
 

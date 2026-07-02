@@ -25,6 +25,8 @@ type SubCategoryItem = {
   };
 };
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchCategories() {
   const res = await api.get("/category");
   if (Array.isArray(res.data?.data?.items)) return res.data.data.items;

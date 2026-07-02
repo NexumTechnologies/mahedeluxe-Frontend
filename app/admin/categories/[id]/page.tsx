@@ -11,6 +11,8 @@ export default function AdminCategoryDetail({ params }: { params: { id: string }
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: "" });
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   async function load() {
     setLoading(true);
     try {

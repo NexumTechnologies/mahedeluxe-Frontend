@@ -34,6 +34,8 @@ function useAdminListedOrders(
     queryFn: async () => {
       const params: any = { page, size };
       if (status !== "all") params.status = status;
+      //========================= API CALLS ==========================//
+      //==============================================================//
       const res = await api.get("/order/admin/listed", { params });
       return res.data as {
         data: {
@@ -244,7 +246,7 @@ export default function AdminListedOrdersPage() {
                                 {buyer?.email ? (
                                   <span className="text-gray-400">
                                     {" "}
-                                    · {buyer.email}
+                                    Ãƒâ€šÃ‚Â· {buyer.email}
                                   </span>
                                 ) : null}
                               </span>
@@ -257,7 +259,7 @@ export default function AdminListedOrdersPage() {
                                 {seller?.email ? (
                                   <span className="text-gray-400">
                                     {" "}
-                                    · {seller.email}
+                                    Ãƒâ€šÃ‚Â· {seller.email}
                                   </span>
                                 ) : null}
                               </span>

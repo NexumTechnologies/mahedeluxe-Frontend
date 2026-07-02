@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import { hasStoredAuth } from "@/lib/cartStorage";
+import { normalizeCheckoutNumber } from "@/lib/checkoutPricing";
 
 type OrderSuccessItem = {
   id: number;
@@ -86,6 +87,8 @@ export default function CheckoutSuccessPage() {
 
     let cancelled = false;
 
+    //========================= API CALLS ==========================//
+    //==============================================================//
     (async () => {
       try {
         const shipping = pending.shipping;
@@ -264,12 +267,12 @@ export default function CheckoutSuccessPage() {
                   ) : (
                     items.map((item) => {
                       const productName = item.Product?.name || "Product";
-                      const quantity = Number(item.quantity || 0);
-                      const unitPrice = item.base_unit_price != null
-                        ? Number(item.base_unit_price) || 0
-                        : quantity > 0
-                          ? Number(item.total_amount || 0) / quantity
-                          : 0;
+                      const quantity = Math.max(
+                        1,
+                        Math.floor(normalizeCheckoutNumber(item.quantity, 1)),
+                      );
+                      const unitPrice =
+                        normalizeCheckoutNumber(item.total_amount, 0) / quantity;
                       const imageValue = item.Product?.image_url;
                       const imageSrc = Array.isArray(imageValue) ? imageValue[0] : imageValue;
 
@@ -286,7 +289,7 @@ export default function CheckoutSuccessPage() {
                             </div>
                             <div>
                               <h3 className="text-base font-semibold text-slate-950">{productName}</h3>
-                              <p className="mt-1 text-sm text-slate-500">Order #{item.id} • Status: {item.status || "pending"}</p>
+                              <p className="mt-1 text-sm text-slate-500">Order #{item.id} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Status: {item.status || "pending"}</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-3 gap-4 text-sm sm:min-w-70">

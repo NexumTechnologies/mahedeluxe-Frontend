@@ -7,6 +7,8 @@ import {
 
 export async function GET() {
   try {
+    //========================= API CALLS ==========================//
+    //==============================================================//
     const response = await fetch(
       "https://api.frankfurter.app/latest?from=AED&to=USD,EUR",
       {

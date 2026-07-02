@@ -10,6 +10,12 @@ import {
   removeGuestCartItem,
   hasStoredAuth,
 } from "@/lib/cartStorage";
+import {
+  getCheckoutItemQuantity,
+  getCheckoutLineTotal,
+  getCheckoutSubtotal,
+  getCheckoutUnitPrice,
+} from "@/lib/checkoutPricing";
 import { useI18n } from "@/components/LanguageProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPriceFromAED } from "@/lib/currency";
@@ -22,6 +28,8 @@ export default function CartDrawer() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const loadCart = async () => {
     setLoading(true);
     try {
@@ -96,10 +104,7 @@ export default function CartDrawer() {
 
   if (!open) return null;
 
-  const subtotal = items.reduce(
-    (sum, item) => sum + Number(item.unit_price || 0) * Number(item.quantity || 1),
-    0,
-  );
+  const subtotal = getCheckoutSubtotal(items);
 
   return (
     <div className="fixed inset-0 z-50">
@@ -135,8 +140,9 @@ export default function CartDrawer() {
             <div className="space-y-3">
               {items.map((item: any) => {
                 const product = item.Product || {};
-                const qty = Number(item.quantity ?? 1) || 1;
-                const unit = Number(item.unit_price ?? 0) || 0;
+                const qty = getCheckoutItemQuantity(item);
+                const unit = getCheckoutUnitPrice(item);
+                const lineTotal = getCheckoutLineTotal(item);
                 const selectedSize = item.selected_size || product.selected_size || null;
                 const imageSrc =
                   (product.image_url &&
@@ -171,7 +177,7 @@ export default function CartDrawer() {
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-slate-900">
-                          {formatPriceFromAED(unit * qty, currency, rates, locale)}
+                          {formatPriceFromAED(lineTotal, currency, rates, locale)}
                         </div>
                       </div>
                       <div className="mt-3 flex items-center gap-3">

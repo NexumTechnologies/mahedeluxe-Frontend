@@ -124,6 +124,8 @@ export default function AdminOwnProductsPage() {
     },
   });
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data: categoriesData } = useQuery({
     queryKey: ["admin-own-categories-options"],
     queryFn: async () => {
@@ -574,12 +576,12 @@ export default function AdminOwnProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  ✕
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
               <div className="px-6 py-4 text-sm text-slate-600">
-                This action can’t be undone.
+                This action canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t be undone.
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
@@ -626,7 +628,7 @@ export default function AdminOwnProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  ✕
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
@@ -777,7 +779,7 @@ export default function AdminOwnProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  ✕
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
@@ -1041,7 +1043,7 @@ export default function AdminOwnProductsPage() {
                   {uploadedUrls.length > 0 && (
                     <div className="mt-2 space-y-2">
                       <p className="text-xs text-emerald-700 font-medium">
-                        {uploadedUrls.length} image(s) uploaded. Click × to remove.
+                        {uploadedUrls.length} image(s) uploaded. Click ÃƒÆ’Ã¢â‚¬â€ to remove.
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {uploadedUrls.map((url) => (
@@ -1058,7 +1060,7 @@ export default function AdminOwnProductsPage() {
                                 )
                               }
                             >
-                              ×
+                              ÃƒÆ’Ã¢â‚¬â€
                             </button>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img

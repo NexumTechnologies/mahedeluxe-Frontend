@@ -54,6 +54,8 @@ const trendingSearches: TrendingSearch[] = [
   },
 ];
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchHomeCategories(): Promise<Category[]> {
   const res = await api.get(`/category`);
   const data = res.data;

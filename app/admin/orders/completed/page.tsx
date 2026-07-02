@@ -14,6 +14,8 @@ function useAdminOrders(page: number, size: number) {
   return useQuery({
     queryKey: ["admin-orders", "delivered", page, size],
     queryFn: async () => {
+      //========================= API CALLS ==========================//
+      //==============================================================//
       const res = await api.get("/order/admin", { params: { page, size, status: "delivered" } });
       return res.data as {
         data: {

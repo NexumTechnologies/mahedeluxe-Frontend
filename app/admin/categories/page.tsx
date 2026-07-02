@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 
+//========================= API CALLS ==========================//
+//==============================================================//
 async function fetchCategories() {
   const res = await api.get(`/category`);
   if (res.data && res.data.data && Array.isArray(res.data.data.items)) return res.data.data.items;
@@ -186,7 +188,7 @@ export default function AdminCategoriesPage() {
                         const file = e.target.files?.[0];
                         if (!file) return;
 
-                        // Show loader immediately — yield so React paints before upload
+                        // Show loader immediately ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â yield so React paints before upload
                         setUploadingImage(true);
                         await new Promise((r) => setTimeout(r, 0));
 

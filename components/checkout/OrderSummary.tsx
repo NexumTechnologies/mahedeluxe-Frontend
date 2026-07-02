@@ -4,9 +4,14 @@ import { ChevronRight } from "lucide-react";
 import { useI18n } from "@/components/LanguageProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPriceFromAED } from "@/lib/currency";
+import {
+  getCheckoutBaseUnitPrice,
+  getCheckoutItemQuantity,
+  getCheckoutSubtotal,
+} from "@/lib/checkoutPricing";
 
 interface OrderSummaryProps {
-  items: any[];
+  items: unknown[];
   totalItems?: number;
   itemSubtotal?: number;
   isLoading?: boolean;
@@ -25,29 +30,15 @@ export default function OrderSummary({
   onPayNow,
 }: OrderSummaryProps) {
   const itemCount = totalItems ?? items.length ?? 0;
-  const normalizeNumber = (value: unknown, fallback = 0) => {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : fallback;
-  };
-
-  const computedCustomerSubtotal = Array.isArray(items)
-    ? items.reduce((sum, item) => sum + normalizeNumber(item?.total_price, 0), 0)
-    : 0;
+  const computedCustomerSubtotal = getCheckoutSubtotal(items);
 
   const customerSubtotal =
-    itemSubtotal != null ? normalizeNumber(itemSubtotal, 0) : computedCustomerSubtotal;
+    itemSubtotal != null ? Number(itemSubtotal) || 0 : computedCustomerSubtotal;
 
   const baseProductsTotal = Array.isArray(items)
     ? items.reduce((sum, item) => {
-        const quantity = Math.max(1, Math.floor(normalizeNumber(item?.quantity, 1)));
-        const baseUnitPrice = normalizeNumber(
-          item?.base_unit_price ??
-            item?.baseUnitPrice ??
-            item?.Product?.base_price ??
-            item?.Product?.price ??
-            item?.unit_price,
-          0,
-        );
+        const quantity = getCheckoutItemQuantity(item);
+        const baseUnitPrice = getCheckoutBaseUnitPrice(item);
         return sum + baseUnitPrice * quantity;
       }, 0)
     : 0;

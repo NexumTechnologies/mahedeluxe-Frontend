@@ -12,6 +12,8 @@ export default function AdminMySalesOrdersPage() {
     "all",
   );
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-my-sales-orders"],
     queryFn: async () => {
@@ -263,7 +265,7 @@ export default function AdminMySalesOrdersPage() {
                 onClick={() => setSelectedOrder(null)}
                 className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <span className="sr-only">Close</span>✕
+                <span className="sr-only">Close</span>ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
               </button>
             </div>
 

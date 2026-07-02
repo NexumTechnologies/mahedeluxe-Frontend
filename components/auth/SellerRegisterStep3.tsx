@@ -60,6 +60,8 @@ export default function SellerRegisterStep3({
     }
   }, [router, role]);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const uploadSingleDocument = async (file: File) => {
     const formData = new FormData();
     formData.append("images", file);

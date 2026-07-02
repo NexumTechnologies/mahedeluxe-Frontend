@@ -62,6 +62,8 @@ export async function GET(request: NextRequest) {
 
   let backendProxy: Response | null = null;
   try {
+    //========================= API CALLS ==========================//
+    //==============================================================//
     backendProxy = await fetch(
       `${backendApiBase}/upload/document-proxy?url=${encodeURIComponent(parsed.toString())}`,
       {
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest) {
     `<!doctype html><meta charset="utf-8" />
     <title>Document preview</title>
     <body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 16px;">
-      <h3 style="margin:0 0 8px 0;">Document can’t be displayed</h3>
+      <h3 style="margin:0 0 8px 0;">Document canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t be displayed</h3>
       <div style="color:#444; font-size: 14px; line-height: 1.5;">
         <div><strong>Status:</strong> ${safeStatus}</div>
         <div><strong>Content-Type:</strong> ${safeContentType}</div>

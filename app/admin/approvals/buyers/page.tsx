@@ -39,6 +39,8 @@ export default function BuyerApprovalsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-approvals", "buyer", page, size, debouncedSearch],
     queryFn: async () => {
@@ -330,10 +332,10 @@ export default function BuyerApprovalsPage() {
               {td("common.close")}
             </button>
             <button className="absolute left-3 text-white z-20 bg-black/40 rounded-full p-2" style={{ left: 12, top: '50%' }} onClick={() => setPreviewSelected((s) => Math.max(0, s - 1))}>
-              ◀
+              ÃƒÂ¢Ã¢â‚¬â€Ã¢â€šÂ¬
             </button>
             <button className="absolute right-3 text-white z-20 bg-black/40 rounded-full p-2" style={{ right: 12, top: '50%' }} onClick={() => setPreviewSelected((s) => Math.min(previewDocs.length - 1, s + 1))}>
-              ▶
+              ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¶
             </button>
 
             <div className="w-full h-full flex items-center justify-center">

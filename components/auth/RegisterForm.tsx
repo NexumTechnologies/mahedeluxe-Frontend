@@ -16,6 +16,8 @@ export default function RegisterForm() {
   const router = useRouter();
   const { dir, t } = useI18n();
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");

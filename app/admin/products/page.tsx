@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -116,20 +116,13 @@ const normalizeVariantsForForm = (product: AdminProduct): SizeVariantForm[] => {
 
 const buildSizeVariantPayload = (
   variants: SizeVariantForm[],
-  uploadedUrls: string[] = [],
 ) =>
   variants
     .map((variant) => {
-      const selectedImages = variant.image_url.filter(Boolean);
-      const fallbackImages =
-        selectedImages.length === 0 && uploadedUrls.length === 1
-          ? [uploadedUrls[0]]
-          : [];
-
       return {
         size: variant.size.trim(),
         price: Number(variant.price),
-        image_url: selectedImages.length > 0 ? selectedImages : fallbackImages,
+        image_url: variant.image_url.filter(Boolean),
       };
     })
     .filter(
@@ -279,6 +272,8 @@ export default function AdminProductsPage() {
     emptyVariant(),
   ]);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-products", activeTab, currentPage, productsPerPage],
     queryFn: async () => {
@@ -440,7 +435,6 @@ export default function AdminProductsPage() {
     selectedSubCategoryId.length > 0 && subSubCategories.length > 0;
   const normalizedSizeVariants = buildSizeVariantPayload(
     sizeVariants,
-    uploadedUrls,
   );
   const fallbackVariantPrice = normalizedSizeVariants[0]?.price ?? 0;
   const validationErrors = getProductFormValidationErrors({
@@ -1112,12 +1106,12 @@ export default function AdminProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  âœ•
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
               <div className="px-6 py-4 text-sm text-slate-600">
-                This action canâ€™t be undone.
+                This action canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t be undone.
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
@@ -1164,7 +1158,7 @@ export default function AdminProductsPage() {
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close"
               >
-                âœ•
+                ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
               </button>
             </div>
 
@@ -1606,7 +1600,6 @@ export default function AdminProductsPage() {
                   <SizeVariantsEditor
                     variants={sizeVariants}
                     onChange={setSizeVariants}
-                    uploadedUrls={uploadedUrls}
                     allowedOptions={variantTypeMeta.options}
                     title={variantTypeMeta.title}
                     optionLabel={variantTypeMeta.label}
@@ -1683,27 +1676,7 @@ export default function AdminProductsPage() {
                             const urls =
                               res.data?.urls || res.data?.url || res.data || [];
                             const newUrls = Array.isArray(urls) ? urls : [urls];
-                            setUploadedUrls((prev) => {
-                              const mergedUrls = [...prev, ...newUrls];
-
-                              setSizeVariants((currentVariants) => {
-                                if (mergedUrls.length !== 1) return currentVariants;
-
-                                return currentVariants.map((variant, index) => {
-                                  if (index !== 0) return variant;
-                                  if (variant.image_url.filter(Boolean).length > 0) {
-                                    return variant;
-                                  }
-
-                                  return {
-                                    ...variant,
-                                    image_url: [mergedUrls[0]],
-                                  };
-                                });
-                              });
-
-                              return mergedUrls;
-                            });
+                            setUploadedUrls((prev) => [...prev, ...newUrls]);
                           } catch (err) {
                             console.error("Image upload failed", err);
                             setToast({
@@ -1725,7 +1698,7 @@ export default function AdminProductsPage() {
                       {uploadedUrls.length > 0 && (
                         <div className="mt-2 space-y-1">
                           <p className="text-xs text-green-600">
-                            {uploadedUrls.length} image(s) uploaded. Click × to
+                            {uploadedUrls.length} image(s) uploaded. Click Ãƒâ€” to
                             remove.
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -1741,17 +1714,9 @@ export default function AdminProductsPage() {
                                     setUploadedUrls((prev) =>
                                       prev.filter((u) => u !== url),
                                     );
-                                    setSizeVariants((currentVariants) =>
-                                      currentVariants.map((variant) => ({
-                                        ...variant,
-                                        image_url: variant.image_url.filter(
-                                          (imageUrl) => imageUrl !== url,
-                                        ),
-                                      })),
-                                    );
                                   }}
                                 >
-                                  ×
+                                  Ãƒâ€”
                                 </button>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img

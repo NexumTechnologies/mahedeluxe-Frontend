@@ -38,6 +38,8 @@ export default function SellerDashboardPage() {
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["seller-dashboard"],
     queryFn: async () => {
@@ -187,20 +189,31 @@ export default function SellerDashboardPage() {
                       <td className="py-2">
                         {order.User?.name || td("common.buyerLabel")}
                       </td>
-                      <td className="py-2 text-xs text-slate-600">
-                        <div className="font-semibold text-slate-900">
-                          {formatAED(order.total_amount || 0)}
-                        </div>
-                        <div>
-                          Product price: {formatAED(order.base_unit_price || order.Product?.price || 0)}
-                        </div>
-                        <div>
+                    <td className="py-2 text-xs text-slate-600">
+                      {(() => {
+                        const quantity = Math.max(1, Number(order.quantity || 1));
+                        const finalUnitPrice = quantity > 0
+                          ? Number(order.total_amount || 0) / quantity
+                          : 0;
+
+                        return (
+                          <>
+                      <div className="font-semibold text-slate-900">
+                        {formatAED(order.total_amount || 0)}
+                      </div>
+                      <div>
+                          Product price: {formatAED(finalUnitPrice)}
+                      </div>
+                      <div>
                           Admin commission: {typeof order.commission_percentage === "number" ? `${order.commission_percentage}%` : "0%"}
-                        </div>
-                        <div>
+                      </div>
+                      <div>
                           Admin amount: {formatAED(order.admin_earning_amount || 0)}
-                        </div>
-                      </td>
+                      </div>
+                          </>
+                        );
+                      })()}
+                    </td>
                       <td className="py-2">
                         <span
                           className={`text-sm font-medium ${

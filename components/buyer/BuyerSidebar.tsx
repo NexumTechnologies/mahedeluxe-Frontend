@@ -21,6 +21,8 @@ export default function BuyerSidebar({ closeOnNavigate }: BuyerSidebarProps) {
   const td = (key: string, vars?: Record<string, string | number>) =>
     translateDashboard(locale, key, vars);
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");

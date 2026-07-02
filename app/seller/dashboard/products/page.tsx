@@ -42,18 +42,13 @@ const normalizeVariantsForForm = (product: any): SizeVariantForm[] => {
 
 const buildSizeVariantPayload = (
   variants: SizeVariantForm[],
-  uploadedUrls: string[] = [],
 ) =>
   variants
     .map((variant) => {
-      const selectedImages = variant.image_url.filter(Boolean);
-      const fallbackImages =
-        selectedImages.length === 0 && uploadedUrls.length === 1 ? [uploadedUrls[0]] : [];
-
       return {
         size: variant.size.trim(),
         price: Number(variant.price),
-        image_url: selectedImages.length > 0 ? selectedImages : fallbackImages,
+        image_url: variant.image_url.filter(Boolean),
       };
     })
     .filter(
@@ -199,6 +194,8 @@ export default function SellerProductsPage() {
     setIsModalOpen(true);
   };
 
+  //========================= API CALLS ==========================//
+  //==============================================================//
   const { data, isLoading, error } = useQuery({
     queryKey: ["seller-products"],
     queryFn: async () => {
@@ -279,7 +276,7 @@ export default function SellerProductsPage() {
     selectedCategoryId.length > 0 && subCategories.length > 0;
   const requiresSubSubCategory =
     selectedSubCategoryId.length > 0 && subSubCategories.length > 0;
-  const normalizedSizeVariants = buildSizeVariantPayload(sizeVariants, uploadedUrls);
+  const normalizedSizeVariants = buildSizeVariantPayload(sizeVariants);
   const fallbackVariantPrice = normalizedSizeVariants[0]?.price ?? 0;
   const validationErrors = getProductFormValidationErrors({
     form,
@@ -789,7 +786,6 @@ export default function SellerProductsPage() {
                   <SizeVariantsEditor
                     variants={sizeVariants}
                     onChange={setSizeVariants}
-                    uploadedUrls={uploadedUrls}
                     allowedOptions={variantTypeMeta.options}
                     title={variantTypeMeta.title}
                     optionLabel={variantTypeMeta.label}
@@ -813,7 +809,7 @@ export default function SellerProductsPage() {
                       required
                     />
                     <p className="mt-1 text-[11px] text-slate-500">
-                      Buyers can’t purchase below this quantity.
+                      Buyers canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t purchase below this quantity.
                     </p>
                   </div>
 
@@ -866,25 +862,7 @@ export default function SellerProductsPage() {
                             const urls =
                               res.data?.urls || res.data?.url || res.data || [];
                             const newUrls = Array.isArray(urls) ? urls : [urls];
-                            setUploadedUrls((prev) => {
-                              const mergedUrls = [...prev, ...newUrls];
-
-                              setSizeVariants((currentVariants) => {
-                                if (mergedUrls.length !== 1) return currentVariants;
-
-                                return currentVariants.map((variant, index) => {
-                                  if (index !== 0) return variant;
-                                  if (variant.image_url.filter(Boolean).length > 0) return variant;
-
-                                  return {
-                                    ...variant,
-                                    image_url: [mergedUrls[0]],
-                                  };
-                                });
-                              });
-
-                              return mergedUrls;
-                            });
+                            setUploadedUrls((prev) => [...prev, ...newUrls]);
                           } catch (err) {
                             console.error("Image upload failed", err);
                             setUploadedUrls([]);
@@ -901,7 +879,7 @@ export default function SellerProductsPage() {
                       {uploadedUrls.length > 0 && (
                         <div className="mt-2 space-y-1">
                           <p className="text-xs text-green-600">
-                            {uploadedUrls.length} image(s) uploaded. Click × to
+                            {uploadedUrls.length} image(s) uploaded. Click ÃƒÆ’Ã¢â‚¬â€ to
                             remove.
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -919,7 +897,7 @@ export default function SellerProductsPage() {
                                     )
                                   }
                                 >
-                                  ×
+                                  ÃƒÆ’Ã¢â‚¬â€
                                 </button>
                                 <img
                                   src={url}
@@ -1031,7 +1009,7 @@ export default function SellerProductsPage() {
                   }}
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 >
-                  <span className="sr-only">Close</span>✕
+                  <span className="sr-only">Close</span>ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
@@ -1239,12 +1217,12 @@ export default function SellerProductsPage() {
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Close"
                 >
-                  ✕
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
                 </button>
               </div>
 
               <div className="px-6 py-4 text-sm text-slate-600">
-                This action can’t be undone.
+                This action canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t be undone.
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
